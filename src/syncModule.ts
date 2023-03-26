@@ -67,7 +67,7 @@ export class TodoistSync  {
         //const editor = this.app.workspace.activeEditor?.editor
         const file = this.app.workspace.getActiveFile()
         const filepath = file.path
-        console.log(filepath)
+        //console.log(filepath)
       
       
         const frontMatter = await this.getFrontMatter(file);
@@ -78,7 +78,7 @@ export class TodoistSync  {
       
         //const currentFileValue  = await this.app.vault.read(file)
         const currentFileValue = await	this.app.vault.cachedRead(file)
-        console.log(currentFileValue)
+        //console.log(currentFileValue)
         const currentFileValueWithOutFrontMatter = currentFileValue.replace(/^---[\s\S]*?---\n/, '');
         const frontMatter_todoistTasks = frontMatter.todoistTasks;
         const frontMatter_todoistCount = frontMatter.todoistCount;
@@ -119,7 +119,7 @@ export class TodoistSync  {
       
       
       
-        await updateFrontMatter(file, (frontMatter) => {
+        await this.updateFrontMatter(file, (frontMatter) => {
           frontMatter.todoistTasks = newFrontMatter_todoistTasks;
           frontMatter.todoistCount = frontMatter_todoistCount - deletedTaskAmount;
         });

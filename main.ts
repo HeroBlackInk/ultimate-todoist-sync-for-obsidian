@@ -38,13 +38,13 @@ export default class MyPlugin extends Plugin {
 
 
 		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('list-checks', 'Sync with todoist', (evt: MouseEvent) => {
+		const ribbonIconEl = this.addRibbonIcon('list-checks', 'Sync with todoist', async (evt: MouseEvent) => {
 			// Called when the user clicks the icon.
 			//new Notice('This is a notice!');
 			const activeFile = evt.view.app.workspace.getActiveFile()
 			if(activeFile){
-
-				this.todoistSync.fullTextNewTaskCheck()
+				await this.todoistSync.fullTextNewTaskCheck()
+				await this.todoistSync.deletedTaskCheck()
 
 			}
 
@@ -93,6 +93,28 @@ export default class MyPlugin extends Plugin {
 			}
 		});
 
+		//key 事件监听，判断换行和删除
+		this.registerDomEvent(document, 'keyup', async (evt: KeyboardEvent) =>{
+			//console.log(`key pressed`)
+	
+			//判断点击事件发生的区域,如果不在编辑器中，return
+			if (!(evt.view.app.workspace.activeEditor?.editor?.hasFocus)) {
+				(console.log(`editor is not focused`))
+				return
+			}
+			const view = evt.view.app.workspace.getActiveViewOfType(MarkdownView);
+			const editor = view.app.workspace.activeEditor?.editor
+	
+			if (evt.key === 'ArrowUp' || evt.key === 'ArrowDown' || evt.key === 'ArrowLeft' || evt.key === 'ArrowRight' ||evt.key === 'PageUp' || evt.key === 'PageDown') {
+				console.log(`${evt.key} arrow key is released`);
+				//lineNumberCheck(editor,view)
+			}
+			if(evt.key === "Delete" || evt.key === "Backspace"){
+				console.log(`${evt.key} key is released`);
+				await this.todoistSync.deletedTaskCheck();		
+			}
+		});
+		
 
 
 		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
@@ -169,6 +191,8 @@ export default class MyPlugin extends Plugin {
 
 
 	}
+
+
 }
 
 class SampleModal extends Modal {
