@@ -4,10 +4,11 @@ import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Set
 
 //settings
 import { MyPluginSettings,DEFAULT_SETTINGS,SampleSettingTab } from 'src/settings';
-//todoist rest api
+//todoist  api
 import { TodoistRestAPI } from 'src/todoistRestAPI';
 import { TodoistSyncAPI } from 'src/todoistSyncAPI';
-
+//task parser 
+import { TaskParser } from 'src/taskParser';
 
 
 export default class MyPlugin extends Plugin {
@@ -29,6 +30,9 @@ export default class MyPlugin extends Plugin {
 
 		//initialize todoisy sync api
 		const todoistSyncAPI = new TodoistSyncAPI(this.app,this.settings)
+
+		//initialize task parser
+		const taskParser = new TaskParser(this.app,this.settings)
 
 
 		// This creates an icon in the left ribbon.
