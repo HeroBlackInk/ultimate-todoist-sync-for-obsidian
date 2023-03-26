@@ -10,7 +10,7 @@ import { TodoistSyncAPI } from 'src/todoistSyncAPI';
 //task parser 
 import { TaskParser } from 'src/taskParser';
 //task read and write
-import { DataRW } from 'src/cacheDataReadAndWrite';
+import { DataRW } from 'src/DataReadAndWrite';
 //sync module
 import { TodoistSync } from 'src/syncModule';
 
@@ -38,9 +38,16 @@ export default class MyPlugin extends Plugin {
 
 
 		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
+		const ribbonIconEl = this.addRibbonIcon('list-checks', 'Sync with todoist', (evt: MouseEvent) => {
 			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
+			//new Notice('This is a notice!');
+			const activeFile = evt.view.app.workspace.getActiveFile()
+			if(activeFile){
+
+				this.todoistSync.fullTextNewTaskCheck()
+
+			}
+
 		});
 		// Perform additional things with the ribbon
 		ribbonIconEl.addClass('my-plugin-ribbon-class');
@@ -99,11 +106,13 @@ export default class MyPlugin extends Plugin {
 
 		//hook editor-change 事件，如果当前line包含 #todoist,说明有new task
 		this.registerEvent(this.app.workspace.on('editor-change',async (editor,view)=>{			
-			this.todoistSync.lineContentNewTaskCheck(editor,view)
+			await this.todoistSync.lineContentNewTaskCheck(editor,view)
+			await this.saveSettings()
 		}))
 	}
 
-	onunload() {
+	async onunload() {
+		await this.saveSettings()
 
 	}
 
@@ -133,7 +142,11 @@ export default class MyPlugin extends Plugin {
 		if(ini){
 	
 			if(!this.settings.initialized){
+				//初始化settings
+				this.settings.todoistTasksData.tasks = []
+				this.settings.todoistTasksData.events = []
 				this.settings.initialized = true
+				await this.saveSettings()
 			}
 			new Notice(`插件初始化成功`)
 		}else{

@@ -1,7 +1,7 @@
 import MyPlugin from "main";
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting ,TFile} from 'obsidian';
 import { MyPluginSettings } from 'src/settings';
-import { DataRW } from "./cacheDataReadAndWrite";
+import { DataRW } from "./DataReadAndWrite";
 //import { getAPI } from "obsidian-dataview";
 
 
@@ -74,7 +74,7 @@ export class TaskParser   {
         console.log(textWithoutIndentation)
         //console.log(`这是子任务`)
         //读取filepath
-        const fileContent = await this.getFileContentFromJSON(filepath)
+        const fileContent = await this.dataRw.readContentFromFilePath(filepath)
         //遍历 line
         const lines = fileContent.split('\n')
     
@@ -83,18 +83,18 @@ export class TaskParser   {
             const line = lines[i]
     
             //如果是空行说明没有parent
-            if(isLineBlank(line)){
+            if(this.isLineBlank(line)){
             break
             }
             //如果tab数量大于等于当前line,跳过
-            if (getTabIndentation(line) >= getTabIndentation(lineText)) {
+            if (this.getTabIndentation(line) >= this.getTabIndentation(lineText)) {
             //console.log(`缩进为 ${getTabIndentation(line)}`)
             continue       
             }
-            if((getTabIndentation(line) < getTabIndentation(lineText))){
+            if((this.getTabIndentation(line) < this.getTabIndentation(lineText))){
             //console.log(`缩进为 ${getTabIndentation(line)}`)
             if(this.hasTodoistId(line)){
-                parentId = getTodoistIdFromLineText(line)
+                parentId = this.getTodoistIdFromLineText(line)
                 hasParent = true
                 console.log(`parent id is ${parentId}`)
                 break
@@ -114,9 +114,9 @@ export class TaskParser   {
         const projectId = await this.dataRw.getProjectIdByNameFromCache(projectName)
         const content = this.getTaskContentFromLineText(textWithoutIndentation)
         const labels = this.getAllTagsFromLineText(textWithoutIndentation)
-        const isCompleted = isTaskCheckboxChecked(textWithoutIndentation)
+        const isCompleted = this.isTaskCheckboxChecked(textWithoutIndentation)
         let description = ""
-        const todoist_id = getTodoistIdFromLineText(textWithoutIndentation)
+        const todoist_id = this.getTodoistIdFromLineText(textWithoutIndentation)
     
         if(filepath){
         description = `obsidian://open?vault=${this.app.vault.getName()}&file=${filepath}`;
