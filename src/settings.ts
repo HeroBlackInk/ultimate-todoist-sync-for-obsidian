@@ -2,7 +2,7 @@ import { App, Plugin, PluginSettingTab, Setting } from 'obsidian';
 
 
 export interface MyPluginSettings {
-    private initialized:boolean;
+    initialized:boolean;
 	//mySetting: string;
 	//todoistTasksFilePath: string;
 	todoistAPIToken: string; // replace with correct type

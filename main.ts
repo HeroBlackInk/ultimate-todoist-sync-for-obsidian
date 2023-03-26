@@ -4,12 +4,28 @@ import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Set
 
 //settings
 import { MyPluginSettings,DEFAULT_SETTINGS,SampleSettingTab } from 'src/settings';
+//todoist rest api
+import { TodoistRestAPI } from 'src/todoistRestAPI';
+
+
 
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
 
 	async onload() {
+
 		await this.loadSettings();
+		// This adds a settings tab so the user can configure various aspects of the plugin
+		this.addSettingTab(new SampleSettingTab(this.app, this));
+		if (!this.settings.initialized) {
+			console.log(`plug 还没有初始化`)
+			  // 标记插件已经启动过
+			 //this.initialized = true;		  
+		}
+
+		//initialize restapi 
+		const todoistRestAPI = new TodoistRestAPI(this.app,this.settings)
+
 
 		// This creates an icon in the left ribbon.
 		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
@@ -60,8 +76,7 @@ export default class MyPlugin extends Plugin {
 			}
 		});
 
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
+
 
 		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
 		// Using this function will automatically remove the event listener when this plugin is disabled.
