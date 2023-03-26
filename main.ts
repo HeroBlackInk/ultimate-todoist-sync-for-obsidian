@@ -9,7 +9,8 @@ import { TodoistRestAPI } from 'src/todoistRestAPI';
 import { TodoistSyncAPI } from 'src/todoistSyncAPI';
 //task parser 
 import { TaskParser } from 'src/taskParser';
-
+//task read and write
+import { DataRW } from 'src/cacheDataReadAndWrite';
 
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
@@ -33,6 +34,9 @@ export default class MyPlugin extends Plugin {
 
 		//initialize task parser
 		const taskParser = new TaskParser(this.app,this.settings)
+
+		//initialize data read and write object
+		const dataRw = new DataRW(this.app,this.settings)
 
 
 		// This creates an icon in the left ribbon.

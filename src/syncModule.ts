@@ -65,7 +65,7 @@ export class TodoistSync extends MyPlugin {
         }
       
         //const currentFileValue  = await this.app.vault.read(file)
-        const currentFileValue = await	this.app.vault.cachedRead(file)
+        const currentFileValue = await	this.app.vault.CachedRead(file)
         console.log(currentFileValue)
         const currentFileValueWithOutFrontMatter = currentFileValue.replace(/^---[\s\S]*?---\n/, '');
         const frontMatter_todoistTasks = frontMatter.todoistTasks;
