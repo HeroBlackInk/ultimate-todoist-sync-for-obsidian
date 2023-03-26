@@ -1,7 +1,7 @@
 import MyPlugin from "main";
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting ,TFile} from 'obsidian';
 import { MyPluginSettings } from 'src/settings';
-
+import { DataRW } from "./cacheDataReadAndWrite";
 //import { getAPI } from "obsidian-dataview";
 
 
@@ -45,50 +45,19 @@ interface todoistTaskObject {
 }
     
 
-export class TaskParser extends MyPlugin {
+export class TaskParser   {
 	app:App;
     settings:MyPluginSettings;
+    dataRw:DataRW;
 
-	constructor(app:App, settings:MyPluginSettings) {
-		super(app,settings);
+	constructor(app:App, settings:MyPluginSettings,dataRw:DataRW) {
+		//super(app,settings);
 		this.app = app;
         this.settings = settings;
+        this.dataRw = dataRw;
 	}
 
 
-
-
-
-    //convert dataview task object to todoist task object
-    async  convertDataviewTaskToTodoistTaskObject(dataviewTask) {
-
-        let parentId = null
-        if(typeof dataviewTask.parent !== "undefined"){
-        const parentTask = await this.getLineTask(dataviewTask.path,dataviewTask.parent)
-        parentId = (parentTask.todoist_id).toString();
-        //console.log(`parent task id is ${parentTask.todoist_id}`)
-        }
-    
-        const content = await this.getTaskContentFromLineText(dataviewTask.text )
-        const dueDate = this.getDueDateFromDataview(dataviewTask)
-    
-        const projectName = dataviewTask.project ?? "Obsidian"
-        const projectId = await this.getProjectIdByNameFromJSON(projectName)
-    
-        const todoistTask = {
-        projectId: projectId,
-        content: content || '',
-        parentId: parentId || null,
-        dueDate: dueDate || '',
-        labels: dataviewTask.tags || [],
-        description: `obsidian://open?vault=${this.app.vault.getName()}&file=${dataviewTask.path}`,
-    
-    
-        };
-        //console.log(`converted task `)
-        //console.log(todoistTask)
-        return todoistTask;
-    }
   
   
     //convert line text to a task object
@@ -142,7 +111,7 @@ export class TaskParser extends MyPlugin {
         const dueDate = this.getDueDateFromLineText(textWithoutIndentation)
     
         const projectName = this.getProjectNameFromLineText(textWithoutIndentation) ?? "Obsidian"
-        const projectId = await getProjectIdByNameFromJSON(projectName)
+        const projectId = await this.dataRw.getProjectIdByNameFromCache(projectName)
         const content = this.getTaskContentFromLineText(textWithoutIndentation)
         const labels = this.getAllTagsFromLineText(textWithoutIndentation)
         const isCompleted = isTaskCheckboxChecked(textWithoutIndentation)

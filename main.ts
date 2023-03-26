@@ -11,32 +11,30 @@ import { TodoistSyncAPI } from 'src/todoistSyncAPI';
 import { TaskParser } from 'src/taskParser';
 //task read and write
 import { DataRW } from 'src/cacheDataReadAndWrite';
+//sync module
+import { TodoistSync } from 'src/syncModule';
 
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
+	todoistRestAPI:TodoistRestAPI;
+	todoistSyncAPI:TodoistSyncAPI;
+	taskParser:TaskParser;
+	dataRw:DataRW;
+	todoistSync:TodoistSync;
 
 	async onload() {
 
 		await this.loadSettings();
 		// This adds a settings tab so the user can configure various aspects of the plugin
 		this.addSettingTab(new SampleSettingTab(this.app, this));
-		if (!this.settings.initialized) {
-			console.log(`plug 还没有初始化`)
-			  // 标记插件已经启动过
-			 //this.initialized = true;		  
+		if (!this.settings.todoistAPIToken) {
+			new Notice('请配置Todoist API');
+			return	   
+		}else{
+			await this.initializePlugin();
 		}
 
-		//initialize todoist restapi 
-		const todoistRestAPI = new TodoistRestAPI(this.app,this.settings)
 
-		//initialize todoisy sync api
-		const todoistSyncAPI = new TodoistSyncAPI(this.app,this.settings)
-
-		//initialize task parser
-		const taskParser = new TaskParser(this.app,this.settings)
-
-		//initialize data read and write object
-		const dataRw = new DataRW(this.app,this.settings)
 
 
 		// This creates an icon in the left ribbon.
@@ -98,6 +96,11 @@ export default class MyPlugin extends Plugin {
 
 		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
 		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+
+		//hook editor-change 事件，如果当前line包含 #todoist,说明有new task
+		this.registerEvent(this.app.workspace.on('editor-change',async (editor,view)=>{			
+			this.todoistSync.lineContentNewTaskCheck(editor,view)
+		}))
 	}
 
 	onunload() {
@@ -110,6 +113,48 @@ export default class MyPlugin extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
+	}
+
+	async modifyTodoistAPI(api:string){
+		this.settings.todoistAPIToken = api
+		await this.saveSettings()
+		await this.initializePlugin() 
+	}
+
+	async initializePlugin(){
+		
+		//initialize todoist restapi 
+		this.todoistRestAPI = new TodoistRestAPI(this.app,this.settings)
+
+		//initialize data read and write object
+		this.dataRw = new DataRW(this.app,this.settings,this.todoistRestAPI)
+		const ini = await this.dataRw.saveProjectsToCache()
+		//console.log(ini)
+		if(ini){
+	
+			if(!this.settings.initialized){
+				this.settings.initialized = true
+			}
+			new Notice(`插件初始化成功`)
+		}else{
+			new Notice(`初始化失败,请检查todoist api`)
+			return
+		}
+
+		//initialize todoisy sync api
+		this.todoistSyncAPI = new TodoistSyncAPI(this.app,this.settings)
+
+
+
+		//initialize task parser
+		this.taskParser = new TaskParser(this.app,this.settings,this.dataRw)
+
+		//initialize todoist sync module
+		 this.todoistSync = new TodoistSync(this.app,this.settings,this.todoistRestAPI,this.todoistSyncAPI,this.taskParser,this.dataRw)
+
+		
+
+
 	}
 }
 

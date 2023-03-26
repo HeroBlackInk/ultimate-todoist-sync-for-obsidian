@@ -46,7 +46,7 @@ export class SampleSettingTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.todoistAPIToken)
 					.onChange(async (value) => {
 						this.plugin.settings.todoistAPIToken = value;
-						await this.plugin.saveSettings()
+						this.plugin.modifyTodoistAPI(value)
 					})
 			);
 	}

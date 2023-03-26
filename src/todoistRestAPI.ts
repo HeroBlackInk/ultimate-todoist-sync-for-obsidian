@@ -5,12 +5,12 @@ import { MyPluginSettings } from 'src/settings';
 
 
 
-export class TodoistRestAPI extends MyPlugin {
+export class TodoistRestAPI  {
 	app:App;
     settings:MyPluginSettings;
 
-	constructor(app:App, settings:MyPluginSettings) {
-		super(app,settings);
+	constructor(app, settings) {
+		//super(app,settings);
 		this.app = app;
         this.settings = settings;
 	}
@@ -95,7 +95,7 @@ export class TodoistRestAPI extends MyPlugin {
     
         } catch (error) {
             console.error('Error get all projects', error);
-            return
+            return false
         }
     }
 

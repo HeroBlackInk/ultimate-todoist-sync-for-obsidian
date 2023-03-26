@@ -1,21 +1,33 @@
 import MyPlugin from "main";
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting ,TFile} from 'obsidian';
 import { MyPluginSettings } from 'src/settings';
-
+import { TodoistRestAPI } from "./todoistRestAPI";
+import { TodoistSyncAPI } from "./todoistSyncAPI";
+import { TaskParser } from "./taskParser";
+import { DataRW } from "./cacheDataReadAndWrite";
 
 type FrontMatter = {
     todoistTasks: string[];
     todoistCount: number;
   };
 
-export class TodoistSync extends MyPlugin {
+export class TodoistSync  {
 	app:App;
     settings:MyPluginSettings;
+    todoistRestAPI:TodoistRestAPI;
+    todoistSyncAPI:TodoistSyncAPI;
+    taskParser:TaskParser;
+    dataRw:DataRW;
 
-	constructor(app:App, settings:MyPluginSettings) {
-		super(app,settings);
+	constructor(app:App, settings:MyPluginSettings,todoistRestAPI:TodoistRestAPI,todoistSyncAPI:TodoistSyncAPI,taskParser:TaskParser,dataRw:DataRW) {
+		//super(app,settings,todoistRestAPI,todoistSyncAPI,taskParser,dataRw);
 		this.app = app;
         this.settings = settings;
+        this.todoistRestAPI = todoistRestAPI;
+        this.todoistSyncAPI = todoistSyncAPI;
+        this.taskParser = taskParser;
+        this.dataRw = dataRw;
+
 	}
 
 
@@ -65,7 +77,7 @@ export class TodoistSync extends MyPlugin {
         }
       
         //const currentFileValue  = await this.app.vault.read(file)
-        const currentFileValue = await	this.app.vault.CachedRead(file)
+        const currentFileValue = await	this.app.vault.cachedRead(file)
         console.log(currentFileValue)
         const currentFileValueWithOutFrontMatter = currentFileValue.replace(/^---[\s\S]*?---\n/, '');
         const frontMatter_todoistTasks = frontMatter.todoistTasks;
@@ -76,7 +88,7 @@ export class TodoistSync extends MyPlugin {
           .map(async (taskId) => {
             try {
               console.log(`initialize todoist api`)
-              const api = await initializeTodoistRestAPI()
+              const api = this.todoistRestAPI.initializeAPI()
               const response = await api.deleteTask(taskId);
               console.log(`response is ${response}`);
       
@@ -95,7 +107,7 @@ export class TodoistSync extends MyPlugin {
           //console.log("没有删除任务");
           return;
         }
-        deleteTaskFromJSONByIDs(deletedTaskIds)
+        this.dataRw.deleteTaskFromCacheByIDs(deletedTaskIds)
         console.log(`删除了${deletedTaskAmount} 条 task`)
         // 更新 newFrontMatter_todoistTasks 数组
         
@@ -111,7 +123,101 @@ export class TodoistSync extends MyPlugin {
           frontMatter.todoistTasks = newFrontMatter_todoistTasks;
           frontMatter.todoistCount = frontMatter_todoistCount - deletedTaskAmount;
         });
-      }
+    }
 
+    async lineContentNewTaskCheck(editor:Editor,view:MarkdownView): Promise<void>{
+
+        const filePath = view.file?.path
+        const cursor = editor.getCursor()
+        const line = cursor.line
+        const linetxt = editor.getLine(line)
+    
+    
+    
+        //添加task
+        if (this.taskParser.hasTodoistTag(linetxt)) {   //是否包含#todoist
+            if(this.taskParser.hasTodoistId(linetxt))   //是否包含todoist id
+            {
+                //console.log('task is esixted')
+                return
+            }
+            console.log('this is a new task')
+    
+            const currentTask =await this.taskParser.convertTextToTodoistTaskObject(linetxt,filePath,line)
+            console.log(currentTask)
+    
+          
+    
+    
+    
+            try {
+                const newTask = await this.todoistRestAPI.AddTask(currentTask)
+    
+    
+    
+    
+              
+                const { id: todoist_id, projectId: todoist_projectId, url: todoist_url } = newTask;
+                newTask.path = filePath;
+              
+                console.log(newTask);
+    
+                //newTask写入json文件
+                this.dataRw.appendTaskToCache(newTask)
+                //如果任务已完成
+                if(currentTask.isCompleted === true){
+                  await this.todoistRestAPI.CloseTask(newTask.id)
+                  this.dataRw.closeTaskToCacheByID(todoist_id)
+                }
+    
+    
+    
+    
+                //todoist id 保存到 任务后面
+                const text = `${linetxt} %%[todoist_id:: ${todoist_id}]%%`;
+                const from = { line: cursor.line, ch: 0 };
+                const to = { line: cursor.line, ch: linetxt.length };
+                view.app.workspace.activeEditor?.editor?.replaceRange(text, from, to)
+    
+                //处理frontMatter
+                try {
+                    // 处理 front matter
+                    view.app.fileManager.processFrontMatter(view.file, (frontMatter) => {
+                      console.log(frontMatter);
+                  
+                      if (!frontMatter) {
+                        console.log('frontmatter is empty');
+                        return;
+                      }
+                  
+                      // 将 todoistCount 加 1
+                      const newFrontMatter = { ...frontMatter };
+                      newFrontMatter.todoistCount = (newFrontMatter.todoistCount ?? 0) + 1;
+                  
+                      // 记录 taskID
+                      newFrontMatter.todoistTasks = [...(newFrontMatter.todoistTasks || []), todoist_id];
+                  
+                      // 更新 front matter
+        
+                     this.updateFrontMatter(view.file, (frontMatter) => {
+                        frontMatter.todoistTasks = newFrontMatter.todoistTasks;
+                        frontMatter.todoistCount = newFrontMatter.todoistCount;
+                      });
+                    });
+                  } catch (error) {
+                    console.error(error);
+                  }
+    
+              } catch (error) {
+                    console.error('Error adding task:', error);
+                    return
+              }
+    
+        }
+    }
+    
+
+
+    
 
 }

@@ -1,16 +1,18 @@
 import MyPlugin from "main";
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting ,TFile} from 'obsidian';
 import { MyPluginSettings } from 'src/settings';
+import { TodoistRestAPI } from "./todoistRestAPI";
 
-
-export class DataRW extends MyPlugin {
+export class DataRW   {
 	app:App;
     settings:MyPluginSettings;
+    todoistRestAPI:TodoistRestAPI;
 
-	constructor(app:App, settings:MyPluginSettings) {
-		super(app,settings);
+	constructor(app:App, settings:MyPluginSettings,todoistRestAPI:TodoistRestAPI) {
+		//super(app,settings);
 		this.app = app;
         this.settings = settings;
+        this.todoistRestAPI = todoistRestAPI;
 	}
 
           
@@ -189,6 +191,30 @@ export class DataRW extends MyPlugin {
         }
     }
       
+
+
+    //save projects data to json file
+   async saveProjectsToCache() {
+    try{
+            //get projects
+        const projects = await this.todoistRestAPI.GetAllProjects()
+        if(!projects){
+            return false
+        }
+    
+        //save to json
+        this.settings.todoistTasksData.projects = projects
+
+        return true
+
+    }catch(error){
+        console.log(`error downloading projects: ${error}`)
+
+    }
+
+
+    
+  }
 
 
 }

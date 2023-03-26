@@ -4,12 +4,12 @@ import { MyPluginSettings } from 'src/settings';
 
 
 
-export class TodoistSyncAPI extends MyPlugin {
+export class TodoistSyncAPI   {
 	app:App;
     settings:MyPluginSettings;
 
 	constructor(app:App, settings:MyPluginSettings) {
-		super(app,settings);
+		//super(app,settings);
 		this.app = app;
         this.settings = settings;
 	}
