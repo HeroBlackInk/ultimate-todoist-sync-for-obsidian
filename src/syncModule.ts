@@ -55,9 +55,9 @@ export class TodoistSync  {
           return;
         }
       
-        //const currentFileValue = await	this.app.vault.cachedRead(file)
+        const currentFileValueReadFromFile = await this.app.vault.cachedRead(file)
         //使用view.data 代替 valut.read。vault.read有延迟
-        const currentFileValue = view?.data
+        const currentFileValue = view?.data ?? currentFileValueReadFromFile
         //console.log(currentFileValue)
         const currentFileValueWithOutFrontMatter = currentFileValue.replace(/^---[\s\S]*?---\n/, '');
         const frontMatter_todoistTasks = frontMatter.todoistTasks;
@@ -202,8 +202,8 @@ export class TodoistSync  {
         const file = this.app.workspace.getActiveFile()
         const filepath = file.path
         //const content = await this.app.vault.read(file)
-        //const content = await	this.app.vault.cachedRead(file)
-        const content = view?.data
+        const contentFromFile = await	this.app.vault.cachedRead(file)
+        const content = view?.data ?? contentFromFile
     
         let newFrontMatter
         //frontMatteer
@@ -305,7 +305,8 @@ export class TodoistSync  {
             //console.log(`lastline task id is ${lastLineTask_todoist_id}`)
             const savedTask = await this.cacheOperation.loadTaskFromCacheyID(lineTask_todoist_id)  //dataview中 id为数字，todoist中id为字符串，需要转换
             if(!savedTask){
-            return
+                console.log(`本地缓存中没有task ${lineTask.todoist_id}`)
+                return
             }
         //console.log(savedTask)
 
@@ -416,47 +417,49 @@ export class TodoistSync  {
 
     async fullTextModifiedTaskCheck(): Promise<void>{
 
-    console.log(`检查file修改的任务`)
+        console.log(`检查file修改的任务`)
 
-    const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-    const file = this.app.workspace.getActiveFile()
-    const filepath = this.app.workspace.getActiveFile()?.path
-    //const editor = this.app.workspace.activeEditor?.editor
-    //const filepath = this.app.workspace.activeEditor?.file?.path
-    //console.log(filepath)
-    //const file = this.app.vault.getAbstractFileByPath(filepath);
-    //const content = await this.app.vault.read(file)
-    const content = view?.data
+        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+        const file = this.app.workspace.getActiveFile()
+        const filepath = this.app.workspace.getActiveFile()?.path
+        //console.log(filepath)
+        //const editor = this.app.workspace.activeEditor?.editor
+        //const filepath = this.app.workspace.activeEditor?.file?.path
+        //console.log(filepath)
+        //const file = this.app.vault.getAbstractFileByPath(filepath);
+        const content1 = await this.app.vault.read(file)
+        const content = view?.data ?? content1
+        //console.log(content)
 
 
-    let hasModifiedTask = false;
-    const lines = content.split('\n')
+        let hasModifiedTask = false;
+        const lines = content.split('\n')
 
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i]
-        if (line.includes("todoist_id") && line.includes('#todoist')) {
-            //console.log(`current line is ${i}`)
-            console.log(`line text: ${line}`)
-            try {
-            await this.lineModifiedTaskCheck(filepath,line,i,content)
-            hasModifiedTask = true
-            } catch (error) {
-                console.error('Error modify task:', error);
-                continue
-            }
-        
-        }
-    }
-    if(hasModifiedTask){
-        //文本和 frontMatter
-        try {
-            //do nothing
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i]
+            if (line.includes("todoist_id") && line.includes('#todoist')) {
+                //console.log(`current line is ${i}`)
+                //console.log(`line text: ${line}`)
+                try {
+                await this.lineModifiedTaskCheck(filepath,line,i,content)
+                hasModifiedTask = true
+                } catch (error) {
+                    console.error('Error modify task:', error);
+                    continue
+                }
             
-        } catch (error) {
-            console.error(error);
+            }
         }
+        if(hasModifiedTask){
+            //文本和 frontMatter
+            try {
+                //do nothing
+                
+            } catch (error) {
+                console.error(error);
+            }
 
-    }
+        }
     
     }
 

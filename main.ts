@@ -143,38 +143,7 @@ export default class MyPlugin extends Plugin {
 
 			if (target.type === "checkbox") {
 
-				let element = target.parentElement;
-				//console.log(target.closest("div"))
-				const regex = /\[todoist_id:: (\d+)\]/; // 匹配 [todoist_id:: 数字] 格式的字符串
-				while (element && !regex.test(element.textContent)) {
-				element = element.parentElement;
-				}
-				if (!element) {
-				console.log("未找到 todoist_id");
-				//开始全文搜索，检查status更新
-				} else {
-				//console.log(`找到了 todoist_id`)
-				console.log(element.textContent)
-				//const todoist_id = await searchTodoistIdFromFilePath()
-
-
-				
-				const match = element.textContent.match(/\[todoist_id:: (\d+)\]/);
-				if (match) {
-					const taskId = match[1];
-					if (target.checked) {
-						this.todoistSync.closeTask(taskId);
-					} else {
-						this.todoistSync.repoenTask(taskId);
-					}
-					// ...
-				} else {
-					console.log("无效的 todoist_id");
-				}
-				
-
-
-				}
+				this.checkboxEventhandle(evt)
 
 			}
 
@@ -351,6 +320,41 @@ export default class MyPlugin extends Plugin {
 
 		
 
+	}
+
+	checkboxEventhandle(evt:MouseEvent){
+		const target = evt.target as HTMLInputElement;
+		let element = target.parentElement;
+		//console.log(target.closest("div"))
+		const regex = /\[todoist_id:: (\d+)\]/; // 匹配 [todoist_id:: 数字] 格式的字符串
+		while (element && !regex.test(element.textContent)) {
+		element = element.parentElement;
+		}
+		if (!element) {
+			console.log("未找到 todoist_id");
+			//开始全文搜索，检查status更新
+			this.todoistSync.fullTextModifiedTaskCheck()
+		} else {
+			//console.log(`找到了 todoist_id`)
+
+			//console.log(element.textContent)
+			//const todoist_id = await searchTodoistIdFromFilePath()		
+			const match = element.textContent.match(/\[todoist_id:: (\d+)\]/);
+			if (match) {
+				const taskId = match[1];
+				if (target.checked) {
+					this.todoistSync.closeTask(taskId);
+				} else {
+					this.todoistSync.repoenTask(taskId);
+				}
+				// ...
+			} else {
+				console.log("无效的 todoist_id");
+			}
+		
+
+
+		}
 	}
 
 
