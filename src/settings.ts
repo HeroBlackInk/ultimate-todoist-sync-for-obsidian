@@ -1,4 +1,4 @@
-import { App, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
 
 
 export interface MyPluginSettings {
@@ -49,6 +49,25 @@ export class SampleSettingTab extends PluginSettingTab {
 						this.plugin.modifyTodoistAPI(value)
 					})
 			);
+
+
+		new Setting(containerEl)
+		.setName('Sync Projects')
+		.setDesc('When there are changes in Todoist projects, please click this button to manually synchronize.')
+		.addButton(button => button
+			.setButtonText('Sync projects')
+			.onClick(() => {
+				// Add code here to handle exporting Todoist data
+				try{
+					this.plugin.cacheOperation.saveProjectsToCache()
+					this.plugin.saveSettings()
+					new Notice(`projects synchronization successful`)
+				}catch(error){
+					new Notice(`projects synchronization failed:${error}`)
+				}
+
+			})
+		);
 
 		new Setting(containerEl)
 			.setName('Backup Todoist Data')

@@ -105,7 +105,7 @@ export class TodoistSyncAPI   {
             console.error(error);
             throw new Error('Failed to fetch completed items due to network error');
         }
-        }
+    }
   
   
   
@@ -206,6 +206,39 @@ export class TodoistSyncAPI   {
         const filteredArray = updatedItemsActivityEvents.filter(obj => !obj.extra_data.client.includes("obsidian")); 
         return(filteredArray)
     }
+
+
+        //get completed items activity
+    //result  {count:number,events:[]}
+    async getProjectsActivity() {
+      const accessToken = this.settings.todoistAPIToken
+      const url = 'https://api.todoist.com/sync/v9/activity/get';
+      const options = {
+          method: 'POST',
+          headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: new URLSearchParams({
+          'object_type': 'project'
+          })
+      };
+      
+      try {
+          const response = await fetch(url, options);
+      
+          if (!response.ok) {
+          throw new Error(`Failed to fetch  projects activities: ${response.status} ${response.statusText}`);
+          }
+      
+          const data = await response.json();
+      
+          return data;
+      } catch (error) {
+          console.error(error);
+          throw new Error('Failed to fetch projects activities due to network error');
+      }
+  }
      
 }
 
