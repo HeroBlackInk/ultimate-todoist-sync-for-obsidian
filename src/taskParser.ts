@@ -1,7 +1,7 @@
 import MyPlugin from "main";
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting ,TFile} from 'obsidian';
 import { MyPluginSettings } from 'src/settings';
-import { DataRW } from "./DataReadAndWrite";
+import { CacheOperation } from "./cacheOperation";
 //import { getAPI } from "obsidian-dataview";
 
 
@@ -48,13 +48,13 @@ interface todoistTaskObject {
 export class TaskParser   {
 	app:App;
     settings:MyPluginSettings;
-    dataRw:DataRW;
+    cacheOperation:CacheOperation;
 
-	constructor(app:App, settings:MyPluginSettings,dataRw:DataRW) {
+	constructor(app:App, settings:MyPluginSettings,cacheOperation:CacheOperation) {
 		//super(app,settings);
 		this.app = app;
         this.settings = settings;
-        this.dataRw = dataRw;
+        this.cacheOperation = cacheOperation;
 	}
 
 
@@ -74,7 +74,7 @@ export class TaskParser   {
         console.log(textWithoutIndentation)
         //console.log(`这是子任务`)
         //读取filepath
-        const fileContent = await this.dataRw.readContentFromFilePath(filepath)
+        const fileContent = await this.fileOperation.readContentFromFilePath(filepath)
         //遍历 line
         const lines = fileContent.split('\n')
     
@@ -111,7 +111,7 @@ export class TaskParser   {
         const dueDate = this.getDueDateFromLineText(textWithoutIndentation)
     
         const projectName = this.getProjectNameFromLineText(textWithoutIndentation) ?? "Obsidian"
-        const projectId = await this.dataRw.getProjectIdByNameFromCache(projectName)
+        const projectId = await this.cacheOperation.getProjectIdByNameFromCache(projectName)
         const content = this.getTaskContentFromLineText(textWithoutIndentation)
         const labels = this.getAllTagsFromLineText(textWithoutIndentation)
         const isCompleted = this.isTaskCheckboxChecked(textWithoutIndentation)

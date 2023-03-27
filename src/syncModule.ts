@@ -4,7 +4,8 @@ import { MyPluginSettings } from 'src/settings';
 import { TodoistRestAPI } from "./todoistRestAPI";
 import { TodoistSyncAPI } from "./todoistSyncAPI";
 import { TaskParser } from "./taskParser";
-import { DataRW } from "./DataReadAndWrite";
+import { CacheOperation } from "./cacheOperation";
+import { FileOperation } from "./fileOperation";
 
 type FrontMatter = {
     todoistTasks: string[];
@@ -17,47 +18,23 @@ export class TodoistSync  {
     todoistRestAPI:TodoistRestAPI;
     todoistSyncAPI:TodoistSyncAPI;
     taskParser:TaskParser;
-    dataRw:DataRW;
+    cacheOperation:CacheOperation;
+    fileOperation:FileOperation;
 
-	constructor(app:App, settings:MyPluginSettings,todoistRestAPI:TodoistRestAPI,todoistSyncAPI:TodoistSyncAPI,taskParser:TaskParser,dataRw:DataRW) {
-		//super(app,settings,todoistRestAPI,todoistSyncAPI,taskParser,dataRw);
+	constructor(app:App, settings:MyPluginSettings,todoistRestAPI:TodoistRestAPI,todoistSyncAPI:TodoistSyncAPI,taskParser:TaskParser,cacheOperation:CacheOperation,fileOperation:FileOperation) {
+		//super(app,settings,todoistRestAPI,todoistSyncAPI,taskParser,cacheOperation);
 		this.app = app;
         this.settings = settings;
         this.todoistRestAPI = todoistRestAPI;
         this.todoistSyncAPI = todoistSyncAPI;
         this.taskParser = taskParser;
-        this.dataRw = dataRw;
+        this.cacheOperation = cacheOperation;
+        this.fileOperation = fileOperation;
 
 	}
 
 
-    async getFrontMatter(file:TFile): Promise<FrontMatter | null> {
-        return new Promise((resolve) => {
-          this.app.fileManager.processFrontMatter(file, (frontMatter) => {
-            resolve(frontMatter);
-          });
-        });
-    }
 
-
-    async  updateFrontMatter(
-    file:TFile,
-    updater: (frontMatter: FrontMatter) => void
-    ): Promise<void> {
-        console.log(`prepare to update front matter`)
-        this.app.fileManager.processFrontMatter(file, (frontMatter) => {
-        if (frontMatter !== null) {
-        const updatedFrontMatter = { ...frontMatter } as FrontMatter;
-        updater(updatedFrontMatter);
-        this.app.fileManager.processFrontMatter(file, (newFrontMatter) => {
-            if (newFrontMatter !== null) {
-            newFrontMatter.todoistTasks = updatedFrontMatter.todoistTasks;
-            newFrontMatter.todoistCount = updatedFrontMatter.todoistCount;
-            }
-        });
-        }
-    });
-    }
 
       
     async deletedTaskCheck(): Promise<void> {
@@ -70,7 +47,7 @@ export class TodoistSync  {
         //console.log(filepath)
       
       
-        const frontMatter = await this.getFrontMatter(file);
+        const frontMatter = await this.fileOperation.getFrontMatter(file);
         if (!frontMatter || !frontMatter.todoistTasks) {
           console.log('frontmatter没有task')
           return;
@@ -87,13 +64,14 @@ export class TodoistSync  {
           .filter((taskId) => !currentFileValueWithOutFrontMatter.includes(taskId))
           .map(async (taskId) => {
             try {
-              console.log(`initialize todoist api`)
+              //console.log(`initialize todoist api`)
               const api = this.todoistRestAPI.initializeAPI()
               const response = await api.deleteTask(taskId);
               console.log(`response is ${response}`);
       
               if (response) {
-                console.log(`task ${taskId} 删除成功`);
+                //console.log(`task ${taskId} 删除成功`);
+                new Notice(`task ${taskId} 删除成功`)
                 return taskId; // 返回被删除的任务 ID
               }
             } catch (error) {
@@ -107,7 +85,7 @@ export class TodoistSync  {
           //console.log("没有删除任务");
           return;
         }
-        this.dataRw.deleteTaskFromCacheByIDs(deletedTaskIds)
+        this.cacheOperation.deleteTaskFromCacheByIDs(deletedTaskIds)
         console.log(`删除了${deletedTaskAmount} 条 task`)
         // 更新 newFrontMatter_todoistTasks 数组
         
@@ -119,13 +97,15 @@ export class TodoistSync  {
       
       
       
-        await this.updateFrontMatter(file, (frontMatter) => {
+        await this.fileOperation.updateFrontMatter(file, (frontMatter) => {
           frontMatter.todoistTasks = newFrontMatter_todoistTasks;
           frontMatter.todoistCount = frontMatter_todoistCount - deletedTaskAmount;
         });
     }
 
     async lineContentNewTaskCheck(editor:Editor,view:MarkdownView): Promise<void>{
+        //const editor = this.app.workspace.activeEditor?.editor
+        //const view =this.app.workspace.getActiveViewOfType(MarkdownView)
 
         const filePath = view.file?.path
         const cursor = editor.getCursor()
@@ -152,27 +132,18 @@ export class TodoistSync  {
     
             try {
                 const newTask = await this.todoistRestAPI.AddTask(currentTask)
-    
-    
-    
-    
-              
                 const { id: todoist_id, projectId: todoist_projectId, url: todoist_url } = newTask;
                 newTask.path = filePath;
-              
-                console.log(newTask);
-    
+                //console.log(newTask);
+                new Notice(`new task ${newTask.content} id is ${newTask.id}`)
                 //newTask写入缓存
-                this.dataRw.appendTaskToCache(newTask)
+                this.cacheOperation.appendTaskToCache(newTask)
                 //如果任务已完成
                 if(currentTask.isCompleted === true){
                   await this.todoistRestAPI.CloseTask(newTask.id)
-                  this.dataRw.closeTaskToCacheByID(todoist_id)
+                  this.cacheOperation.closeTaskToCacheByID(todoist_id)
                 }
-    
-    
-    
-    
+
                 //todoist id 保存到 任务后面
                 const text = `${linetxt} %%[todoist_id:: ${todoist_id}]%%`;
                 const from = { line: cursor.line, ch: 0 };
@@ -199,11 +170,12 @@ export class TodoistSync  {
                   
                       // 更新 front matter
         
-                     this.updateFrontMatter(view.file, (frontMatter) => {
+                     this.fileOperation.updateFrontMatter(view.file, (frontMatter) => {
                         frontMatter.todoistTasks = newFrontMatter.todoistTasks;
                         frontMatter.todoistCount = newFrontMatter.todoistCount;
                       });
                     });
+
                   } catch (error) {
                     console.error(error);
                   }
@@ -216,18 +188,13 @@ export class TodoistSync  {
         }
     }
     
-
     
-    async  fullTextNewTaskCheck(): Promise<void>{
-
-
+    async fullTextNewTaskCheck(): Promise<void>{
         const view = this.app.workspace.getActiveViewOfType(MarkdownView);
         const file = this.app.workspace.getActiveFile()
         const filepath = file.path
-    
         //const content = await this.app.vault.read(file)
         const content = await	this.app.vault.cachedRead(file)
-    
     
         let newFrontMatter
         //frontMatteer
@@ -259,18 +226,16 @@ export class TodoistSync  {
             console.log(currentTask)
             try {
                 const newTask = await this.todoistRestAPI.AddTask(currentTask)
-            
                 const { id: todoist_id, projectId: todoist_projectId, url: todoist_url } = newTask;
                 newTask.path = filepath;
-            
                 console.log(newTask);
-    
+                new Notice(`new task ${newTask.content} id is ${newTask.id}`)
                 //newTask写入json文件
-                this.dataRw.appendTaskToCache(newTask)
+                this.cacheOperation.appendTaskToCache(newTask)
                 //如果任务已完成
                 if(currentTask.isCompleted === true){
                 await this.todoistRestAPI.CloseTask(newTask.id)
-                this.dataRw.closeTaskToCacheByID(todoist_id)
+                this.cacheOperation.closeTaskToCacheByID(todoist_id)
                 }
     
                 //todoist id 保存到 任务后面
@@ -301,7 +266,7 @@ export class TodoistSync  {
             
                 // 更新 front matter
     
-                this.updateFrontMatter(file, (frontMatter) => {
+                this.fileOperation.updateFrontMatter(file, (frontMatter) => {
                 frontMatter.todoistTasks = newFrontMatter.todoistTasks;
                 frontMatter.todoistCount = newFrontMatter.todoistCount;
                 });

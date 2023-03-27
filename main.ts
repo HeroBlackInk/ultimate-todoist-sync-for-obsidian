@@ -9,17 +9,22 @@ import { TodoistRestAPI } from 'src/todoistRestAPI';
 import { TodoistSyncAPI } from 'src/todoistSyncAPI';
 //task parser 
 import { TaskParser } from 'src/taskParser';
-//task read and write
-import { DataRW } from 'src/DataReadAndWrite';
+//cache task read and write
+import { CacheOperation } from 'src/cacheOperation';
+//file operation
+import { FileOperation } from 'src/fileOperation';
+
 //sync module
 import { TodoistSync } from 'src/syncModule';
+import { FileOperation } from 'src/fileOperation';
 
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
 	todoistRestAPI:TodoistRestAPI;
 	todoistSyncAPI:TodoistSyncAPI;
 	taskParser:TaskParser;
-	dataRw:DataRW;
+	cacheOperation:CacheOperation;
+	fileOperation:FileOperation;
 	todoistSync:TodoistSync;
 
 	async onload() {
@@ -128,7 +133,7 @@ export default class MyPlugin extends Plugin {
 
 		//hook editor-change 事件，如果当前line包含 #todoist,说明有new task
 		this.registerEvent(this.app.workspace.on('editor-change',async (editor,view)=>{			
-			await this.todoistSync.lineContentNewTaskCheck(editor,view)
+			this.todoistSync.lineContentNewTaskCheck(editor,view)
 			await this.saveSettings()
 		}))
 	}
@@ -158,8 +163,8 @@ export default class MyPlugin extends Plugin {
 		this.todoistRestAPI = new TodoistRestAPI(this.app,this.settings)
 
 		//initialize data read and write object
-		this.dataRw = new DataRW(this.app,this.settings,this.todoistRestAPI)
-		const ini = await this.dataRw.saveProjectsToCache()
+		this.cacheOperation = new CacheOperation(this.app,this.settings,this.todoistRestAPI)
+		const ini = await this.cacheOperation.saveProjectsToCache()
 		//console.log(ini)
 		if(ini){
 	
@@ -175,6 +180,8 @@ export default class MyPlugin extends Plugin {
 			new Notice(`初始化失败,请检查todoist api`)
 			return
 		}
+		//initialize file operation
+		this.fileOperation = new FileOperation(this.app,this.settings,this.todoistRestAPI)
 
 		//initialize todoisy sync api
 		this.todoistSyncAPI = new TodoistSyncAPI(this.app,this.settings)
@@ -182,10 +189,10 @@ export default class MyPlugin extends Plugin {
 
 
 		//initialize task parser
-		this.taskParser = new TaskParser(this.app,this.settings,this.dataRw)
+		this.taskParser = new TaskParser(this.app,this.settings,this.cacheOperation)
 
 		//initialize todoist sync module
-		 this.todoistSync = new TodoistSync(this.app,this.settings,this.todoistRestAPI,this.todoistSyncAPI,this.taskParser,this.dataRw)
+		this.todoistSync = new TodoistSync(this.app,this.settings,this.todoistRestAPI,this.todoistSyncAPI,this.taskParser,this.cacheOperation,this.fileOperation)
 
 		
 
