@@ -118,11 +118,11 @@ export default class MyPlugin extends Plugin {
 			const editor = view.app.workspace.activeEditor?.editor
 	
 			if (evt.key === 'ArrowUp' || evt.key === 'ArrowDown' || evt.key === 'ArrowLeft' || evt.key === 'ArrowRight' ||evt.key === 'PageUp' || evt.key === 'PageDown') {
-				console.log(`${evt.key} arrow key is released`);
+				//console.log(`${evt.key} arrow key is released`);
 				this.lineNumberCheck()
 			}
 			if(evt.key === "Delete" || evt.key === "Backspace"){
-				console.log(`${evt.key} key is released`);
+				//console.log(`${evt.key} key is released`);
 				this.todoistSync.deletedTaskCheck();		
 			}
 		});
@@ -306,7 +306,7 @@ export default class MyPlugin extends Plugin {
 
 				// 执行你想要的操作
 				const lastLineText = view.editor.getLine(lastLine)
-				console.log(lastLineText)
+				//console.log(lastLineText)
 				this.todoistSync.lineModifiedTaskCheck(filePath,lastLineText,lastLine,fileContent)
 
 				this.lastLines.set(fileName, line);

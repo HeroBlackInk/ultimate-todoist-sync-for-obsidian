@@ -62,7 +62,7 @@ export class TaskParser   {
   
     //convert line text to a task object
     async convertTextToTodoistTaskObject(lineText:string,filepath?:string,lineNumber?:number,fileContent?:string) {
-        console.log(`linetext is:${lineText}`)
+        //console.log(`linetext is:${lineText}`)
     
         let hasParent = false
         let parentId = null
@@ -110,7 +110,7 @@ export class TaskParser   {
         
         const dueDate = this.getDueDateFromLineText(textWithoutIndentation)
         const labels =  this.getAllTagsFromLineText(textWithoutIndentation)
-        console.log(`labels is ${labels}`)
+        //console.log(`labels is ${labels}`)
 
         //dataview format metadata
         //const projectName = this.getProjectNameFromLineText(textWithoutIndentation) ?? this.settings.defaultProject
@@ -238,7 +238,7 @@ export class TaskParser   {
     //task text get content
     getTaskContentFromLineText(lineText:string) {
         //检查内容是否修改
-        const regexRemoveTags = /(^|\s)(#[a-zA-Z\d-]+)/g;   //删除tag
+        const regexRemoveTags = /(^|\s)(#[a-zA-Z\d\u4e00-\u9fa5-]+)/g;   //删除tag  const regex = /#[\w\u4e00-\u9fa5-]+/g
         const regexGetContentWithTodoistTag = /(.*)#todoist/;  //提取todoist之前的内容
         const regexRemoveSpace = /\s+$/; //删除末尾的空格
         const regexRemoveDate = /🗓️\d{4}-\d{2}-\d{2}/; //匹配日期🗓️2023-03-07"
@@ -246,11 +246,11 @@ export class TaskParser   {
         const regexRemoveCheckbox =  /^(-|\*)\s+\[(x| )\]\s/;
         const regexRemoveCHeckboxWithIndentation = /^([ \t]*)?- \[(x| )\]\s/;
         const TaskContent = lineText.replace(regexRemoveInlineMetadata,"")
-                                                    .replace(regexRemoveTags,"")
-                                                    .replace(regexRemoveDate,"")
-                                                    .replace(regexRemoveCheckbox,"")
-                                                    .replace(regexRemoveCHeckboxWithIndentation,"")
-                                                    .replace(regexRemoveSpace,"")
+                                    .replace(regexRemoveTags,"")
+                                    .replace(regexRemoveDate,"")
+                                    .replace(regexRemoveCheckbox,"")
+                                    .replace(regexRemoveCHeckboxWithIndentation,"")
+                                    .replace(regexRemoveSpace,"")
     
     
         return(TaskContent)
@@ -307,8 +307,8 @@ export class TaskParser   {
     taskStatusCompare(lineTask:Object,todoistTask:Object) {
         //status 是否修改
         const statusModified = (lineTask.isCompleted === todoistTask.isCompleted)
-        console.log(lineTask)
-        console.log(todoistTask)
+        //console.log(lineTask)
+        //console.log(todoistTask)
         return(statusModified)
     }
   
