@@ -109,11 +109,33 @@ export class TaskParser   {
         }
         
         const dueDate = this.getDueDateFromLineText(textWithoutIndentation)
+        const labels =  this.getAllTagsFromLineText(textWithoutIndentation)
+        console.log(`labels is ${labels}`)
+
+        //dataview format metadata
+        //const projectName = this.getProjectNameFromLineText(textWithoutIndentation) ?? this.settings.defaultProject
+        //const projectId = await this.cacheOperation.getProjectIdByNameFromCache(projectName)
+        //use tag as project name
+
+        let projectName = this.settings.defaultProject
+        let projectId = this.cacheOperation.getProjectIdByNameFromCache(projectName)
+        //匹配 tag 和 peoject
+        for (const label of labels){
     
-        const projectName = this.getProjectNameFromLineText(textWithoutIndentation) ?? this.settings.defaultProject
-        const projectId = await this.cacheOperation.getProjectIdByNameFromCache(projectName)
+            //console.log(label)
+            let labelName = label.replace(/#/g, "");
+            //console.log(labelName)
+            let hasProjectId = this.cacheOperation.getProjectIdByNameFromCache(labelName)
+            if(!hasProjectId){
+                continue
+            }
+            projectName = labelName
+            //console.log(`project is ${projectName} ${label}`)
+            projectId = hasProjectId
+            break
+        }
+
         const content = this.getTaskContentFromLineText(textWithoutIndentation)
-        const labels = this.getAllTagsFromLineText(textWithoutIndentation)
         const isCompleted = this.isTaskCheckboxChecked(textWithoutIndentation)
         let description = ""
         const todoist_id = this.getTodoistIdFromLineText(textWithoutIndentation)
@@ -239,7 +261,8 @@ export class TaskParser   {
     //get all tags from task text
     getAllTagsFromLineText(lineText:string){
         
-        const regex = /#[\w-]+/g;
+        //const regex = /#[\w-]+/g;
+        const regex = /#[\w\u4e00-\u9fa5-]+/g  //加上了中文字符
         const tags = lineText.match(regex); // tags 变量将包含 ["#tag1", "#tag2_text", "#tag-3"]
         return(tags)
     }
