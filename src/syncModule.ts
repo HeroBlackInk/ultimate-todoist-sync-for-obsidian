@@ -1,4 +1,5 @@
 import MyPlugin from "main";
+import * as path from 'path';
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting ,TFile} from 'obsidian';
 import { MyPluginSettings } from 'src/settings';
 import { TodoistRestAPI } from "./todoistRestAPI";
@@ -108,6 +109,7 @@ export class TodoistSync  {
         //const view =this.app.workspace.getActiveViewOfType(MarkdownView)
 
         const filePath = view.file?.path
+        const fileContent = view?.data
         const cursor = editor.getCursor()
         const line = cursor.line
         const linetxt = editor.getLine(line)
@@ -123,7 +125,7 @@ export class TodoistSync  {
             }
             console.log('this is a new task')
     
-            const currentTask =await this.taskParser.convertTextToTodoistTaskObject(linetxt,filePath,line)
+            const currentTask =await this.taskParser.convertTextToTodoistTaskObject(linetxt,filePath,line,fileContent)
             console.log(currentTask)
     
           
@@ -220,7 +222,7 @@ export class TodoistSync  {
             console.log(`current line is ${i}`)
             console.log(`line text: ${line}`)
             console.log(filepath)
-            const currentTask =await this.taskParser.convertTextToTodoistTaskObject(line,filepath,i)
+            const currentTask =await this.taskParser.convertTextToTodoistTaskObject(line,filepath,i,content)
             if(typeof currentTask === "undefined"){
                 continue
             }
@@ -282,14 +284,14 @@ export class TodoistSync  {
     }
 
 
-    async lineModifiedTaskCheck(filePath:string,lineText:string,lineNumber:string): Promise<void>{
+    async lineModifiedTaskCheck(filePath:string,lineText:string,lineNumber:number,fileContent:string): Promise<void>{
         //const lineText = await this.fileOperation.getLineTextFromFilePath(filePath,lineNumber)
 
         //检查task
 
         if (this.taskParser.hasTodoistId(lineText) && this.taskParser.hasTodoistTag(lineText)) {
 
-            const lineTask = await this.taskParser.convertTextToTodoistTaskObject(lineText,filePath,lineNumber)
+            const lineTask = await this.taskParser.convertTextToTodoistTaskObject(lineText,filePath,lineNumber,fileContent)
             //console.log(lastLineTask)
             const lineTask_todoist_id = (lineTask.todoist_id).toString()
             //console.log(`lastline task id is ${lastLineTask_todoist_id}`)
@@ -426,7 +428,7 @@ export class TodoistSync  {
             //console.log(`current line is ${i}`)
             console.log(`line text: ${line}`)
             try {
-            await this.lineModifiedTaskCheck(filepath,line,i)
+            await this.lineModifiedTaskCheck(filepath,line,i,content)
             hasModifiedTask = true
             } catch (error) {
                 console.error('Error modify task:', error);
@@ -642,7 +644,24 @@ export class TodoistSync  {
         
     }
 
+    async  backupTodoistAllResources() {
+        try {
+        const resources = await this.todoistSyncAPI.getAllResources()
+    
+        const now: Date = new Date();
+        const timeString: string = `${now.getFullYear()}${now.getMonth()+1}${now.getDate()}${now.getHours()}${now.getMinutes()}${now.getSeconds()}`;
+    
+        const name = "todoist-backup-"+timeString+".json"
+        //console.log(path)
+        const pluginFolderPath = path.join(this.app.vault.configDir, 'plugins', 'ultimate-todoist-sync-for-obsidian','userData',name);
+        console.log(pluginFolderPath)
+        this.app.vault.create(pluginFolderPath,JSON.stringify(resources))
+        console.log(`todoist 备份成功`)
+        } catch (error) {
+        console.error("An error occurred while creating Todoist backup:", error);
+        }
 
+    }
     
 
 }

@@ -1,5 +1,5 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
-
+import * as path from 'path';
 // Remember to rename these classes and interfaces!
 
 //settings
@@ -194,6 +194,7 @@ export default class MyPlugin extends Plugin {
 	}
 
 	async onunload() {
+		console.log(`Ultimate Todoist Sync for Obsidian id unloaded!`)
 		await this.saveSettings()
 
 	}
@@ -224,6 +225,18 @@ export default class MyPlugin extends Plugin {
 		if(ini){
 	
 			if(!this.settings.initialized){
+
+				//创建备份文件夹
+				try{
+					const userdataPath = path.join(this.app.vault.configDir, 'plugins', 'ultimate-todoist-sync-for-obsidian','userData');
+					this.app.vault.createFolder(userdataPath)
+				}catch(error){
+					console.log(`error creating user data folder: ${error}`)
+					new Notice(`初始化失败`)
+					return
+				}
+
+
 				//初始化settings
 				this.settings.todoistTasksData.tasks = []
 				this.settings.todoistTasksData.events = []
@@ -244,13 +257,11 @@ export default class MyPlugin extends Plugin {
 		//initialize todoisy sync api
 		this.todoistSyncAPI = new TodoistSyncAPI(this.app,this.settings)
 
-
-
-
-
 		//initialize todoist sync module
 		this.todoistSync = new TodoistSync(this.app,this.settings,this.todoistRestAPI,this.todoistSyncAPI,this.taskParser,this.cacheOperation,this.fileOperation)
 
+		//每次启动前备份所有数据
+		this.todoistSync.backupTodoistAllResources()
 		
 
 
@@ -262,6 +273,7 @@ export default class MyPlugin extends Plugin {
 			const cursor = view.app.workspace.getActiveViewOfType(MarkdownView)?.editor.getCursor()
 			const line = cursor.line
 			const lineText = view.editor.getLine(line)
+			const fileContent = view.data
 
 			//console.log(line)
 			//const fileName = view.file?.name
@@ -280,7 +292,7 @@ export default class MyPlugin extends Plugin {
 				// 执行你想要的操作
 				const lastLineText = view.editor.getLine(lastLine)
 				console.log(lastLineText)
-				this.todoistSync.lineModifiedTaskCheck(filePath,lastLineText,lastLine)
+				this.todoistSync.lineModifiedTaskCheck(filePath,lastLineText,lastLine,fileContent)
 
 				this.lastLines.set(fileName, line);
 			}

@@ -61,7 +61,7 @@ export class TaskParser   {
   
   
     //convert line text to a task object
-    async convertTextToTodoistTaskObject(lineText:string,filepath?:string,lineNumber?:number) {
+    async convertTextToTodoistTaskObject(lineText:string,filepath?:string,lineNumber?:number,fileContent?:string) {
         console.log(`linetext is:${lineText}`)
     
         let hasParent = false
@@ -74,7 +74,7 @@ export class TaskParser   {
         console.log(textWithoutIndentation)
         //console.log(`这是子任务`)
         //读取filepath
-        const fileContent = await this.fileOperation.readContentFromFilePath(filepath)
+        //const fileContent = await this.fileOperation.readContentFromFilePath(filepath)
         //遍历 line
         const lines = fileContent.split('\n')
     
