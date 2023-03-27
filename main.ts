@@ -26,6 +26,7 @@ export default class MyPlugin extends Plugin {
 	cacheOperation:CacheOperation;
 	fileOperation:FileOperation;
 	todoistSync:TodoistSync;
+	lastLines: Map<string,number>;
 
 	async onload() {
 
@@ -39,7 +40,8 @@ export default class MyPlugin extends Plugin {
 			await this.initializePlugin();
 		}
 
-
+		//lastLine 对象 {path:line}保存在lastLines map中
+		this.lastLines = new Map();
 
 
 		// This creates an icon in the left ribbon.
@@ -112,7 +114,7 @@ export default class MyPlugin extends Plugin {
 	
 			if (evt.key === 'ArrowUp' || evt.key === 'ArrowDown' || evt.key === 'ArrowLeft' || evt.key === 'ArrowRight' ||evt.key === 'PageUp' || evt.key === 'PageDown') {
 				console.log(`${evt.key} arrow key is released`);
-				//lineNumberCheck(editor,view)
+				this.lineNumberCheck()
 			}
 			if(evt.key === "Delete" || evt.key === "Backspace"){
 				console.log(`${evt.key} key is released`);
@@ -125,14 +127,16 @@ export default class MyPlugin extends Plugin {
 		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
 		// Using this function will automatically remove the event listener when this plugin is disabled.
 		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
+			//console.log('click', evt);
+			this.lineNumberCheck()
 		});
 
 		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
 		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
 
 		//hook editor-change 事件，如果当前line包含 #todoist,说明有new task
-		this.registerEvent(this.app.workspace.on('editor-change',async (editor,view)=>{			
+		this.registerEvent(this.app.workspace.on('editor-change',async (editor,view)=>{
+			this.lineNumberCheck()			
 			this.todoistSync.lineContentNewTaskCheck(editor,view)
 			await this.saveSettings()
 		}))
@@ -181,7 +185,7 @@ export default class MyPlugin extends Plugin {
 			return
 		}
 		//initialize file operation
-		this.fileOperation = new FileOperation(this.app,this.settings,this.todoistRestAPI)
+		this.fileOperation = new FileOperation(this.app,this.settings,this.todoistRestAPI,this.cacheOperation)
 
 		//initialize todoisy sync api
 		this.todoistSyncAPI = new TodoistSyncAPI(this.app,this.settings)
@@ -196,6 +200,43 @@ export default class MyPlugin extends Plugin {
 
 		
 
+
+	}
+
+	lineNumberCheck(){
+		const view = this.app.workspace.getActiveViewOfType(MarkdownView)
+		if(view){
+			const cursor = view.app.workspace.getActiveViewOfType(MarkdownView)?.editor.getCursor()
+		
+			const line = cursor.line
+			//console.log(line)
+			//const fileName = view.file?.name
+			const fileName =  view.app.workspace.getActiveViewOfType(MarkdownView)?.app.workspace.activeEditor?.file?.name
+			const filePath =  view.app.workspace.getActiveViewOfType(MarkdownView)?.app.workspace.activeEditor?.file?.path
+			if (typeof this.lastLines === 'undefined' || typeof this.lastLines.get(fileName) === 'undefined'){
+				this.lastLines.set(fileName, line);
+				return
+			}
+
+					//console.log(`filename is ${fileName}`)
+			if(this.lastLines.has(fileName) && line !== this.lastLines.get(fileName)){
+				const lastLine = this.lastLines.get(fileName)
+				console.log('Line changed!', `current line is ${line}`, `last line is ${lastLine}`);
+
+				// 执行你想要的操作
+
+				this.todoistSync.lineModifiedTaskCheck(filePath,lastLine)
+
+				this.lastLines.set(fileName, line);
+			}
+			else  {
+				//console.log('Line not changed');				
+			}
+
+		}
+
+
+		
 
 	}
 
