@@ -108,7 +108,7 @@ export class FileOperation   {
     }
 
     // sync updated events to local
-    async  syncUpdatedTaskToTheFile(evt:Object) {
+    async syncUpdatedTaskToTheFile(evt:Object) {
 
         const taskId = evt.object_id
         // 获取任务文件路径
@@ -166,6 +166,7 @@ export class FileOperation   {
         
     }
 
+    //避免使用该方式，通过view可以获得实时更新的value
     async readContentFromFilePath(filepath:string){
         try {
             const file = this.app.vault.getAbstractFileByPath(filepath);
@@ -178,7 +179,8 @@ export class FileOperation   {
     }
 
     //get line text from file path
-    async  getLineTextFromFilePath(filePath:string,lineNumber:string) {
+    //请使用 view.editor.getLine，read 方法有延迟
+    async getLineTextFromFilePath(filePath:string,lineNumber:string) {
 
         const file = this.app.vault.getAbstractFileByPath(filePath)
         const content = await this.app.vault.read(file)
@@ -188,7 +190,7 @@ export class FileOperation   {
     }
   
     //search todoist_id by content
-    async  searchTodoistIdFromFilePath(filepath: string, searchTerm: string): string | null {
+    async searchTodoistIdFromFilePath(filepath: string, searchTerm: string): string | null {
         const file = this.app.vault.getAbstractFileByPath(filepath)
         const fileContent = await this.app.vault.read(file)
         const fileLines = fileContent.split('\n');

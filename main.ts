@@ -56,6 +56,7 @@ export default class MyPlugin extends Plugin {
 				await this.todoistSync.syncCompletedTaskStatusToObsidian()
 				await this.todoistSync.syncUncompletedTaskStatusToObsidian()
 				await this.todoistSync.syncUpdatedTaskToObsidian()
+				//await this.saveSettings()
 
 			}
 
@@ -122,7 +123,7 @@ export default class MyPlugin extends Plugin {
 			}
 			if(evt.key === "Delete" || evt.key === "Backspace"){
 				console.log(`${evt.key} key is released`);
-				await this.todoistSync.deletedTaskCheck();		
+				this.todoistSync.deletedTaskCheck();		
 			}
 		});
 		
@@ -188,7 +189,7 @@ export default class MyPlugin extends Plugin {
 		this.registerEvent(this.app.workspace.on('editor-change',async (editor,view)=>{
 			this.lineNumberCheck()			
 			this.todoistSync.lineContentNewTaskCheck(editor,view)
-			await this.saveSettings()
+			this.saveSettings()
 		}))
 	}
 
@@ -202,7 +203,7 @@ export default class MyPlugin extends Plugin {
 	}
 
 	async saveSettings() {
-		await this.saveData(this.settings);
+		this.saveData(this.settings);
 	}
 
 	async modifyTodoistAPI(api:string){
@@ -259,8 +260,9 @@ export default class MyPlugin extends Plugin {
 		const view = this.app.workspace.getActiveViewOfType(MarkdownView)
 		if(view){
 			const cursor = view.app.workspace.getActiveViewOfType(MarkdownView)?.editor.getCursor()
-		
 			const line = cursor.line
+			const lineText = view.editor.getLine(line)
+
 			//console.log(line)
 			//const fileName = view.file?.name
 			const fileName =  view.app.workspace.getActiveViewOfType(MarkdownView)?.app.workspace.activeEditor?.file?.name
@@ -276,8 +278,9 @@ export default class MyPlugin extends Plugin {
 				console.log('Line changed!', `current line is ${line}`, `last line is ${lastLine}`);
 
 				// 执行你想要的操作
-
-				this.todoistSync.lineModifiedTaskCheck(filePath,lastLine)
+				const lastLineText = view.editor.getLine(lastLine)
+				console.log(lastLineText)
+				this.todoistSync.lineModifiedTaskCheck(filePath,lastLineText,lastLine)
 
 				this.lastLines.set(fileName, line);
 			}

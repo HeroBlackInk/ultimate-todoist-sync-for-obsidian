@@ -46,15 +46,15 @@ export class TodoistSync  {
         const filepath = file.path
         //console.log(filepath)
       
-      
         const frontMatter = await this.fileOperation.getFrontMatter(file);
         if (!frontMatter || !frontMatter.todoistTasks) {
           console.log('frontmatter没有task')
           return;
         }
       
-        //const currentFileValue  = await this.app.vault.read(file)
-        const currentFileValue = await	this.app.vault.cachedRead(file)
+        //const currentFileValue = await	this.app.vault.cachedRead(file)
+        //使用view.data 代替 valut.read。vault.read有延迟
+        const currentFileValue = view?.data
         //console.log(currentFileValue)
         const currentFileValueWithOutFrontMatter = currentFileValue.replace(/^---[\s\S]*?---\n/, '');
         const frontMatter_todoistTasks = frontMatter.todoistTasks;
@@ -194,7 +194,8 @@ export class TodoistSync  {
         const file = this.app.workspace.getActiveFile()
         const filepath = file.path
         //const content = await this.app.vault.read(file)
-        const content = await	this.app.vault.cachedRead(file)
+        //const content = await	this.app.vault.cachedRead(file)
+        const content = view?.data
     
         let newFrontMatter
         //frontMatteer
@@ -281,8 +282,8 @@ export class TodoistSync  {
     }
 
 
-    async lineModifiedTaskCheck(filePath:string,lineNumber:string): Promise<void>{
-        const lineText = await this.fileOperation.getLineTextFromFilePath(filePath,lineNumber)
+    async lineModifiedTaskCheck(filePath:string,lineText:string,lineNumber:string): Promise<void>{
+        //const lineText = await this.fileOperation.getLineTextFromFilePath(filePath,lineNumber)
 
         //检查task
 
@@ -412,7 +413,8 @@ export class TodoistSync  {
     //const filepath = this.app.workspace.activeEditor?.file?.path
     //console.log(filepath)
     //const file = this.app.vault.getAbstractFileByPath(filepath);
-    const content = await this.app.vault.read(file)
+    //const content = await this.app.vault.read(file)
+    const content = view?.data
 
 
     let hasModifiedTask = false;
@@ -424,7 +426,7 @@ export class TodoistSync  {
             //console.log(`current line is ${i}`)
             console.log(`line text: ${line}`)
             try {
-            await this.lineModifiedTaskCheck(filepath,i)
+            await this.lineModifiedTaskCheck(filepath,line,i)
             hasModifiedTask = true
             } catch (error) {
                 console.error('Error modify task:', error);
