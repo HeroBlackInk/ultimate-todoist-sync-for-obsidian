@@ -299,7 +299,7 @@ export class TaskParser   {
         //console.log(todoistTaskTags)
     
         //content 是否修改
-        const tagsModified = (JSON.stringify(lineTaskTags) === JSON.stringify(todoistTaskTags))
+        const tagsModified  = lineTaskTags.length === todoistTaskTags.length && lineTaskTags.sort().every((val, index) => val === todoistTaskTags.sort()[index]);
         return(tagsModified) 
     }
   

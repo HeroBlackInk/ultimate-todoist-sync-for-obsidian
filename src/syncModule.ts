@@ -358,15 +358,15 @@ export class TodoistSync  {
             //todoist Rest api 没有 move task to new project的功能
             if (projectModified) {
                 console.log(`Project id modified for task ${lineTask_todoist_id}`)
-                updatedContent.projectId = lineTask.projectId
-                projectChanged = false;
+                //updatedContent.projectId = lineTask.projectId
+                //projectChanged = false;
             }
 
             //todoist Rest api 没有修改 parent id 的借口
             if (parentIdModified) {
                 console.log(`Parnet id modified for task ${lineTask_todoist_id}`)
-                updatedContent.parentId = lineTask.parentId
-                parentIdChanged = false;
+                //updatedContent.parentId = lineTask.parentId
+                //parentIdChanged = false;
             }
 
 
