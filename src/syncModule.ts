@@ -450,7 +450,7 @@ export class TodoistSync  {
     // Close a task by calling API and updating JSON file
     async  closeTask(taskId: string): Promise<void> {
     try {
-        await this.todoistRestAPI.closeTask(taskId);
+        await this.todoistRestAPI.CloseTask(taskId);
         await this.cacheOperation.closeTaskToCacheByID(taskId);
     } catch (error) {
         console.error('Error closing task:', error);
