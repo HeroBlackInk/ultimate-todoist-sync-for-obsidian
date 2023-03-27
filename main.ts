@@ -16,7 +16,7 @@ import { FileOperation } from 'src/fileOperation';
 
 //sync module
 import { TodoistSync } from 'src/syncModule';
-import { FileOperation } from 'src/fileOperation';
+
 
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
@@ -187,7 +187,7 @@ export default class MyPlugin extends Plugin {
 		this.registerEvent(this.app.workspace.on('editor-change',async (editor,view)=>{
 			this.lineNumberCheck()			
 			this.todoistSync.lineContentNewTaskCheck(editor,view)
-			this.saveSettings()
+			//this.saveSettings()
 		}))
 
 		//监听删除事件，当文件被删除后，读取frontMatter中的tasklist,批量删除
@@ -216,8 +216,8 @@ export default class MyPlugin extends Plugin {
 				//console.log('删除的文件中没有task')
 				return
 			}
-			this.cacheOperation.updateRenamedFilePath(oldpath,file.path)
-					
+			await this.cacheOperation.updateRenamedFilePath(oldpath,file.path)
+			this.saveSettings()		
 		}));
 	}
 
@@ -269,7 +269,7 @@ export default class MyPlugin extends Plugin {
 					this.todoistSyncAPI = new TodoistSyncAPI(this.app,this.settings)
 			
 					//initialize todoist sync module
-					this.todoistSync = new TodoistSync(this.app,this.settings,this.todoistRestAPI,this.todoistSyncAPI,this.taskParser,this.cacheOperation,this.fileOperation)
+					this.todoistSync = new TodoistSync(this.app,this,this.settings,this.todoistRestAPI,this.todoistSyncAPI,this.taskParser,this.cacheOperation,this.fileOperation)
 			
 					//每次启动前备份所有数据
 					this.todoistSync.backupTodoistAllResources()
@@ -284,7 +284,7 @@ export default class MyPlugin extends Plugin {
 				this.settings.todoistTasksData.tasks = []
 				this.settings.todoistTasksData.events = []
 				this.settings.initialized = true
-				await this.saveSettings()
+				this.saveSettings()
 				new Notice(`第一次启动插件，todoist数据备份成功， 初始化完成`)
 
 			}
@@ -304,7 +304,7 @@ export default class MyPlugin extends Plugin {
 		this.todoistSyncAPI = new TodoistSyncAPI(this.app,this.settings)
 
 		//initialize todoist sync module
-		this.todoistSync = new TodoistSync(this.app,this.settings,this.todoistRestAPI,this.todoistSyncAPI,this.taskParser,this.cacheOperation,this.fileOperation)
+		this.todoistSync = new TodoistSync(this.app,this,this.settings,this.todoistRestAPI,this.todoistSyncAPI,this.taskParser,this.cacheOperation,this.fileOperation)
 
 		//每次启动前备份所有数据
 		//this.todoistSync.backupTodoistAllResources()

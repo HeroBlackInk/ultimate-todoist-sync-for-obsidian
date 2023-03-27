@@ -15,6 +15,7 @@ type FrontMatter = {
 
 export class TodoistSync  {
 	app:App;
+    plugin: MyPlugin;
     settings:MyPluginSettings;
     todoistRestAPI:TodoistRestAPI;
     todoistSyncAPI:TodoistSyncAPI;
@@ -22,9 +23,10 @@ export class TodoistSync  {
     cacheOperation:CacheOperation;
     fileOperation:FileOperation;
 
-	constructor(app:App, settings:MyPluginSettings,todoistRestAPI:TodoistRestAPI,todoistSyncAPI:TodoistSyncAPI,taskParser:TaskParser,cacheOperation:CacheOperation,fileOperation:FileOperation) {
+	constructor(app:App, plugin:MyPlugin,settings:MyPluginSettings,todoistRestAPI:TodoistRestAPI,todoistSyncAPI:TodoistSyncAPI,taskParser:TaskParser,cacheOperation:CacheOperation,fileOperation:FileOperation) {
 		//super(app,settings,todoistRestAPI,todoistSyncAPI,taskParser,cacheOperation);
 		this.app = app;
+        this.plugin = plugin;
         this.settings = settings;
         this.todoistRestAPI = todoistRestAPI;
         this.todoistSyncAPI = todoistSyncAPI;
@@ -88,6 +90,7 @@ export class TodoistSync  {
         }
         this.cacheOperation.deleteTaskFromCacheByIDs(deletedTaskIds)
         console.log(`删除了${deletedTaskAmount} 条 task`)
+        this.plugin.saveSettings()
         // 更新 newFrontMatter_todoistTasks 数组
         
         // Disable automatic merging
@@ -140,11 +143,14 @@ export class TodoistSync  {
                 new Notice(`new task ${newTask.content} id is ${newTask.id}`)
                 //newTask写入缓存
                 this.cacheOperation.appendTaskToCache(newTask)
+                
                 //如果任务已完成
                 if(currentTask.isCompleted === true){
                   await this.todoistRestAPI.CloseTask(newTask.id)
                   this.cacheOperation.closeTaskToCacheByID(todoist_id)
+                
                 }
+                this.plugin.saveSettings()
 
                 //todoist id 保存到 任务后面
                 const text = `${linetxt} %%[todoist_id:: ${todoist_id}]%%`;
@@ -235,11 +241,13 @@ export class TodoistSync  {
                 new Notice(`new task ${newTask.content} id is ${newTask.id}`)
                 //newTask写入json文件
                 this.cacheOperation.appendTaskToCache(newTask)
+
                 //如果任务已完成
                 if(currentTask.isCompleted === true){
                 await this.todoistRestAPI.CloseTask(newTask.id)
                 this.cacheOperation.closeTaskToCacheByID(todoist_id)
                 }
+                this.plugin.saveSettings()
     
                 //todoist id 保存到 任务后面
                 const text = `${line} %%[todoist_id:: ${todoist_id}]%%`;
@@ -390,7 +398,9 @@ export class TodoistSync  {
                 console.log(lineTask)
                 console.log(savedTask)
                 //`Task ${lastLineTaskTodoistId} was modified`
+                this.plugin.saveSettings()
                 new Notice(`Task ${lineTask_todoist_id} was modified`)
+
             } else {
                 console.log(`Task ${lineTask_todoist_id} did not change`);
             }
@@ -456,6 +466,7 @@ export class TodoistSync  {
     try {
         await this.todoistRestAPI.CloseTask(taskId);
         await this.cacheOperation.closeTaskToCacheByID(taskId);
+        this.plugin.saveSettings()
     } catch (error) {
         console.error('Error closing task:', error);
         throw error; // 抛出错误使调用方能够捕获并处理它
@@ -467,6 +478,7 @@ export class TodoistSync  {
         try {
             await this.todoistRestAPI.OpenTask(taskId)
             await this.cacheOperation.reopenTaskToCacheByID(taskId)
+            this.plugin.saveSettings()
         } catch (error) {
             console.error('Error opening task:', error);
             throw error; // 抛出错误使调用方能够捕获并处理它
@@ -504,7 +516,7 @@ export class TodoistSync  {
     }
 
     await this.cacheOperation.deleteTaskFromCacheByIDs(deletedTaskIds); // 更新 JSON 文件
-
+    this.plugin.saveSettings()
     console.log(`共删除了 ${deletedTaskIds.length} 条 task`);
 
     return deletedTaskIds;
@@ -584,6 +596,7 @@ export class TodoistSync  {
         // 将新事件合并到现有事件中并保存到 JSON
         //const allEvents = [...savedEvents, ...unSynchronizedEvents]
         await this.cacheOperation.appendEventsToCache(processedEvents)
+        this.plugin.saveSettings()
         } catch (error) {
         console.error('同步任务状态时出错：', error)
         }
@@ -611,6 +624,7 @@ export class TodoistSync  {
         // 将新事件合并到现有事件中并保存到 JSON
         //const allEvents = [...savedEvents, ...unSynchronizedEvents]
         await this.cacheOperation.appendEventsToCache(processedEvents)
+        this.plugin.saveSettings()
         } catch (error) {
         console.error('同步任务状态时出错：', error)
         }
@@ -638,6 +652,7 @@ export class TodoistSync  {
         // 将新事件合并到现有事件中并保存到 JSON
         //const allEvents = [...savedEvents, ...unSynchronizedEvents]
         await this.cacheOperation.appendEventsToCache(processedEvents)
+        this.plugin.saveSettings()
         } catch (error) {
         console.error('sync updated item出错：', error)
         }
