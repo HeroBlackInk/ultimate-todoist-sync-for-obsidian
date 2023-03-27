@@ -205,6 +205,20 @@ export default class MyPlugin extends Plugin {
 			
 			
 		}));
+
+		//监听 rename 事件,更新 task data 中的 path
+		this.registerEvent(this.app.vault.on('rename', async (file,oldpath) => {
+			console.log(`${oldpath} is renamed`)
+			//读取frontMatter
+			const frontMatter = await this.fileOperation.getFrontMatter(file)
+			console.log(frontMatter)
+			if(frontMatter === undefined || frontMatter.todoistTasks === undefined){
+				//console.log('删除的文件中没有task')
+				return
+			}
+			this.cacheOperation.updateRenamedFilePath(oldpath,file.path)
+					
+		}));
 	}
 
 

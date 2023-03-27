@@ -32,6 +32,17 @@ export class CacheOperation   {
     }
     }
       
+
+    // 覆盖保存所有task到cache
+    saveTasksToCache(newTasks) {
+        try {
+            this.settings.todoistTasksData.tasks = newTasks
+            
+        } catch (error) {
+            console.error(`Error saving tasks to Cache: ${error}`);
+            return false;
+        }
+    }
       
       
       
@@ -202,7 +213,7 @@ export class CacheOperation   {
       
 
 
-        //save projects data to json file
+    //save projects data to json file
     async saveProjectsToCache() {
         try{
                 //get projects
@@ -221,7 +232,25 @@ export class CacheOperation   {
 
     }
     
-  }
+    }
+
+
+    async updateRenamedFilePath(oldpath:string,newpath:string){
+        try{
+            const savedTask = await this.loadTasksFromCache()
+            const newTasks = savedTask.map(obj => {
+                if (obj.path === oldpath) {
+                  return { ...obj, path: newpath };
+                }
+            })
+            await this.saveTasksToCache(newTasks)
+
+        }catch(error){
+            console.log(`Error updating renamed file path to cache: ${error}`)
+        }
+
+
+    }
 
 
 
