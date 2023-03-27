@@ -126,8 +126,6 @@ export default class MyPlugin extends Plugin {
 				this.todoistSync.deletedTaskCheck();		
 			}
 		});
-		
-
 
 		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
 		// Using this function will automatically remove the event listener when this plugin is disabled.
@@ -191,7 +189,24 @@ export default class MyPlugin extends Plugin {
 			this.todoistSync.lineContentNewTaskCheck(editor,view)
 			this.saveSettings()
 		}))
+
+		//监听删除事件，当文件被删除后，读取frontMatter中的tasklist,批量删除
+		this.registerEvent(this.app.metadataCache.on('deleted', (file,prevCache) => {
+			//console.log('a new file has modified')
+			console.log(`file deleted`)
+			//读取frontMatter
+			if(prevCache?.frontmatter === undefined || prevCache.frontmatter.todoistTasks === undefined){
+				console.log('删除的文件中没有task')
+				return
+			}
+			//判断todoistTasks是否为null
+			console.log(prevCache?.frontmatter.todoistTasks)
+			this.todoistSync.deleteTasksByIds(prevCache.frontmatter.todoistTasks)
+			
+			
+		}));
 	}
+
 
 	async onunload() {
 		console.log(`Ultimate Todoist Sync for Obsidian id unloaded!`)
