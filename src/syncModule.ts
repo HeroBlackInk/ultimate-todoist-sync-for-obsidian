@@ -70,11 +70,11 @@ export class TodoistSync  {
               //console.log(`initialize todoist api`)
               const api = this.todoistRestAPI.initializeAPI()
               const response = await api.deleteTask(taskId);
-              console.log(`response is ${response}`);
+              //console.log(`response is ${response}`);
       
               if (response) {
                 //console.log(`task ${taskId} 删除成功`);
-                new Notice(`task ${taskId} 删除成功`)
+                new Notice(`task ${taskId} was deleted`)
                 return taskId; // 返回被删除的任务 ID
               }
             } catch (error) {
@@ -89,7 +89,7 @@ export class TodoistSync  {
           return;
         }
         this.cacheOperation.deleteTaskFromCacheByIDs(deletedTaskIds)
-        console.log(`删除了${deletedTaskAmount} 条 task`)
+        //console.log(`删除了${deletedTaskAmount} 条 task`)
         this.plugin.saveSettings()
         // 更新 newFrontMatter_todoistTasks 数组
         
@@ -126,10 +126,10 @@ export class TodoistSync  {
                 //console.log('task is esixted')
                 return
             }
-            console.log('this is a new task')
+            //console.log('this is a new task')
     
             const currentTask =await this.taskParser.convertTextToTodoistTaskObject(linetxt,filePath,line,fileContent)
-            console.log(currentTask)
+            //console.log(currentTask)
     
           
     
@@ -162,7 +162,7 @@ export class TodoistSync  {
                 try {
                     // 处理 front matter
                     view.app.fileManager.processFrontMatter(view.file, (frontMatter) => {
-                      console.log(frontMatter);
+                      //console.log(frontMatter);
                   
                       if (!frontMatter) {
                         console.log('frontmatter is empty');
@@ -208,7 +208,7 @@ export class TodoistSync  {
         let newFrontMatter
         //frontMatteer
         this.app.fileManager.processFrontMatter(file, (frontMatter) => {
-        console.log(frontMatter);
+        //console.log(frontMatter);
     
         if (!frontMatter) {
             console.log('frontmatter is empty');
@@ -224,9 +224,9 @@ export class TodoistSync  {
         for (let i = 0; i < lines.length; i++) {
         const line = lines[i]
         if (!line.includes("todoist_id") && line.includes('#todoist')) {
-            console.log('this is a new task')
-            console.log(`current line is ${i}`)
-            console.log(`line text: ${line}`)
+            //console.log('this is a new task')
+            //console.log(`current line is ${i}`)
+            //console.log(`line text: ${line}`)
             console.log(filepath)
             const currentTask =await this.taskParser.convertTextToTodoistTaskObject(line,filepath,i,content)
             if(typeof currentTask === "undefined"){
@@ -357,14 +357,14 @@ export class TodoistSync  {
 
             //todoist Rest api 没有 move task to new project的功能
             if (projectModified) {
-                console.log(`Project id modified for task ${lineTask_todoist_id}`)
+                //console.log(`Project id modified for task ${lineTask_todoist_id}`)
                 //updatedContent.projectId = lineTask.projectId
                 //projectChanged = false;
             }
 
             //todoist Rest api 没有修改 parent id 的借口
             if (parentIdModified) {
-                console.log(`Parnet id modified for task ${lineTask_todoist_id}`)
+                //console.log(`Parnet id modified for task ${lineTask_todoist_id}`)
                 //updatedContent.parentId = lineTask.parentId
                 //parentIdChanged = false;
             }
@@ -372,7 +372,7 @@ export class TodoistSync  {
 
             if (contentChanged || tagsChanged ||dueDateChanged ||projectChanged || parentIdChanged) {
                 //console.log("task content was modified");
-                console.log(updatedContent)
+                //console.log(updatedContent)
                 const updatedTask = await this.todoistRestAPI.UpdateTask(lineTask.todoist_id.toString(),updatedContent)
                 updatedTask.path = filePath
                 this.cacheOperation.updateTaskToCacheByID(updatedTask);
@@ -396,14 +396,14 @@ export class TodoistSync  {
 
             
             if (contentChanged || statusChanged ||dueDateChanged ||tagsChanged || projectChanged) {
-                console.log(lineTask)
-                console.log(savedTask)
+                //console.log(lineTask)
+                //console.log(savedTask)
                 //`Task ${lastLineTaskTodoistId} was modified`
                 this.plugin.saveSettings()
                 new Notice(`Task ${lineTask_todoist_id} was modified`)
 
             } else {
-                console.log(`Task ${lineTask_todoist_id} did not change`);
+                //console.log(`Task ${lineTask_todoist_id} did not change`);
             }
             
             } catch (error) {
@@ -417,7 +417,7 @@ export class TodoistSync  {
 
     async fullTextModifiedTaskCheck(): Promise<void>{
 
-        console.log(`检查file修改的任务`)
+        //console.log(`检查file修改的任务`)
 
         const view = this.app.workspace.getActiveViewOfType(MarkdownView);
         const file = this.app.workspace.getActiveFile()
@@ -470,6 +470,7 @@ export class TodoistSync  {
         await this.todoistRestAPI.CloseTask(taskId);
         await this.cacheOperation.closeTaskToCacheByID(taskId);
         this.plugin.saveSettings()
+        new Notice(`Task ${taskId} id closed.`)
     } catch (error) {
         console.error('Error closing task:', error);
         throw error; // 抛出错误使调用方能够捕获并处理它
@@ -482,6 +483,7 @@ export class TodoistSync  {
             await this.todoistRestAPI.OpenTask(taskId)
             await this.cacheOperation.reopenTaskToCacheByID(taskId)
             this.plugin.saveSettings()
+            new Notice(`Task ${taskId} id reopend.`)
         } catch (error) {
             console.error('Error opening task:', error);
             throw error; // 抛出错误使调用方能够捕获并处理它
@@ -504,7 +506,8 @@ export class TodoistSync  {
         console.log(`response is ${response}`);
 
         if (response) {
-            console.log(`Task ${taskId} 删除成功`);
+            //console.log(`Task ${taskId} 删除成功`);
+            new Notice(`Task ${taskId} was deleted.`)
             deletedTaskIds.push(taskId); // 将被删除的任务 ID 加入数组
         }
         } catch (error) {
@@ -520,7 +523,8 @@ export class TodoistSync  {
 
     await this.cacheOperation.deleteTaskFromCacheByIDs(deletedTaskIds); // 更新 JSON 文件
     this.plugin.saveSettings()
-    console.log(`共删除了 ${deletedTaskIds.length} 条 task`);
+    //console.log(`共删除了 ${deletedTaskIds.length} 条 task`);
+    
 
     return deletedTaskIds;
     }
@@ -585,14 +589,15 @@ export class TodoistSync  {
     async  syncCompletedTaskStatusToObsidian() {
         // 获取未同步的事件
         const unSynchronizedEvents = await this.getObdisianUnsynchronizedCompletedEvents()
-        console.log(unSynchronizedEvents)    
+        //console.log(unSynchronizedEvents)    
         try {
         
         // 处理未同步的事件并等待所有处理完成
         const processedEvents = []
         for (const e of unSynchronizedEvents) {   //如果要修改代码，让completeTaskInTheFile(e.object_id)按照顺序依次执行，可以将Promise.allSettled()方法改为使用for...of循环来处理未同步的事件。具体步骤如下：
-            console.log(`正在 complete ${e.object_id}`)
+            //console.log(`正在 complete ${e.object_id}`)
             await this.fileOperation.completeTaskInTheFile(e.object_id)
+            new Notice(`Task ${e.object_id} was closed.`)
             processedEvents.push(e)
         }
 
@@ -610,15 +615,16 @@ export class TodoistSync  {
     async  syncUncompletedTaskStatusToObsidian() {
         // 获取未同步的事件
         const unSynchronizedEvents = await this.getObdisianUnsynchronizedUncompletedEvents()
-        console.log(unSynchronizedEvents)
+        //console.log(unSynchronizedEvents)
     
         try {
         
         // 处理未同步的事件并等待所有处理完成
         const processedEvents = []
         for (const e of unSynchronizedEvents) {   //如果要修改代码，让uncompleteTaskInTheFile(e.object_id)按照顺序依次执行，可以将Promise.allSettled()方法改为使用for...of循环来处理未同步的事件。具体步骤如下：
-            console.log(`正在 uncheck task: ${e.object_id}`)
+            //console.log(`正在 uncheck task: ${e.object_id}`)
             await this.fileOperation.uncompleteTaskInTheFile(e.object_id)
+            new Notice(`Task ${e.object_id} was reopend.`)
             processedEvents.push(e)
         }
     
@@ -637,16 +643,15 @@ export class TodoistSync  {
     async  syncUpdatedTaskToObsidian() {
         // 获取未同步的事件
         const unSynchronizedEvents = await this.getObdisianUnsynchronizedUpdatedEvents()
-        console.log(unSynchronizedEvents) 
+        //console.log(unSynchronizedEvents) 
         try {
         
         // 处理未同步的事件并等待所有处理完成
         const processedEvents = []
         for (const e of unSynchronizedEvents) {   //如果要修改代码，让completeTaskInTheFile(e.object_id)按照顺序依次执行，可以将Promise.allSettled()方法改为使用for...of循环来处理未同步的事件。具体步骤如下：
-            console.log(`正在 sync ${e.object_id} 的变化到本地`)
-    
-    
+            //console.log(`正在 sync ${e.object_id} 的变化到本地`)
             await this.fileOperation.syncUpdatedTaskToTheFile(e)
+            new Notice(`Task ${e.object_id} was updated.`)
             processedEvents.push(e)
         }
     

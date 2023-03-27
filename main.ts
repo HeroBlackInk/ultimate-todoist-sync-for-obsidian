@@ -257,7 +257,7 @@ export default class MyPlugin extends Plugin {
 				new Notice(`第一次启动插件，todoist数据备份成功， 初始化完成`)
 
 			}
-			new Notice(`插件初始化成功`)
+			//new Notice(`插件初始化成功`)
 			
 		}else{
 			new Notice(`初始化失败,请检查todoist api`)
@@ -302,7 +302,7 @@ export default class MyPlugin extends Plugin {
 					//console.log(`filename is ${fileName}`)
 			if(this.lastLines.has(fileName) && line !== this.lastLines.get(fileName)){
 				const lastLine = this.lastLines.get(fileName)
-				console.log('Line changed!', `current line is ${line}`, `last line is ${lastLine}`);
+				//console.log('Line changed!', `current line is ${line}`, `last line is ${lastLine}`);
 
 				// 执行你想要的操作
 				const lastLineText = view.editor.getLine(lastLine)

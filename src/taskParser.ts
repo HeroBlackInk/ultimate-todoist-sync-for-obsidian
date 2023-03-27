@@ -71,7 +71,7 @@ export class TaskParser   {
         if(this.getTabIndentation(lineText) > 0){
         //console.log(`缩进为 ${getTabIndentation(lineText)}`)
         textWithoutIndentation = this.removeTaskIndentation(lineText)
-        console.log(textWithoutIndentation)
+        //console.log(textWithoutIndentation)
         //console.log(`这是子任务`)
         //读取filepath
         //const fileContent = await this.fileOperation.readContentFromFilePath(filepath)
@@ -96,7 +96,7 @@ export class TaskParser   {
             if(this.hasTodoistId(line)){
                 parentId = this.getTodoistIdFromLineText(line)
                 hasParent = true
-                console.log(`parent id is ${parentId}`)
+                //console.log(`parent id is ${parentId}`)
                 break
             }
             else{
@@ -327,19 +327,19 @@ export class TaskParser   {
         if ((lineTaskDue || todoistTaskDue) === "") {
         console.log(lineTaskDue);
         console.log(todoistTaskDue)
-        console.log('due date 发生了变化')
+        //console.log('due date 发生了变化')
         return false;
         }
     
         if (lineTaskDue === todoistTaskDue.date) {
-        console.log('due date 一致')
+        //console.log('due date 一致')
         return true;
         } else if (lineTaskDue.toString() === "Invalid Date" || todoistTaskDue.toString() === "Invalid Date") {
         console.log('invalid date')
         return false;
         } else {
-        console.log(lineTaskDue);
-        console.log(todoistTaskDue.date)
+        //console.log(lineTaskDue);
+        //console.log(todoistTaskDue.date)
         return false;
         }
     }

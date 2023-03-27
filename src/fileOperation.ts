@@ -34,7 +34,7 @@ export class FileOperation   {
     file:TFile,
     updater: (frontMatter: FrontMatter) => void
     ): Promise<void> {
-        console.log(`prepare to update front matter`)
+        //console.log(`prepare to update front matter`)
         this.app.fileManager.processFrontMatter(file, (frontMatter) => {
         if (frontMatter !== null) {
         const updatedFrontMatter = { ...frontMatter } as FrontMatter;
@@ -128,9 +128,9 @@ export class FileOperation   {
             const oldTaskContent = this.taskParser.getTaskContentFromLineText(line)
             const newTaskContent = evt.extra_data.content
             if(oldTaskContent !== newTaskContent){
-            console.log(`${taskId} content is updated`)
-            console.log(oldTaskContent)
-            console.log(newTaskContent)
+            //console.log(`${taskId} content is updated`)
+            //console.log(oldTaskContent)
+            //console.log(newTaskContent)
             lines[i] = line.replace(oldTaskContent, newTaskContent)
             modified = true
             }
@@ -139,8 +139,8 @@ export class FileOperation   {
             const newTaskDueDate = this.taskParser.extractDateFromTodoistEvent(evt.extra_data.due_date)
             if(oldTaskDueDate !== newTaskDueDate){
                 console.log(`${taskId} duedate is updated`)
-                console.log(oldTaskDueDate)
-                console.log(newTaskDueDate)
+                //console.log(oldTaskDueDate)
+                //console.log(newTaskDueDate)
                 if(oldTaskDueDate === null){
                 //console.log(this.taskParser.insertDueDateBeforeTodoist(line,newTaskDueDate))
                 lines[i] = this.taskParser.insertDueDateBeforeTodoist(line,newTaskDueDate)
