@@ -226,10 +226,24 @@ export default class MyPlugin extends Plugin {
 	
 			if(!this.settings.initialized){
 
-				//创建备份文件夹
+				//创建备份文件夹备份todoist 数据
 				try{
 					const userdataPath = path.join(this.app.vault.configDir, 'plugins', 'ultimate-todoist-sync-for-obsidian','userData');
 					this.app.vault.createFolder(userdataPath)
+					//第一次启动插件，备份todoist 数据
+					this.taskParser = new TaskParser(this.app,this.settings,this.cacheOperation)
+
+					//initialize file operation
+					this.fileOperation = new FileOperation(this.app,this.settings,this.todoistRestAPI,this.taskParser,this.cacheOperation)
+			
+					//initialize todoisy sync api
+					this.todoistSyncAPI = new TodoistSyncAPI(this.app,this.settings)
+			
+					//initialize todoist sync module
+					this.todoistSync = new TodoistSync(this.app,this.settings,this.todoistRestAPI,this.todoistSyncAPI,this.taskParser,this.cacheOperation,this.fileOperation)
+			
+					//每次启动前备份所有数据
+					this.todoistSync.backupTodoistAllResources()
 				}catch(error){
 					console.log(`error creating user data folder: ${error}`)
 					new Notice(`初始化失败`)
@@ -242,8 +256,11 @@ export default class MyPlugin extends Plugin {
 				this.settings.todoistTasksData.events = []
 				this.settings.initialized = true
 				await this.saveSettings()
+				new Notice(`第一次启动插件，todoist数据备份成功， 初始化完成`)
+
 			}
 			new Notice(`插件初始化成功`)
+			
 		}else{
 			new Notice(`初始化失败,请检查todoist api`)
 			return
@@ -261,7 +278,7 @@ export default class MyPlugin extends Plugin {
 		this.todoistSync = new TodoistSync(this.app,this.settings,this.todoistRestAPI,this.todoistSyncAPI,this.taskParser,this.cacheOperation,this.fileOperation)
 
 		//每次启动前备份所有数据
-		this.todoistSync.backupTodoistAllResources()
+		//this.todoistSync.backupTodoistAllResources()
 		
 
 

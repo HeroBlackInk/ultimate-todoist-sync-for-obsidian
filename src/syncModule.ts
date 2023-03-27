@@ -656,7 +656,8 @@ export class TodoistSync  {
         const pluginFolderPath = path.join(this.app.vault.configDir, 'plugins', 'ultimate-todoist-sync-for-obsidian','userData',name);
         console.log(pluginFolderPath)
         this.app.vault.create(pluginFolderPath,JSON.stringify(resources))
-        console.log(`todoist 备份成功`)
+        //console.log(`todoist 备份成功`)
+        new Notice(`Todoist backup data is saved in the path ${pluginFolderPath}`)
         } catch (error) {
         console.error("An error occurred while creating Todoist backup:", error);
         }

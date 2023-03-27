@@ -49,6 +49,17 @@ export class SampleSettingTab extends PluginSettingTab {
 						this.plugin.modifyTodoistAPI(value)
 					})
 			);
+
+		new Setting(containerEl)
+			.setName('Backup Todoist Data')
+			.setDesc('Click to backup Todoist data, backup data is saved in the path ".obsidian/plugins/ultimate-todoist-sync-for-obsidian/userData"')
+			.addButton(button => button
+				.setButtonText('Backup')
+				.onClick(() => {
+					// Add code here to handle exporting Todoist data
+					this.plugin.todoistSync.backupTodoistAllResources()
+				})
+			);
 	}
 }
 
