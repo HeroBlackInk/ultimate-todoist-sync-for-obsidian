@@ -281,7 +281,7 @@ export class TodoistSync  {
     }
 
 
-    async  lineModifiedTaskCheck(filePath:string,lineNumber:string): Promise<void>{
+    async lineModifiedTaskCheck(filePath:string,lineNumber:string): Promise<void>{
         const lineText = await this.fileOperation.getLineTextFromFilePath(filePath,lineNumber)
 
         //检查task
@@ -401,7 +401,7 @@ export class TodoistSync  {
     }
 
 
-    async  fullTextModifiedTaskCheck(): Promise<void>{
+    async fullTextModifiedTaskCheck(): Promise<void>{
 
     console.log(`检查file修改的任务`)
 
@@ -448,7 +448,7 @@ export class TodoistSync  {
 
 
     // Close a task by calling API and updating JSON file
-    async  closeTask(taskId: string): Promise<void> {
+    async closeTask(taskId: string): Promise<void> {
     try {
         await this.todoistRestAPI.CloseTask(taskId);
         await this.cacheOperation.closeTaskToCacheByID(taskId);
@@ -459,7 +459,7 @@ export class TodoistSync  {
     }
 
     //open task
-    async  repoenTask(taskId:string) : Promise<void>{
+    async repoenTask(taskId:string) : Promise<void>{
         try {
             await this.todoistRestAPI.OpenTask(taskId)
             await this.cacheOperation.reopenTaskToCacheByID(taskId)
@@ -475,7 +475,7 @@ export class TodoistSync  {
      * @param taskIds 要删除的任务 ID 数组
      * @returns 返回被成功删除的任务 ID 数组
      */
-    async  deleteTasksByIds(taskIds: string[]): Promise<string[]> {
+    async deleteTasksByIds(taskIds: string[]): Promise<string[]> {
     const deletedTaskIds = [];
 
     for (const taskId of taskIds) {
@@ -504,6 +504,140 @@ export class TodoistSync  {
     console.log(`共删除了 ${deletedTaskIds.length} 条 task`);
 
     return deletedTaskIds;
+    }
+
+    // 获取未同步的item completed事件
+    async  getObdisianUnsynchronizedCompletedEvents() {
+        const completedItemsActivityEvents = await this.todoistSyncAPI.getNonObsidianCompletedItemsActivity()
+    
+        // 找出 task id 存在于 Obsidian 中的 activity
+        const savedTasks = await this.cacheOperation.loadTasksFromCache()
+        const result1 = completedItemsActivityEvents.filter(
+        (objA) => savedTasks.some((objB) => objB.id === objA.object_id)
+        )
+    
+        // 删除已经保存的 events
+        const savesEvents = this.settings.todoistTasksData.events
+        const result2 = result1.filter(
+        (objA) => !savesEvents.some((objB) => objB.id === objA.id)
+        )
+        return result2
+    }
+  
+    // 获取未同步的item uncompleted事件
+    async  getObdisianUnsynchronizedUncompletedEvents() {
+        const uncompletedItemsActivityEvents = await this.todoistSyncAPI.getNonObsidianUncompletedItemsActivity()
+    
+        // 找出 task id 存在于 Obsidian 中的 activity
+        const savedTasks = await this.cacheOperation.loadTasksFromCache()
+        const result1 = uncompletedItemsActivityEvents.filter(
+        (objA) => savedTasks.some((objB) => objB.id === objA.object_id)
+        )
+    
+        // 删除已经保存的 events
+        const savesEvents = await this.cacheOperation.loadEventsFromCache()
+        const result2 = result1.filter(
+        (objA) => !savesEvents.some((objB) => objB.id === objA.id)
+        )
+        return result2
+    }
+  
+  
+    // 获取未同步的item updated事件
+    async  getObdisianUnsynchronizedUpdatedEvents() {
+        const updatedItemsActivityEvents = await this.todoistSyncAPI.getNonObsidianUpdatedItemsActivity()
+    
+        // 找出 task id 存在于 Obsidian 中的 activity
+        const savedTasks = this.cacheOperation.loadTasksFromCache()
+        const result1 = updatedItemsActivityEvents.filter(
+        (objA) => savedTasks.some((objB) => objB.id === objA.object_id)
+        )
+    
+        // 删除已经保存的 events
+        const savedEvents = await this.cacheOperation.loadEventsFromCache()
+        const result2 = result1.filter(
+        (objA) => !savedEvents.some((objB) => objB.id === objA.id)
+        )
+        return result2
+    }
+
+
+    // 同步已完成的任务状态到 Obsidian file
+    async  syncCompletedTaskStatusToObsidian() {
+        // 获取未同步的事件
+        const unSynchronizedEvents = await this.getObdisianUnsynchronizedCompletedEvents()
+        console.log(unSynchronizedEvents)    
+        try {
+        
+        // 处理未同步的事件并等待所有处理完成
+        const processedEvents = []
+        for (const e of unSynchronizedEvents) {   //如果要修改代码，让completeTaskInTheFile(e.object_id)按照顺序依次执行，可以将Promise.allSettled()方法改为使用for...of循环来处理未同步的事件。具体步骤如下：
+            console.log(`正在 complete ${e.object_id}`)
+            await this.fileOperation.completeTaskInTheFile(e.object_id)
+            processedEvents.push(e)
+        }
+
+        // 将新事件合并到现有事件中并保存到 JSON
+        //const allEvents = [...savedEvents, ...unSynchronizedEvents]
+        await this.cacheOperation.appendEventsToCache(processedEvents)
+        } catch (error) {
+        console.error('同步任务状态时出错：', error)
+        }
+    }
+  
+  
+    // 同步已完成的任务状态到 Obsidian file
+    async  syncUncompletedTaskStatusToObsidian() {
+        // 获取未同步的事件
+        const unSynchronizedEvents = await this.getObdisianUnsynchronizedUncompletedEvents()
+        console.log(unSynchronizedEvents)
+    
+        try {
+        
+        // 处理未同步的事件并等待所有处理完成
+        const processedEvents = []
+        for (const e of unSynchronizedEvents) {   //如果要修改代码，让uncompleteTaskInTheFile(e.object_id)按照顺序依次执行，可以将Promise.allSettled()方法改为使用for...of循环来处理未同步的事件。具体步骤如下：
+            console.log(`正在 uncheck task: ${e.object_id}`)
+            await this.fileOperation.uncompleteTaskInTheFile(e.object_id)
+            processedEvents.push(e)
+        }
+    
+    
+    
+        // 将新事件合并到现有事件中并保存到 JSON
+        //const allEvents = [...savedEvents, ...unSynchronizedEvents]
+        await this.cacheOperation.appendEventsToCache(processedEvents)
+        } catch (error) {
+        console.error('同步任务状态时出错：', error)
+        }
+    }
+  
+    // 同步updated item状态到 Obsidian 中
+    async  syncUpdatedTaskToObsidian() {
+        // 获取未同步的事件
+        const unSynchronizedEvents = await this.getObdisianUnsynchronizedUpdatedEvents()
+        console.log(unSynchronizedEvents) 
+        try {
+        
+        // 处理未同步的事件并等待所有处理完成
+        const processedEvents = []
+        for (const e of unSynchronizedEvents) {   //如果要修改代码，让completeTaskInTheFile(e.object_id)按照顺序依次执行，可以将Promise.allSettled()方法改为使用for...of循环来处理未同步的事件。具体步骤如下：
+            console.log(`正在 sync ${e.object_id} 的变化到本地`)
+    
+    
+            await this.fileOperation.syncUpdatedTaskToTheFile(e)
+            processedEvents.push(e)
+        }
+    
+    
+    
+        // 将新事件合并到现有事件中并保存到 JSON
+        //const allEvents = [...savedEvents, ...unSynchronizedEvents]
+        await this.cacheOperation.appendEventsToCache(processedEvents)
+        } catch (error) {
+        console.error('sync updated item出错：', error)
+        }
+        
     }
 
 

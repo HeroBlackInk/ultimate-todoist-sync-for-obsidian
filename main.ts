@@ -52,6 +52,10 @@ export default class MyPlugin extends Plugin {
 			if(activeFile){
 				await this.todoistSync.fullTextNewTaskCheck()
 				await this.todoistSync.deletedTaskCheck()
+				await this.todoistSync.fullTextModifiedTaskCheck()
+				await this.todoistSync.syncCompletedTaskStatusToObsidian()
+				await this.todoistSync.syncUncompletedTaskStatusToObsidian()
+				await this.todoistSync.syncUpdatedTaskToObsidian()
 
 			}
 
@@ -230,16 +234,18 @@ export default class MyPlugin extends Plugin {
 			new Notice(`初始化失败,请检查todoist api`)
 			return
 		}
+		//initialize task parser
+		this.taskParser = new TaskParser(this.app,this.settings,this.cacheOperation)
+
 		//initialize file operation
-		this.fileOperation = new FileOperation(this.app,this.settings,this.todoistRestAPI,this.cacheOperation)
+		this.fileOperation = new FileOperation(this.app,this.settings,this.todoistRestAPI,this.taskParser,this.cacheOperation)
 
 		//initialize todoisy sync api
 		this.todoistSyncAPI = new TodoistSyncAPI(this.app,this.settings)
 
 
 
-		//initialize task parser
-		this.taskParser = new TaskParser(this.app,this.settings,this.cacheOperation)
+
 
 		//initialize todoist sync module
 		this.todoistSync = new TodoistSync(this.app,this.settings,this.todoistRestAPI,this.todoistSyncAPI,this.taskParser,this.cacheOperation,this.fileOperation)

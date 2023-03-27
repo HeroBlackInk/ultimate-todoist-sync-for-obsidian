@@ -36,13 +36,22 @@ export class CacheOperation   {
       
       
       
+    // append event 到 Cache
+    appendEventToCache(event:Object[]) {
+        try {
+            this.settings.todoistTasksData.events.push(event)
+        } catch (error) {
+            console.error(`Error append event to Cache: ${error}`);
+        }
+    }
+
     // append events 到 Cache
     appendEventsToCache(events:Object[]) {
-    try {
-        this.settings.todoistTasksData.events.push(events)
-    } catch (error) {
-        console.error(`Error append events to Cache: ${error}`);
-    }
+        try {
+            this.settings.todoistTasksData.events.push(...events)
+        } catch (error) {
+            console.error(`Error append events to Cache: ${error}`);
+        }
     }
       
       
@@ -193,22 +202,22 @@ export class CacheOperation   {
       
 
 
-    //save projects data to json file
-   async saveProjectsToCache() {
-    try{
-            //get projects
-        const projects = await this.todoistRestAPI.GetAllProjects()
-        if(!projects){
-            return false
-        }
-    
-        //save to json
-        this.settings.todoistTasksData.projects = projects
+        //save projects data to json file
+    async saveProjectsToCache() {
+        try{
+                //get projects
+            const projects = await this.todoistRestAPI.GetAllProjects()
+            if(!projects){
+                return false
+            }
+        
+            //save to json
+            this.settings.todoistTasksData.projects = projects
 
-        return true
+            return true
 
-    }catch(error){
-        console.log(`error downloading projects: ${error}`)
+        }catch(error){
+            console.log(`error downloading projects: ${error}`)
 
     }
     

@@ -365,5 +365,17 @@ export class TaskParser   {
     insertDueDateBeforeTodoist(text, dueDate) {
     return text.replace(/#todoist/, `🗓️${dueDate} #todoist`);
   }
+
+    //extra date from obsidian event
+    // 使用示例
+    //const str = "2023-03-27T15:59:59.000000Z";
+    //const dateStr = extractDate(str);
+    //console.log(dateStr); // 输出 2023-03-27
+    extractDateFromTodoistEvent(str:string) {
+        const regex = /(\d{4})-(\d{2})-(\d{2})/;
+        const matches = str.match(regex);
+        const dateStr = `${matches[1]}-${matches[2]}-${matches[3]}`;
+        return dateStr;
+    }
      
 }
