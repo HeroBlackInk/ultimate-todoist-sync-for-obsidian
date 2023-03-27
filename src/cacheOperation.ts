@@ -208,6 +208,7 @@ export class CacheOperation   {
         return(projectId)
         } catch (error) {
         console.error(`Error finding project from Cache file: ${error}`);
+        return(false)
         }
     }
       

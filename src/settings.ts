@@ -1,4 +1,4 @@
-import { App, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Notice, Plugin, PluginSettingTab, Setting ,ExtraButtonComponent} from 'obsidian';
 
 
 export interface MyPluginSettings {
@@ -6,12 +6,14 @@ export interface MyPluginSettings {
 	//mySetting: string;
 	//todoistTasksFilePath: string;
 	todoistAPIToken: string; // replace with correct type
+	defaultProject: string;
 	todoistTasksData:any;
 }
 
 
 export const DEFAULT_SETTINGS: MyPluginSettings = {
 	initialized: false,
+	defaultProject:"Inbox",
 	todoistTasksData:{},
 	//mySetting: 'default',
 	//todoistTasksFilePath: 'todoistTasks.json'
@@ -48,7 +50,37 @@ export class SampleSettingTab extends PluginSettingTab {
 						this.plugin.settings.todoistAPIToken = value;
 						this.plugin.modifyTodoistAPI(value)
 					})
+
 			);
+
+		new Setting(containerEl)
+			.setName('The default project for new tasks')
+			.setDesc('New tasks are automatically synced to the Inbox. You can modify the project here.')
+			.addText((text) =>
+				text
+					.setPlaceholder('Enter default project name:')
+					.setValue(this.plugin.settings.defaultProject)
+					.onChange(async (value) => {
+						try{
+							//this.plugin.cacheOperation.saveProjectsToCache()
+							const newProjectId = this.plugin.cacheOperation.getProjectIdByNameFromCache(value)
+							if(!newProjectId){
+								new Notice(`This project seems to not exist.`)
+								return
+							}
+						}catch(error){
+							new Notice(`Invalid project name `)
+							return
+						}
+						this.plugin.settings.defaultProject = value;
+						this.plugin.saveSettings()
+						new Notice(`The default project has been modified successfully.`)
+
+					})
+
+		);
+
+
 
 
 		new Setting(containerEl)

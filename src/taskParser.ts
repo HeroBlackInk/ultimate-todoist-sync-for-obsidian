@@ -110,7 +110,7 @@ export class TaskParser   {
         
         const dueDate = this.getDueDateFromLineText(textWithoutIndentation)
     
-        const projectName = this.getProjectNameFromLineText(textWithoutIndentation) ?? "Obsidian"
+        const projectName = this.getProjectNameFromLineText(textWithoutIndentation) ?? this.settings.defaultProject
         const projectId = await this.cacheOperation.getProjectIdByNameFromCache(projectName)
         const content = this.getTaskContentFromLineText(textWithoutIndentation)
         const labels = this.getAllTagsFromLineText(textWithoutIndentation)
