@@ -6,6 +6,7 @@ It should be the best Obsidian plugin for synchronizing Todoist tasks so far.
 
 ### Demo Usage
 ![Alt Text](/attachment/demo.gif)
+
 ### Settings page
 <img src="/attachment/settings.png" width="500">
 
@@ -52,7 +53,17 @@ It should be the best Obsidian plugin for synchronizing Todoist tasks so far.
 
 ## Usage
 
-You must have the Todoist API in order to use it.
+
+New tasks will be added to the default project by default, and you can change the default project in the settings or use a tag with the same name to specify a particular project. Tasks marked with #todoist will be added to Todoist, while tasks without the **#todoist** tag will not be processed.
+
+| Syntax | Description | Example |
+| --- | --- | --- |
+|#todoist|Tasks marked with #todoist will be added to Todoist, while tasks without the **#todoist** tag will not be processed.| ``- [ ] task #todoist|
+| 🗓️YYYY-MM-DD | The date format is 🗓️YYYY-MM-DD, indicating the due date of a task. | `- [ ] task 1 🗓️2025-02-05` |
+| #projectTag | New tasks will be added to the default project(For example,  inbox .), and you can change the default project in the settings or use a tag with the same name to specify a particular project. | `- [ ]taskA 🗓️2024-02-04  #todoist` will be added to inbox.`- [ ]taskB 🗓️2024-02-04 #tag #testProject #todoist` will be added to testProject.|
+| #tag | Note that all tags without a project of the same name are treated as normal tags | `- [ ] task #tagA #tagB #tagC #todoist` |
+
+
 
 ### Syncing Tasks
 
