@@ -8,8 +8,10 @@ It should be the best Obsidian plugin for synchronizing Todoist tasks so far.
 ![Alt Text](/attachment/demo.gif)
 ### Settings page
 <img src="/attachment/settings.png" width="500">
+
 ### Sync Button 
 <img src="/attachment/Syncbutton.png" width="500">
+
 ## Features 
 
 ### Sync from Obsidian to Todoist
@@ -20,6 +22,7 @@ It should be the best Obsidian plugin for synchronizing Todoist tasks so far.
 | Modify task due date    | ✅           | ✅         |
 | Modify task labels/tags | ✅           | ✅         |
 | Mark task as completed  | ✅           | ✅         |
+| Mark task as uncompleted  | ✅           | ✅         |
 | Modify project          | 🔜          | 🔜        |
 
 ### Sync from Todoist to Obsidian
@@ -29,7 +32,8 @@ It should be the best Obsidian plugin for synchronizing Todoist tasks so far.
 | Modify task content     | ✅           | 🔜         |
 | Modify task due date    | ✅           | 🔜          |
 | Modify task labels/tags | 🔜          | 🔜        |
-| Mark task as completed  | ✅           | 🔜         |
+| Mark task as completed  | ✅           |          |
+| Mark task as uncompleted  | ✅           | 🔜         |
 | Modify project          | 🔜          | 🔜        |
 
 > **Some plugins may modify the current view, such as Kanban, which causes the automatic synchronization function to fail. You need to manually click the sync button.**
