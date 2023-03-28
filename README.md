@@ -70,8 +70,13 @@ New tasks will be added to the default project, and you can change the default p
  
 
 
-### Other Features
+## Disclaimer
 
+This plugin is for learning purposes only. The author makes no representations or warranties of any kind, express or implied, about the accuracy, completeness, or usefulness of this plugin and shall not be liable for any losses or damages resulting from the use of this plugin.
+
+The author shall not be responsible for any loss or damage, including but not limited to data loss, system crashes, computer damage, or any other form of loss arising from software problems or errors. Users assume all risks and are solely responsible for any consequences resulting from the use of this product.
+
+By using this plugin, you agree to be bound by all the terms of this disclaimer. If you have any questions, please contact the author.
 
 ## Contributing
 
