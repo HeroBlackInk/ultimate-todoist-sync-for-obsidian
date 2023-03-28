@@ -54,6 +54,7 @@ It should be the best Obsidian plugin for synchronizing Todoist tasks so far.
 ## Usage
 
 
+### task format
 New tasks will be added to the default project, and you can change the default project in the settings or use a tag with the same name to specify a particular project. Tasks marked with #todoist will be added to Todoist, while tasks without the **#todoist** tag will not be processed.
 
 | Syntax | Description | Example |
@@ -67,6 +68,7 @@ New tasks will be added to the default project, and you can change the default p
 
 ### Syncing Tasks
 
+For the automatic synchronization function that has been completed, the plugin will automatically detect it in edit mode. However, some plugins, such as Kanban, may modify the view and cause automatic synchronization to fail, requiring manual clicking of the Sync Button.
  
 
 
