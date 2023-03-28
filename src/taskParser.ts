@@ -397,10 +397,19 @@ export class TaskParser   {
     //const dateStr = extractDate(str);
     //console.log(dateStr); // 输出 2023-03-27
     extractDateFromTodoistEvent(str:string) {
-        const regex = /(\d{4})-(\d{2})-(\d{2})/;
-        const matches = str.match(regex);
-        const dateStr = `${matches[1]}-${matches[2]}-${matches[3]}`;
-        return dateStr;
-    }
+        try {
+          if(str === null){
+            return null
+          }
+          const regex = /(\d{4})-(\d{2})-(\d{2})/;
+          const matches = str.match(regex);
+          if (!matches) throw new Error('No date found in string.');
+          const dateStr = `${matches[1]}-${matches[2]}-${matches[3]}`;
+          return dateStr;
+        } catch (error) {
+          console.error(`Error extracting date from string '${str}': ${error}`);
+          return null;
+        }
+      }
      
 }

@@ -107,9 +107,8 @@ export class FileOperation   {
         }
     }
 
-    // sync updated events to local
-    async syncUpdatedTaskToTheFile(evt:Object) {
-
+    // sync updated task content  to file
+    async syncUpdatedTaskContentToTheFile(evt:Object) {
         const taskId = evt.object_id
         // 获取任务文件路径
         const currentTask = await this.cacheOperation.loadTaskFromCacheyID(taskId)
@@ -127,32 +126,60 @@ export class FileOperation   {
         if (line.includes(taskId) && line.includes('#todoist')) {
             const oldTaskContent = this.taskParser.getTaskContentFromLineText(line)
             const newTaskContent = evt.extra_data.content
-            if(oldTaskContent !== newTaskContent){
-            //console.log(`${taskId} content is updated`)
-            //console.log(oldTaskContent)
-            //console.log(newTaskContent)
+
             lines[i] = line.replace(oldTaskContent, newTaskContent)
             modified = true
-            }
-            if(evt.extra_data.due_date){
-            const oldTaskDueDate = this.taskParser.getDueDateFromLineText(line)
-            const newTaskDueDate = this.taskParser.extractDateFromTodoistEvent(evt.extra_data.due_date)
-            if(oldTaskDueDate !== newTaskDueDate){
-                console.log(`${taskId} duedate is updated`)
-                //console.log(oldTaskDueDate)
-                //console.log(newTaskDueDate)
-                if(oldTaskDueDate === null){
+            break
+        }
+        }
+    
+        if (modified) {
+        const newContent = lines.join('\n')
+        //console.log(newContent)
+        await this.app.vault.modify(file, newContent)
+        }
+        
+    }
+
+    // sync updated task due date  to the file
+    async syncUpdatedTaskDueDateToTheFile(evt:Object) {
+        const taskId = evt.object_id
+        // 获取任务文件路径
+        const currentTask = await this.cacheOperation.loadTaskFromCacheyID(taskId)
+        const filepath = currentTask.path
+    
+        // 获取文件对象并更新内容
+        const file = this.app.vault.getAbstractFileByPath(filepath)
+        const content = await this.app.vault.read(file)
+    
+        const lines = content.split('\n')
+        let modified = false
+    
+        for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]
+        if (line.includes(taskId) && line.includes('#todoist')) {
+            const oldTaskDueDate = this.taskParser.getDueDateFromLineText(line) || ""
+            const newTaskDueDate = this.taskParser.extractDateFromTodoistEvent(evt.extra_data.due_date) || ""
+            
+            //console.log(`${taskId} duedate is updated`)
+            console.log(oldTaskDueDate)
+            console.log(newTaskDueDate)
+            if(oldTaskDueDate === ""){
                 //console.log(this.taskParser.insertDueDateBeforeTodoist(line,newTaskDueDate))
                 lines[i] = this.taskParser.insertDueDateBeforeTodoist(line,newTaskDueDate)
                 modified = true
-    
-                }
-                else{
+
+            }
+            else if(newTaskDueDate === ""){
+                //remove 日期from text
+                const regexRemoveDate = /🗓️\d{4}-\d{2}-\d{2}/; //匹配日期🗓️2023-03-07"
+                lines[i] = line.replace(regexRemoveDate,"")
+                modified = true
+            }
+            else{
+
                 lines[i] = line.replace(oldTaskDueDate, newTaskDueDate)
                 modified = true
-                }
-    
-            }
             }
             break
         }

@@ -22,7 +22,7 @@ export class TodoistRestAPI  {
         return(api)
     }
 
-    async AddTask({ projectId, content, parentId = null, dueDate, labels, description }: { projectId: string, content: string, parentId?: string | null, dueDate?: string, labels?: Array<string>, description?: string }) {
+    async AddTask({ projectId, content, parentId = null, dueDate, labels, description }: { projectId: string, content: string, parentId?: string , dueDate?: string, labels?: Array<string>, description?: string }) {
         const api = await this.initializeAPI()
         try {
           const newTask = await api.addTask({
@@ -40,13 +40,15 @@ export class TodoistRestAPI  {
     }
 
 
+
+    //Also note that to remove the due date of a task completely, you should set the due_string parameter to no date or no due date.
     //api 没有 update task project id 的函数
-    async UpdateTask(taskId: string, updates: { content?: string, labels?:Array<string>,dueDate?: string,parentId?:string }) {
+    async UpdateTask(taskId: string, updates: { content?: string, labels?:Array<string>,dueDate?: string,dueString?:string,parentId?:string }) {
         const api = await this.initializeAPI()
         if (!taskId) {
         throw new Error('taskId is required');
         }
-        if (!updates.content && !updates.dueDate && !updates.labels &&!updates.parentId) {
+        if (!updates.content && !updates.dueDate  && !updates.dueString && !updates.labels &&!updates.parentId) {
         throw new Error('At least one update is required');
         }
         try {
@@ -85,7 +87,39 @@ export class TodoistRestAPI  {
         }
     }
   
-  
+    
+
+ 
+    // get a task by Id
+    async getTaskById(taskId: string) {
+        const api = await this.initializeAPI()
+        if (!taskId) {
+        throw new Error('taskId is required');
+        }
+        try {
+        const task = await api.getTask(taskId);
+        return task;
+        } catch (error) {
+        throw new Error(`Error updating task: ${error.message}`);
+        }
+    }
+
+    //get a task due by id
+    async getTaskDueById(taskId: string) {
+        const api = await this.initializeAPI()
+        if (!taskId) {
+        throw new Error('taskId is required');
+        }
+        try {
+        const task = await api.getTask(taskId);
+        const due = task.due ?? null
+        return due;
+        } catch (error) {
+        throw new Error(`Error updating task: ${error.message}`);
+        }
+    }
+
+
     //get all projects
     async GetAllProjects() {
         const api = await this.initializeAPI()

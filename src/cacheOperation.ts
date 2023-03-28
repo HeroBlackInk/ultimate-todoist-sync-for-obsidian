@@ -3,6 +3,13 @@ import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Set
 import { MyPluginSettings } from 'src/settings';
 import { TodoistRestAPI } from "./todoistRestAPI";
 
+
+
+interface Due {
+    date?: string;
+    [key: string]: any; // allow for additional properties
+  }
+
 export class CacheOperation   {
 	app:App;
     settings:MyPluginSettings;
@@ -109,7 +116,7 @@ export class CacheOperation   {
         }
     }
       
-    //update指定id的task
+    //覆盖update指定id的task
     updateTaskToCacheByID(task) {
         try {
         
@@ -124,6 +131,41 @@ export class CacheOperation   {
             return [];
         }
     }
+
+    //due 的结构  {date: "2025-02-25",isRecurring: false,lang: "en",string: "2025-02-25"}
+
+
+
+    modifyTaskToCacheByID(taskId: string, { content, due }: { content?: string, due?: Due }): void {
+        try {
+          const savedTasks = this.settings.todoistTasksData.tasks;
+          const taskIndex = savedTasks.findIndex((task) => task.id === taskId);
+      
+          if (taskIndex !== -1) {
+            const updatedTask = { ...savedTasks[taskIndex] };
+            
+            if (content !== undefined) {
+              updatedTask.content = content;
+            }
+      
+            if (due !== undefined) {
+              if (due === null) {
+                updatedTask.due = null;
+              } else {
+                updatedTask.due = due;
+              }
+            }
+      
+            savedTasks[taskIndex] = updatedTask;
+      
+            this.settings.todoistTasksData.tasks = savedTasks;
+          } else {
+            throw new Error(`Task with ID ${taskId} not found in cache.`);
+          }
+        } catch (error) {
+          // Handle the error appropriately, e.g. by logging it or re-throwing it.
+        }
+      }
       
       
       //open a task status
@@ -252,7 +294,5 @@ export class CacheOperation   {
 
 
     }
-
-
 
 }

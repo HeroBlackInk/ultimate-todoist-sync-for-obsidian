@@ -139,7 +139,7 @@ export class TodoistSync  {
                 const newTask = await this.todoistRestAPI.AddTask(currentTask)
                 const { id: todoist_id, projectId: todoist_projectId, url: todoist_url } = newTask;
                 newTask.path = filePath;
-                //console.log(newTask);
+                console.log(newTask);
                 new Notice(`new task ${newTask.content} id is ${newTask.id}`)
                 //newTask写入缓存
                 this.cacheOperation.appendTaskToCache(newTask)
@@ -351,7 +351,14 @@ export class TodoistSync  {
 
             if (dueDateModified) {
                 console.log(`Due date modified for task ${lineTask_todoist_id}`)
-                updatedContent.dueDate = lineTask.dueDate
+                console.log(lineTask.dueDate)
+                //console.log(savedTask.due.date)
+                if(lineTask.dueDate === ""){
+                    updatedContent.dueString = "no date"
+                }else{
+                    updatedContent.dueDate = lineTask.dueDate
+                }
+
                 dueDateChanged = true;
             }
 
@@ -396,8 +403,8 @@ export class TodoistSync  {
 
             
             if (contentChanged || statusChanged ||dueDateChanged ||tagsChanged || projectChanged) {
-                //console.log(lineTask)
-                //console.log(savedTask)
+                console.log(lineTask)
+                console.log(savedTask)
                 //`Task ${lastLineTaskTodoistId} was modified`
                 this.plugin.saveSettings()
                 new Notice(`Task ${lineTask_todoist_id} was modified`)
@@ -650,7 +657,21 @@ export class TodoistSync  {
         const processedEvents = []
         for (const e of unSynchronizedEvents) {   //如果要修改代码，让completeTaskInTheFile(e.object_id)按照顺序依次执行，可以将Promise.allSettled()方法改为使用for...of循环来处理未同步的事件。具体步骤如下：
             //console.log(`正在 sync ${e.object_id} 的变化到本地`)
-            await this.fileOperation.syncUpdatedTaskToTheFile(e)
+            console.log(e)
+            console.log(typeof e.extra_data.last_due_date === 'undefined')
+            if(!(typeof e.extra_data.last_due_date === 'undefined')){
+                console.log(`prepare update dueDate`)
+                await this.syncUpdatedTaskDueDateToObsidian(e)
+
+            }
+
+            if(!(typeof e.extra_data.last_content === 'undefined')){
+                console.log(`prepare update content`)
+                await this.syncUpdatedTaskContentToObsidian(e)
+            }
+
+            //await this.fileOperation.syncUpdatedTaskToTheFile(e)
+            //还要修改cache中的数据
             new Notice(`Task ${e.object_id} was updated.`)
             processedEvents.push(e)
         }
@@ -665,6 +686,21 @@ export class TodoistSync  {
         console.error('sync updated item出错：', error)
         }
         
+    }
+
+    async syncUpdatedTaskContentToObsidian(e){
+        this.fileOperation.syncUpdatedTaskContentToTheFile(e)
+        const content = e.extra_data.content
+        this.cacheOperation.modifyTaskToCacheByID(e.object_id,{content})
+
+    }
+
+    async syncUpdatedTaskDueDateToObsidian(e){
+        this.fileOperation.syncUpdatedTaskDueDateToTheFile(e)
+        //修改cache的日期，要使用todoist的格式
+        const due = await this.todoistRestAPI.getTaskDueById(e.object_id)
+        this.cacheOperation.modifyTaskToCacheByID(e.object_id,{due})
+
     }
 
     async  backupTodoistAllResources() {

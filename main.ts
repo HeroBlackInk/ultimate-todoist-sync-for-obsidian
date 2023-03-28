@@ -50,13 +50,15 @@ export default class MyPlugin extends Plugin {
 			//new Notice('This is a notice!');
 			const activeFile = evt.view.app.workspace.getActiveFile()
 			if(activeFile){
-				await this.todoistSync.fullTextNewTaskCheck()
-				await this.todoistSync.deletedTaskCheck()
-				await this.todoistSync.fullTextModifiedTaskCheck()
+
 				await this.todoistSync.syncCompletedTaskStatusToObsidian()
 				await this.todoistSync.syncUncompletedTaskStatusToObsidian()
 				await this.todoistSync.syncUpdatedTaskToObsidian()
 				//await this.saveSettings()
+
+				await this.todoistSync.fullTextNewTaskCheck()
+				await this.todoistSync.deletedTaskCheck()
+				await this.todoistSync.fullTextModifiedTaskCheck()
 
 			}
 
