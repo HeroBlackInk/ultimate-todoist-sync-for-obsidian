@@ -3,7 +3,13 @@
 The ultimate todoist sync plug for Obsidian  allows you to synchronize your Todoist tasks with Obsidian. By connecting your Todoist account, you can access and manage your tasks within Obsidian.
 
 ## Demonstration
-![Alt Text](demo.gif)
+
+### Demo Usage
+![Alt Text](/attachment/demo.gif)
+### Settings page
+![](/attachment/settings.png)
+### Sync Button 
+![](/attachment/Syncbutton.png)
 ## Features 
 | Functionality                | Obsidian to Todoist   | Todoist to Obsidian     |
 |------------------------------|-----------------------|-------------------------|
