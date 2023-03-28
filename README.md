@@ -7,9 +7,9 @@ The ultimate todoist sync plug for Obsidian  allows you to synchronize your Todo
 ### Demo Usage
 ![Alt Text](/attachment/demo.gif)
 ### Settings page
-![](/attachment/settings.png)
+<img src="/attachment/settings.png" width="500">
 ### Sync Button 
-![](/attachment/Syncbutton.png)
+<img src="/attachment/Syncbutton.png" width="500">
 ## Features 
 | Functionality                | Obsidian to Todoist   | Todoist to Obsidian     |
 |------------------------------|-----------------------|-------------------------|
