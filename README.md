@@ -1,6 +1,6 @@
-# Ultimeta Todoist Sync for Obsidian
+# Ultimate Todoist Sync for Obsidian
 
-The ultimate todoist sync plug for Obsidian  allows you to synchronize your Todoist tasks with Obsidian. By connecting your Todoist account, you can access and manage your tasks within Obsidian.
+It should be the best Obsidian plugin for synchronizing Todoist tasks so far.
 
 ## Demonstration
 
@@ -11,15 +11,29 @@ The ultimate todoist sync plug for Obsidian  allows you to synchronize your Todo
 ### Sync Button 
 <img src="/attachment/Syncbutton.png" width="500">
 ## Features 
-| Functionality                | Obsidian to Todoist   | Todoist to Obsidian     |
-|------------------------------|-----------------------|-------------------------|
-| Add task                     | ✅                     | 🔜                       |
-| Modify task content          | ✅                     | ✅                       |
-| Modify task due date         | ✅                  | ✅                   |
-| Modify task labels/tags      | ✅                   | 🔜                      |
-| Mark task as completed       | ✅                     | ✅                       |
-| Modify project     |     🔜                 | 🔜                      |
-| Sync tasks from Todoist      | 🔜                    | 🔜                        |
+
+### Sync from Obsidian to Todoist
+| Functionality           | Manual Sync | Auto Sync |
+|------------------------|-------------|-----------|
+| Add task                |  ✅          | ✅          |
+| Modify task content     | ✅           | ✅         |
+| Modify task due date    | ✅           | ✅         |
+| Modify task labels/tags | ✅           | ✅         |
+| Mark task as completed  | ✅           | ✅         |
+| Modify project          | 🔜          | 🔜        |
+
+### Sync from Todoist to Obsidian
+| Functionality           | Manual Sync | Auto Sync |
+|------------------------|-------------|-----------|
+| Add task                | ✅           | 🔜         |
+| Modify task content     | ✅           | 🔜         |
+| Modify task due date    | ✅           | 🔜          |
+| Modify task labels/tags | 🔜          | 🔜        |
+| Mark task as completed  | ✅           | 🔜         |
+| Modify project          | 🔜          | 🔜        |
+
+> **Some plugins may modify the current view, such as Kanban, which causes the automatic synchronization function to fail. You need to manually click the sync button.**
+
 
 ## Installation
 
@@ -34,20 +48,15 @@ The ultimate todoist sync plug for Obsidian  allows you to synchronize your Todo
 
 ## Usage
 
-Once you've connected your Todoist account, you can start using the plugin to sync your tasks.
+You must have the Todoist API in order to use it.
 
 ### Syncing Tasks
 
-To sync your tasks, simply open the plugin's settings and click the "Sync Tasks" button. The plugin will fetch your Todoist tasks and import them into Obsidian.
+ 
 
-### Managing Tasks
-
-You can manage your synced tasks by creating or editing them directly in Obsidian. Any changes you make will be automatically synced with Todoist.
 
 ### Other Features
 
-- The plugin supports filtering tasks by project, label, or due date.
-- You can also create new tasks directly in Obsidian and have them synced with Todoist.
 
 ## Contributing
 
