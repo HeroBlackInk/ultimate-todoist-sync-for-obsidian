@@ -18,7 +18,7 @@ import { FileOperation } from 'src/fileOperation';
 import { TodoistSync } from 'src/syncModule';
 
 
-export default class MyPlugin extends Plugin {
+export default class UltimateTodoistSyncForObsidian extends Plugin {
 	settings: MyPluginSettings;
 	todoistRestAPI:TodoistRestAPI;
 	todoistSyncAPI:TodoistSyncAPI;

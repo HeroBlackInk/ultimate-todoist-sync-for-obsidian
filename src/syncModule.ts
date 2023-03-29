@@ -1,4 +1,4 @@
-import MyPlugin from "main";
+import UltimateTodoistSyncForObsidian from "main";
 import * as path from 'path';
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting ,TFile} from 'obsidian';
 import { MyPluginSettings } from 'src/settings';
@@ -15,7 +15,7 @@ type FrontMatter = {
 
 export class TodoistSync  {
 	app:App;
-    plugin: MyPlugin;
+    plugin: UltimateTodoistSyncForObsidian;
     settings:MyPluginSettings;
     todoistRestAPI:TodoistRestAPI;
     todoistSyncAPI:TodoistSyncAPI;
