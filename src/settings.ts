@@ -6,6 +6,7 @@ export interface MyPluginSettings {
 	//mySetting: string;
 	//todoistTasksFilePath: string;
 	todoistAPIToken: string; // replace with correct type
+	apiInitialized:boolean;
 	defaultProject: string;
 	todoistTasksData:any;
 }
@@ -13,6 +14,7 @@ export interface MyPluginSettings {
 
 export const DEFAULT_SETTINGS: MyPluginSettings = {
 	initialized: false,
+	apiInitialized:false,
 	defaultProject:"Inbox",
 	todoistTasksData:{},
 	//mySetting: 'default',
@@ -48,7 +50,7 @@ export class SampleSettingTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.todoistAPIToken)
 					.onChange(async (value) => {
 						this.plugin.settings.todoistAPIToken = value;
-						this.plugin.modifyTodoistAPI(value)
+						await this.plugin.modifyTodoistAPI(value)
 					})
 
 			);

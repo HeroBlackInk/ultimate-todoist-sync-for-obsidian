@@ -271,6 +271,7 @@ export class CacheOperation   {
             return true
 
         }catch(error){
+            return false
             console.log(`error downloading projects: ${error}`)
 
     }

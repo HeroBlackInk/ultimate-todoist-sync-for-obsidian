@@ -50,7 +50,9 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 			//new Notice('This is a notice!');
 			const activeFile = evt.view.app.workspace.getActiveFile()
 			if(activeFile){
-
+				if(!( this.checkModuleClass())){
+					return
+				}
 				await this.todoistSync.syncCompletedTaskStatusToObsidian()
 				await this.todoistSync.syncUncompletedTaskStatusToObsidian()
 				await this.todoistSync.syncUpdatedTaskToObsidian()
@@ -110,7 +112,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 		//key 事件监听，判断换行和删除
 		this.registerDomEvent(document, 'keyup', async (evt: KeyboardEvent) =>{
 			//console.log(`key pressed`)
-	
+			
 			//判断点击事件发生的区域,如果不在编辑器中，return
 			if (!(evt.view.app.workspace.activeEditor?.editor?.hasFocus)) {
 				(console.log(`editor is not focused`))
@@ -121,17 +123,23 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 	
 			if (evt.key === 'ArrowUp' || evt.key === 'ArrowDown' || evt.key === 'ArrowLeft' || evt.key === 'ArrowRight' ||evt.key === 'PageUp' || evt.key === 'PageDown') {
 				//console.log(`${evt.key} arrow key is released`);
+				if(!( this.checkModuleClass())){
+					return
+				}
 				this.lineNumberCheck()
 			}
 			if(evt.key === "Delete" || evt.key === "Backspace"){
 				//console.log(`${evt.key} key is released`);
+				if(!( this.checkModuleClass())){
+					return
+				}
 				this.todoistSync.deletedTaskCheck();		
 			}
 		});
 
 		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
 		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
+		this.registerDomEvent(document, 'click', async (evt: MouseEvent) => {
 			//console.log('click', evt);
 			if (evt.view.app.workspace.activeEditor?.editor.hasFocus) {
 				//console.log('Click event: editor is focused');
@@ -144,7 +152,9 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 			const target = evt.target as HTMLInputElement;
 
 			if (target.type === "checkbox") {
-
+				if(!(this.checkModuleClass())){
+					return
+				}
 				this.checkboxEventhandle(evt)
 
 			}
@@ -156,13 +166,17 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 
 		//hook editor-change 事件，如果当前line包含 #todoist,说明有new task
 		this.registerEvent(this.app.workspace.on('editor-change',async (editor,view)=>{
-			this.lineNumberCheck()			
+
+			this.lineNumberCheck()
+			if(!(this.checkModuleClass())){
+				return
+			}		
 			this.todoistSync.lineContentNewTaskCheck(editor,view)
 			//this.saveSettings()
 		}))
 
 		//监听删除事件，当文件被删除后，读取frontMatter中的tasklist,批量删除
-		this.registerEvent(this.app.metadataCache.on('deleted', (file,prevCache) => {
+		this.registerEvent(this.app.metadataCache.on('deleted', async(file,prevCache) => {
 			//console.log('a new file has modified')
 			console.log(`file deleted`)
 			//读取frontMatter
@@ -172,6 +186,9 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 			}
 			//判断todoistTasks是否为null
 			console.log(prevCache?.frontmatter.todoistTasks)
+			if(!( this.checkModuleClass())){
+					return
+				}
 			this.todoistSync.deleteTasksByIds(prevCache.frontmatter.todoistTasks)
 			
 			
@@ -187,6 +204,9 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 				//console.log('删除的文件中没有task')
 				return
 			}
+			if(!(this.checkModuleClass())){
+					return
+				}
 			await this.cacheOperation.updateRenamedFilePath(oldpath,file.path)
 			this.saveSettings()		
 		}));
@@ -209,10 +229,12 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 
 	async modifyTodoistAPI(api:string){
 		this.settings.todoistAPIToken = api
+		this.settings.apiInitialized = false
 		await this.saveSettings()
 		await this.initializePlugin() 
 	}
 
+	// return true of false
 	async initializePlugin(){
 		
 		//initialize todoist restapi 
@@ -221,51 +243,75 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 		//initialize data read and write object
 		this.cacheOperation = new CacheOperation(this.app,this.settings,this.todoistRestAPI)
 		const ini = await this.cacheOperation.saveProjectsToCache()
-		//console.log(ini)
-		if(ini){
-	
-			if(!this.settings.initialized){
 
-				//创建备份文件夹备份todoist 数据
-				try{
-					const userdataPath = path.join(this.app.vault.configDir, 'plugins', 'ultimate-todoist-sync-for-obsidian','userData');
-					this.app.vault.createFolder(userdataPath)
-					//第一次启动插件，备份todoist 数据
-					this.taskParser = new TaskParser(this.app,this.settings,this.cacheOperation)
-
-					//initialize file operation
-					this.fileOperation = new FileOperation(this.app,this.settings,this.todoistRestAPI,this.taskParser,this.cacheOperation)
-			
-					//initialize todoisy sync api
-					this.todoistSyncAPI = new TodoistSyncAPI(this.app,this.settings)
-			
-					//initialize todoist sync module
-					this.todoistSync = new TodoistSync(this.app,this,this.settings,this.todoistRestAPI,this.todoistSyncAPI,this.taskParser,this.cacheOperation,this.fileOperation)
-			
-					//每次启动前备份所有数据
-					this.todoistSync.backupTodoistAllResources()
-				}catch(error){
-					console.log(`error creating user data folder: ${error}`)
-					new Notice(`初始化失败`)
-					return
-				}
-
-
-				//初始化settings
-				this.settings.todoistTasksData.tasks = []
-				this.settings.todoistTasksData.events = []
-				this.settings.initialized = true
-				this.saveSettings()
-				new Notice(`第一次启动插件，todoist数据备份成功， 初始化完成`)
-
-			}
-			//new Notice(`插件初始化成功`)
-			
-		}else{
+		if(!ini){
+			this.todoistRestAPI === undefined
+			this.todoistSyncAPI === undefined
+			this.taskParser === undefined
+			this.taskParser ===undefined
+			this.cacheOperation ===undefined
+			this.fileOperation ===undefined
+			this.todoistSync === undefined
 			new Notice(`初始化失败,请检查todoist api`)
-			return
+			return false		
 		}
-		//initialize task parser
+
+		if(!this.settings.initialized){
+
+			//创建备份文件夹备份todoist 数据
+			try{
+				const userdataPath = path.join(this.app.vault.configDir, 'plugins', 'ultimate-todoist-sync-for-obsidian','userData');
+				this.app.vault.createFolder(userdataPath)
+				//第一次启动插件，备份todoist 数据
+				this.taskParser = new TaskParser(this.app,this.settings,this.cacheOperation)
+
+				//initialize file operation
+				this.fileOperation = new FileOperation(this.app,this.settings,this.todoistRestAPI,this.taskParser,this.cacheOperation)
+		
+				//initialize todoisy sync api
+				this.todoistSyncAPI = new TodoistSyncAPI(this.app,this.settings)
+		
+				//initialize todoist sync module
+				this.todoistSync = new TodoistSync(this.app,this,this.settings,this.todoistRestAPI,this.todoistSyncAPI,this.taskParser,this.cacheOperation,this.fileOperation)
+		
+				//每次启动前备份所有数据
+				this.todoistSync.backupTodoistAllResources()
+			}catch(error){
+				console.log(`error creating user data folder: ${error}`)
+				new Notice(`初始化失败`)
+				return false
+			}
+
+
+			//初始化settings
+			this.settings.todoistTasksData.tasks = []
+			this.settings.todoistTasksData.events = []
+			this.settings.initialized = true
+			this.saveSettings()
+			new Notice(`第一次启动插件，todoist数据备份成功， 初始化完成`)
+
+		}
+
+
+		this.initializeModuleClass()
+
+		//每次启动前备份所有数据
+		//this.todoistSync.backupTodoistAllResources()
+		this.settings.apiInitialized = true
+		new Notice(`插件初始化成功`)
+		return true
+		
+
+
+	}
+
+	async initializeModuleClass(){
+
+		//initialize todoist restapi 
+		this.todoistRestAPI = new TodoistRestAPI(this.app,this.settings)
+
+		//initialize data read and write object
+		this.cacheOperation = new CacheOperation(this.app,this.settings,this.todoistRestAPI)
 		this.taskParser = new TaskParser(this.app,this.settings,this.cacheOperation)
 
 		//initialize file operation
@@ -276,10 +322,6 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 
 		//initialize todoist sync module
 		this.todoistSync = new TodoistSync(this.app,this,this.settings,this.todoistRestAPI,this.todoistSyncAPI,this.taskParser,this.cacheOperation,this.fileOperation)
-
-		//每次启动前备份所有数据
-		//this.todoistSync.backupTodoistAllResources()
-		
 
 
 	}
@@ -309,6 +351,9 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 				// 执行你想要的操作
 				const lastLineText = view.editor.getLine(lastLine)
 				//console.log(lastLineText)
+				if(!( this.checkModuleClass())){
+					return
+				}
 				this.todoistSync.lineModifiedTaskCheck(filePath,lastLineText,lastLine,fileContent)
 
 				this.lastLines.set(fileName, line);
@@ -325,6 +370,9 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 	}
 
 	checkboxEventhandle(evt:MouseEvent){
+		if(!( this.checkModuleClass())){
+			return
+		}
 		const target = evt.target as HTMLInputElement;
 		let element = target.parentElement;
 		//console.log(target.closest("div"))
@@ -335,6 +383,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 		if (!element) {
 			console.log("未找到 todoist_id");
 			//开始全文搜索，检查status更新
+
 			this.todoistSync.fullTextModifiedTaskCheck()
 		} else {
 			//console.log(`找到了 todoist_id`)
@@ -357,6 +406,22 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 
 
 		}
+	}
+
+	//return true
+	checkModuleClass(){
+		if(this.settings.apiInitialized  === true){
+			if(this.todoistRestAPI === undefined || this.todoistSyncAPI === undefined ||this.cacheOperation === undefined || this.fileOperation === undefined ||this.todoistSync === undefined ||this.taskParser === undefined){
+				this.initializeModuleClass()
+			}
+			return true
+		}
+		else{
+			new Notice(`Please enter the correct Todoist API token"`)
+			return(false)
+		}
+		
+
 	}
 
 
