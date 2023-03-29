@@ -50,10 +50,22 @@ export class SampleSettingTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.todoistAPIToken)
 					.onChange(async (value) => {
 						this.plugin.settings.todoistAPIToken = value;
-						await this.plugin.modifyTodoistAPI(value)
+						this.plugin.settings.apiInitialized = false;
+						//
 					})
 
-			);
+			)
+			.addExtraButton((button) => {
+				button.setIcon('send')
+					  .onClick(async () => {
+							await this.plugin.modifyTodoistAPI(this.plugin.settings.todoistAPIToken)
+	
+						})
+					
+					
+			})
+
+
 
 		new Setting(containerEl)
 			.setName('The default project for new tasks')
