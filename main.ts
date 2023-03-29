@@ -277,7 +277,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 
 			//创建备份文件夹备份todoist 数据
 			try{
-				const userdataPath = path.join(this.app.vault.configDir, 'plugins', 'ultimate-todoist-sync-for-obsidian','userData');
+				const userdataPath = path.join(this.app.vault.configDir, 'plugins', 'ultimate-todoist-sync','userData');
 				this.app.vault.createFolder(userdataPath)
 				//第一次启动插件，备份todoist 数据
 				this.taskParser = new TaskParser(this.app,this.settings,this.cacheOperation)

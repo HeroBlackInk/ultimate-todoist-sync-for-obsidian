@@ -724,7 +724,7 @@ export class TodoistSync  {
     
         const name = "todoist-backup-"+timeString+".json"
         //console.log(path)
-        const pluginFolderPath = path.join(this.app.vault.configDir, 'plugins', 'ultimate-todoist-sync-for-obsidian','userData',name);
+        const pluginFolderPath = path.join(this.app.vault.configDir, 'plugins', 'ultimate-todoist-sync','userData',name);
         console.log(pluginFolderPath)
         this.app.vault.create(pluginFolderPath,JSON.stringify(resources))
         //console.log(`todoist 备份成功`)

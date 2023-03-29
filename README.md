@@ -42,7 +42,7 @@ It should be the best Obsidian plugin for synchronizing Todoist tasks so far.
 
 ## Installation
 
-1. Download the latest release of the plugin from the [Releases](https://github.com/HeroBlackInk/ultimate-todoist-sync-for-obsidian/releases) page.
+1. Download the latest release of the plugin from the [Releases](https://github.com/HeroBlackInk/ultimate-todoist-sync/releases) page.
 2. Extract the downloaded zip file and copy the entire folder to your Obsidian plugins directory.
 3. Enable the plugin in the Obsidian settings.
 
