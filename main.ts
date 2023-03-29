@@ -34,7 +34,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 		// This adds a settings tab so the user can configure various aspects of the plugin
 		this.addSettingTab(new SampleSettingTab(this.app, this));
 		if (!this.settings.todoistAPIToken) {
-			new Notice('请配置Todoist API');
+			new Notice('Please enter your Todoist API.');
 			return	   
 		}else{
 			await this.initializePlugin();
@@ -196,7 +196,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 			//读取frontMatter
 			const frontMatter = await this.cacheOperation.getFileMetadata(file.path)
 			if(frontMatter === null || frontMatter.todoistTasks === undefined){
-				console.log('删除的文件中没有task')
+				console.log('There is no task in the deleted files.')
 				return
 			}
 			//判断todoistTasks是否为null
@@ -269,7 +269,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 			this.cacheOperation ===undefined
 			this.fileOperation ===undefined
 			this.todoistSync === undefined
-			new Notice(`初始化失败,请检查todoist api`)
+			new Notice(`Ultimita Todoist Sync plugin initialization failed, please check the todoist api`)
 			return false		
 		}
 
@@ -295,7 +295,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 				this.todoistSync.backupTodoistAllResources()
 			}catch(error){
 				console.log(`error creating user data folder: ${error}`)
-				new Notice(`初始化失败`)
+				new Notice(`error creating user data folder`)
 				return false
 			}
 
@@ -305,7 +305,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 			this.settings.todoistTasksData.events = []
 			this.settings.initialized = true
 			this.saveSettings()
-			new Notice(`第一次启动插件，todoist数据备份成功， 初始化完成`)
+			new Notice(`Ultimita Todoist Sync initialization successful. Todoist data has been backed up.`)
 
 		}
 
@@ -315,7 +315,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 		//每次启动前备份所有数据
 		//this.todoistSync.backupTodoistAllResources()
 		this.settings.apiInitialized = true
-		new Notice(`插件初始化成功`)
+		new Notice(`Ultimita Todoist Sync loaded successfully.`)
 		return true
 		
 
@@ -398,7 +398,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 		element = element.parentElement;
 		}
 		if (!element) {
-			console.log("未找到 todoist_id");
+			console.log("No todoist_id found.");
 			//开始全文搜索，检查status更新
 
 			this.todoistSync.fullTextModifiedTaskCheck()
@@ -417,7 +417,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 				}
 				// ...
 			} else {
-				console.log("无效的 todoist_id");
+				console.log("Invalid todoist_id");
 			}
 		
 

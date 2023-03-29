@@ -695,7 +695,7 @@ export class TodoistSync  {
         await this.cacheOperation.appendEventsToCache(processedEvents)
         this.plugin.saveSettings()
         } catch (error) {
-        console.error('sync updated item出错：', error)
+        console.error('Error syncing updated item', error)
         }
         
     }
