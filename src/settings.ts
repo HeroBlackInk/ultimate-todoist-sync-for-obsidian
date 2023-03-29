@@ -41,10 +41,12 @@ export class SampleSettingTab extends PluginSettingTab {
 
 		containerEl.createEl('h2', { text: 'Settings for Ultimate Todoist Sync for Obsidian.' });
 
+
+
 		new Setting(containerEl)
 			.setName('Todoist API')
-			.setDesc('As mentioned in the title')
-			.addText((text) =>
+			.setDesc('Please enter todoist api token')
+			.addTextArea((text) =>
 				text
 					.setPlaceholder('Enter your API')
 					.setValue(this.plugin.settings.todoistAPIToken)
@@ -59,7 +61,7 @@ export class SampleSettingTab extends PluginSettingTab {
 				button.setIcon('send')
 					  .onClick(async () => {
 							await this.plugin.modifyTodoistAPI(this.plugin.settings.todoistAPIToken)
-	
+							
 						})
 					
 					

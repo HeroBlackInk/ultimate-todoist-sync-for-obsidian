@@ -111,6 +111,9 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 
 		//key 事件监听，判断换行和删除
 		this.registerDomEvent(document, 'keyup', async (evt: KeyboardEvent) =>{
+			if(!this.settings.apiInitialized){
+				return
+			}
 			//console.log(`key pressed`)
 			
 			//判断点击事件发生的区域,如果不在编辑器中，return
@@ -140,6 +143,9 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
 		// Using this function will automatically remove the event listener when this plugin is disabled.
 		this.registerDomEvent(document, 'click', async (evt: MouseEvent) => {
+			if(!this.settings.apiInitialized){
+				return
+			}
 			//console.log('click', evt);
 			if (evt.view.app.workspace.activeEditor?.editor.hasFocus()) {
 				//console.log('Click event: editor is focused');
@@ -166,6 +172,9 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 
 		//hook editor-change 事件，如果当前line包含 #todoist,说明有new task
 		this.registerEvent(this.app.workspace.on('editor-change',async (editor,view)=>{
+			if(!this.settings.apiInitialized){
+				return
+			}
 
 			this.lineNumberCheck()
 			if(!(this.checkModuleClass())){
@@ -177,6 +186,9 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 
 		//监听删除事件，当文件被删除后，读取frontMatter中的tasklist,批量删除
 		this.registerEvent(this.app.metadataCache.on('deleted', async(file,prevCache) => {
+			if(!this.settings.apiInitialized){
+				return
+			}
 			//console.log('a new file has modified')
 			console.log(`file deleted`)
 			//读取frontMatter
@@ -196,6 +208,9 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 
 		//监听 rename 事件,更新 task data 中的 path
 		this.registerEvent(this.app.vault.on('rename', async (file,oldpath) => {
+			if(!this.settings.apiInitialized){
+				return
+			}
 			console.log(`${oldpath} is renamed`)
 			//读取frontMatter
 			const frontMatter = await this.fileOperation.getFrontMatter(file)
@@ -228,9 +243,6 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 	}
 
 	async modifyTodoistAPI(api:string){
-		this.settings.todoistAPIToken = api
-		this.settings.apiInitialized = false
-		await this.saveSettings()
 		await this.initializePlugin() 
 	}
 
