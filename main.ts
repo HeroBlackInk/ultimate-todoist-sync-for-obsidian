@@ -114,7 +114,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 			//console.log(`key pressed`)
 			
 			//判断点击事件发生的区域,如果不在编辑器中，return
-			if (!(evt.view.app.workspace.activeEditor?.editor?.hasFocus)) {
+			if (!(evt.view.app.workspace.activeEditor?.editor?.hasFocus())) {
 				(console.log(`editor is not focused`))
 				return
 			}
@@ -141,7 +141,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 		// Using this function will automatically remove the event listener when this plugin is disabled.
 		this.registerDomEvent(document, 'click', async (evt: MouseEvent) => {
 			//console.log('click', evt);
-			if (evt.view.app.workspace.activeEditor?.editor.hasFocus) {
+			if (evt.view.app.workspace.activeEditor?.editor.hasFocus()) {
 				//console.log('Click event: editor is focused');
 				const view = evt.view.app.workspace.getActiveViewOfType(MarkdownView)
 				const editor = view.app.workspace.activeEditor?.editor
