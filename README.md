@@ -86,5 +86,5 @@ Contributions are welcome! If you'd like to contribute to the plugin, please rea
 
 ## License
 
-This plugin is released under the [MIT License](LICENSE).
+This plugin is released under the [GNU GPLv3 License](/LICENSE.md).
 
