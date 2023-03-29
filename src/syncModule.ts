@@ -49,7 +49,8 @@ export class TodoistSync  {
         const filepath = file.path
         //console.log(filepath)
       
-        const frontMatter = await this.fileOperation.getFrontMatter(file);
+        //const frontMatter = await this.fileOperation.getFrontMatter(file);
+        const frontMatter = await this.cacheOperation.getFileMetadata(filepath)
         if (!frontMatter || !frontMatter.todoistTasks) {
           console.log('frontmatter没有task')
           return;
@@ -100,18 +101,21 @@ export class TodoistSync  {
         );
       
       
-      
+        /*
         await this.fileOperation.updateFrontMatter(file, (frontMatter) => {
           frontMatter.todoistTasks = newFrontMatter_todoistTasks;
           frontMatter.todoistCount = frontMatter_todoistCount - deletedTaskAmount;
         });
+        */
+        const newFileMetadata = {todoistTasks:newFrontMatter_todoistTasks,todoistCount:(frontMatter_todoistCount - deletedTaskAmount)}
+        await this.cacheOperation.updateFileMetadata(filepath,newFileMetadata)
     }
 
     async lineContentNewTaskCheck(editor:Editor,view:MarkdownView): Promise<void>{
         //const editor = this.app.workspace.activeEditor?.editor
         //const view =this.app.workspace.getActiveViewOfType(MarkdownView)
 
-        const filePath = view.file?.path
+        const filepath = view.file?.path
         const fileContent = view?.data
         const cursor = editor.getCursor()
         const line = cursor.line
@@ -128,7 +132,7 @@ export class TodoistSync  {
             }
             //console.log('this is a new task')
     
-            const currentTask =await this.taskParser.convertTextToTodoistTaskObject(linetxt,filePath,line,fileContent)
+            const currentTask =await this.taskParser.convertTextToTodoistTaskObject(linetxt,filepath,line,fileContent)
             //console.log(currentTask)
     
           
@@ -138,7 +142,7 @@ export class TodoistSync  {
             try {
                 const newTask = await this.todoistRestAPI.AddTask(currentTask)
                 const { id: todoist_id, projectId: todoist_projectId, url: todoist_url } = newTask;
-                newTask.path = filePath;
+                newTask.path = filepath;
                 console.log(newTask);
                 new Notice(`new task ${newTask.content} id is ${newTask.id}`)
                 //newTask写入缓存
@@ -161,12 +165,12 @@ export class TodoistSync  {
                 //处理frontMatter
                 try {
                     // 处理 front matter
-                    view.app.fileManager.processFrontMatter(view.file, (frontMatter) => {
+                    const frontMatter = await this.cacheOperation.getFileMetadata(filepath)
                       //console.log(frontMatter);
                   
                       if (!frontMatter) {
                         console.log('frontmatter is empty');
-                        return;
+                        //return;
                       }
                   
                       // 将 todoistCount 加 1
@@ -177,12 +181,16 @@ export class TodoistSync  {
                       newFrontMatter.todoistTasks = [...(newFrontMatter.todoistTasks || []), todoist_id];
                   
                       // 更新 front matter
-        
+                      /*
                      this.fileOperation.updateFrontMatter(view.file, (frontMatter) => {
                         frontMatter.todoistTasks = newFrontMatter.todoistTasks;
                         frontMatter.todoistCount = newFrontMatter.todoistCount;
                       });
-                    });
+                      */
+                      console.log(newFrontMatter)
+                      await this.cacheOperation.updateFileMetadata(filepath,newFrontMatter)
+
+                    
 
                   } catch (error) {
                     console.error(error);
@@ -207,7 +215,7 @@ export class TodoistSync  {
     
         let newFrontMatter
         //frontMatteer
-        this.app.fileManager.processFrontMatter(file, (frontMatter) => {
+        const frontMatter = await this.cacheOperation.getFileMetadata(filepath)
         //console.log(frontMatter);
     
         if (!frontMatter) {
@@ -216,7 +224,7 @@ export class TodoistSync  {
         }
     
         newFrontMatter = { ...frontMatter };
-        })
+        
     
         let hasNewTask = false;
         const lines = content.split('\n')
@@ -276,11 +284,14 @@ export class TodoistSync  {
     
             
                 // 更新 front matter
-    
+                /*
                 this.fileOperation.updateFrontMatter(file, (frontMatter) => {
                 frontMatter.todoistTasks = newFrontMatter.todoistTasks;
                 frontMatter.todoistCount = newFrontMatter.todoistCount;
                 });
+                */
+
+                await this.cacheOperation.updateFileMetadata(filepath,newFrontMatter)
             
             } catch (error) {
             console.error(error);
@@ -292,16 +303,17 @@ export class TodoistSync  {
     }
 
 
-    async lineModifiedTaskCheck(filePath:string,lineText:string,lineNumber:number,fileContent:string): Promise<void>{
-        //const lineText = await this.fileOperation.getLineTextFromFilePath(filePath,lineNumber)
+    async lineModifiedTaskCheck(filepath:string,lineText:string,lineNumber:number,fileContent:string): Promise<void>{
+        //const lineText = await this.fileOperation.getLineTextFromFilePath(filepath,lineNumber)
 
         //检查task
 
         if (this.taskParser.hasTodoistId(lineText) && this.taskParser.hasTodoistTag(lineText)) {
 
-            const lineTask = await this.taskParser.convertTextToTodoistTaskObject(lineText,filePath,lineNumber,fileContent)
+            const lineTask = await this.taskParser.convertTextToTodoistTaskObject(lineText,filepath,lineNumber,fileContent)
             //console.log(lastLineTask)
             const lineTask_todoist_id = (lineTask.todoist_id).toString()
+            console.log(lineTask_todoist_id )
             //console.log(`lastline task id is ${lastLineTask_todoist_id}`)
             const savedTask = await this.cacheOperation.loadTaskFromCacheyID(lineTask_todoist_id)  //dataview中 id为数字，todoist中id为字符串，需要转换
             if(!savedTask){
@@ -381,7 +393,7 @@ export class TodoistSync  {
                 //console.log("task content was modified");
                 //console.log(updatedContent)
                 const updatedTask = await this.todoistRestAPI.UpdateTask(lineTask.todoist_id.toString(),updatedContent)
-                updatedTask.path = filePath
+                updatedTask.path = filepath
                 this.cacheOperation.updateTaskToCacheByID(updatedTask);
             } 
 

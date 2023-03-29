@@ -219,11 +219,11 @@ export class TaskParser   {
   
     /*
     //convert line task to dataview task object
-    async  getLineTask(filePath,line){
-        //const tasks = this.app.plugins.plugins.dataview.api.pages(`"${filePath}"`).file.tasks
-        const tasks = await getAPI(this.app).pages(`"${filePath}"`).file.tasks
+    async  getLineTask(filepath,line){
+        //const tasks = this.app.plugins.plugins.dataview.api.pages(`"${filepath}"`).file.tasks
+        const tasks = await getAPI(this.app).pages(`"${filepath}"`).file.tasks
         const tasksValues = tasks.values
-        //console.log(`dataview filepath is ${filePath}`)
+        //console.log(`dataview filepath is ${filepath}`)
         //console.log(`dataview line is ${line}`)
         //console.log(tasksValues)
         const currentLineTask = tasksValues.find(obj => obj.line === line )	

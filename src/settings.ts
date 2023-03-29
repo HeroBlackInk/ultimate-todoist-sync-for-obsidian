@@ -9,6 +9,7 @@ export interface MyPluginSettings {
 	apiInitialized:boolean;
 	defaultProject: string;
 	todoistTasksData:any;
+	fileMetadata:any;
 }
 
 
@@ -17,6 +18,7 @@ export const DEFAULT_SETTINGS: MyPluginSettings = {
 	apiInitialized:false,
 	defaultProject:"Inbox",
 	todoistTasksData:{},
+	fileMetadata:{},
 	//mySetting: 'default',
 	//todoistTasksFilePath: 'todoistTasks.json'
 

@@ -20,7 +20,7 @@ export class FileOperation   {
         this.taskParser = taskParser;
         this.cacheOperation = cacheOperation;
 	}
-
+    /*
     async getFrontMatter(file:TFile): Promise<FrontMatter | null> {
         return new Promise((resolve) => {
           this.app.fileManager.processFrontMatter(file, (frontMatter) => {
@@ -28,8 +28,12 @@ export class FileOperation   {
           });
         });
     }
+    */
+    
 
 
+
+    /*
     async updateFrontMatter(
     file:TFile,
     updater: (frontMatter: FrontMatter) => void
@@ -48,7 +52,10 @@ export class FileOperation   {
         }
     });
     }
+    */
 
+
+    
           
 
      // 完成一个任务，将其标记为已完成
@@ -207,9 +214,9 @@ export class FileOperation   {
 
     //get line text from file path
     //请使用 view.editor.getLine，read 方法有延迟
-    async getLineTextFromFilePath(filePath:string,lineNumber:string) {
+    async getLineTextFromFilePath(filepath:string,lineNumber:string) {
 
-        const file = this.app.vault.getAbstractFileByPath(filePath)
+        const file = this.app.vault.getAbstractFileByPath(filepath)
         const content = await this.app.vault.read(file)
     
         const lines = content.split('\n')

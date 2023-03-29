@@ -61,6 +61,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 				await this.todoistSync.fullTextNewTaskCheck()
 				await this.todoistSync.deletedTaskCheck()
 				await this.todoistSync.fullTextModifiedTaskCheck()
+				this.saveSettings()
 
 			}
 
@@ -136,7 +137,8 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 				if(!( this.checkModuleClass())){
 					return
 				}
-				this.todoistSync.deletedTaskCheck();		
+				await this.todoistSync.deletedTaskCheck();
+				this.saveSettings()		
 			}
 		});
 
@@ -180,8 +182,8 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 			if(!(this.checkModuleClass())){
 				return
 			}		
-			this.todoistSync.lineContentNewTaskCheck(editor,view)
-			//this.saveSettings()
+			await this.todoistSync.lineContentNewTaskCheck(editor,view)
+			this.saveSettings()
 		}))
 
 		//监听删除事件，当文件被删除后，读取frontMatter中的tasklist,批量删除
@@ -192,16 +194,18 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 			//console.log('a new file has modified')
 			console.log(`file deleted`)
 			//读取frontMatter
-			if(prevCache?.frontmatter === undefined || prevCache.frontmatter.todoistTasks === undefined){
+			const frontMatter = await this.cacheOperation.getFileMetadata(file.path)
+			if(frontMatter === null || frontMatter.todoistTasks === undefined){
 				console.log('删除的文件中没有task')
 				return
 			}
 			//判断todoistTasks是否为null
-			console.log(prevCache?.frontmatter.todoistTasks)
+			console.log(frontMatter.todoistTasks)
 			if(!( this.checkModuleClass())){
 					return
 				}
-			this.todoistSync.deleteTasksByIds(prevCache.frontmatter.todoistTasks)
+			await this.todoistSync.deleteTasksByIds(frontMatter.todoistTasks)
+			this.saveSettings()
 			
 			
 		}));
@@ -213,9 +217,10 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 			}
 			console.log(`${oldpath} is renamed`)
 			//读取frontMatter
-			const frontMatter = await this.fileOperation.getFrontMatter(file)
+			//const frontMatter = await this.fileOperation.getFrontMatter(file)
+			const frontMatter =  await this.cacheOperation.getFileMetadata(oldpath)
 			console.log(frontMatter)
-			if(frontMatter === undefined || frontMatter.todoistTasks === undefined){
+			if(frontMatter === null || frontMatter.todoistTasks === undefined){
 				//console.log('删除的文件中没有task')
 				return
 			}
@@ -349,7 +354,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 			//console.log(line)
 			//const fileName = view.file?.name
 			const fileName =  view.app.workspace.getActiveViewOfType(MarkdownView)?.app.workspace.activeEditor?.file?.name
-			const filePath =  view.app.workspace.getActiveViewOfType(MarkdownView)?.app.workspace.activeEditor?.file?.path
+			const filepath =  view.app.workspace.getActiveViewOfType(MarkdownView)?.app.workspace.activeEditor?.file?.path
 			if (typeof this.lastLines === 'undefined' || typeof this.lastLines.get(fileName) === 'undefined'){
 				this.lastLines.set(fileName, line);
 				return
@@ -366,7 +371,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 				if(!( this.checkModuleClass())){
 					return
 				}
-				this.todoistSync.lineModifiedTaskCheck(filePath,lastLineText,lastLine,fileContent)
+				this.todoistSync.lineModifiedTaskCheck(filepath,lastLineText,lastLine,fileContent)
 
 				this.lastLines.set(fileName, line);
 			}

@@ -26,7 +26,29 @@ export class CacheOperation   {
       
       
       
-      
+    async getFileMetadata(filepath:string) {
+        return this.settings.fileMetadata[filepath] ?? null
+    }
+
+
+
+    async updateFileMetadata(filepath:string,newMetadata) {
+        const metadatas = this.settings.fileMetadata
+    
+        // 如果元数据对象不存在，则创建一个新的对象并添加到metadatas中
+        if (!metadatas[filepath]) {
+            metadatas[filepath] = {}
+        }
+    
+        // 更新元数据对象中的属性值
+        metadatas[filepath].todoistTasks = newMetadata.todoistTasks;
+        metadatas[filepath].todoistCount = newMetadata.todoistCount;
+    
+        // 将更新后的metadatas对象保存回设置对象中
+        this.settings.fileMetadata = metadatas
+        
+    }
+
       
     // 从 Cache读取所有task
     loadTasksFromCache() {
@@ -89,11 +111,15 @@ export class CacheOperation   {
     // 追加到 Cache 文件
     appendTaskToCache(task) {
         try {
-            const savedTasks = this.settings.todoistTasksData.tasks
-            const taskAlreadyExists = savedTasks.some((t) => t.id === task.id);
-            if (!taskAlreadyExists) {
-                this.settings.todoistTasksData.tasks.push(task);   //，使用push方法将字符串插入到Cache对象时，它将被视为一个简单的键值对，其中键是数组的数字索引，而值是该字符串本身。但如果您使用push方法将另一个Cache对象（或数组）插入到Cache对象中，则该对象将成为原始Cache对象的一个嵌套子对象。在这种情况下，键是数字索引，值是嵌套的Cache对象本身。
+            if(task === null){
+                return
             }
+            const savedTasks = this.settings.todoistTasksData.tasks
+            //const taskAlreadyExists = savedTasks.some((t) => t.id === task.id);
+            //if (!taskAlreadyExists) {
+             //，使用push方法将字符串插入到Cache对象时，它将被视为一个简单的键值对，其中键是数组的数字索引，而值是该字符串本身。但如果您使用push方法将另一个Cache对象（或数组）插入到Cache对象中，则该对象将成为原始Cache对象的一个嵌套子对象。在这种情况下，键是数字索引，值是嵌套的Cache对象本身。
+            //}
+            this.settings.todoistTasksData.tasks.push(task);  
         } catch (error) {
             console.error(`Error appending task to Cache: ${error}`);
         }
@@ -107,6 +133,7 @@ export class CacheOperation   {
         try {
 
             const savedTasks = this.settings.todoistTasksData.tasks
+            console.log(savedTasks)
             const savedTask = savedTasks.find((t) => t.id === taskId);
             //console.log(savedTask)
             return(savedTask)
@@ -281,13 +308,25 @@ export class CacheOperation   {
 
     async updateRenamedFilePath(oldpath:string,newpath:string){
         try{
+            console.log(`oldpath is ${oldpath}`)
+            console.log(`newpath is ${newpath}`)
             const savedTask = await this.loadTasksFromCache()
+            console.log(savedTask)
             const newTasks = savedTask.map(obj => {
                 if (obj.path === oldpath) {
                   return { ...obj, path: newpath };
+                }else {
+                    return obj;
                 }
             })
+            console.log(newTasks)
             await this.saveTasksToCache(newTasks)
+
+            //update filepath
+            const fileMetadatas = this.settings.fileMetadata
+            fileMetadatas[newpath] = fileMetadatas[oldpath]
+            delete fileMetadatas[oldpath]
+            this.settings.fileMetadata = fileMetadatas
 
         }catch(error){
             console.log(`Error updating renamed file path to cache: ${error}`)
