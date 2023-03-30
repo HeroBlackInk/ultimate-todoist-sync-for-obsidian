@@ -280,6 +280,20 @@ export class CacheOperation   {
         return(false)
         }
     }
+
+
+     
+    getProjectNameByIdFromCache(projectId:string) {
+        try {
+        const savedProjects = this.settings.todoistTasksData.projects
+        const targetProject = savedProjects.find(obj => obj.id === projectId);
+        const projectName = targetProject ? targetProject.name : null;
+        return(projectName)
+        } catch (error) {
+        console.error(`Error finding project from Cache file: ${error}`);
+        return(false)
+        }
+    }
       
 
 

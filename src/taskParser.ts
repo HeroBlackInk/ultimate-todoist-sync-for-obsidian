@@ -113,12 +113,12 @@ export class TaskParser   {
         //console.log(`labels is ${labels}`)
 
         //dataview format metadata
-        //const projectName = this.getProjectNameFromLineText(textWithoutIndentation) ?? this.settings.defaultProject
+        //const projectName = this.getProjectNameFromLineText(textWithoutIndentation) ?? this.settings.defaultProjectName
         //const projectId = await this.cacheOperation.getProjectIdByNameFromCache(projectName)
         //use tag as project name
 
-        let projectName = this.settings.defaultProject
-        let projectId = this.cacheOperation.getProjectIdByNameFromCache(projectName)
+        let projectName = this.settings.defaultProjectName
+        let projectId = this.settings.defaultProjectId
         //匹配 tag 和 peoject
         for (const label of labels){
     

@@ -1,4 +1,10 @@
-import { App, Notice, Plugin, PluginSettingTab, Setting ,ExtraButtonComponent} from 'obsidian';
+import { App, Notice, Plugin, PluginSettingTab, Setting ,ExtraButtonComponent, DropdownComponent} from 'obsidian';
+
+
+interface MyObject {
+	id: string;
+	name: string;
+  }
 
 
 export interface MyPluginSettings {
@@ -7,7 +13,8 @@ export interface MyPluginSettings {
 	//todoistTasksFilePath: string;
 	todoistAPIToken: string; // replace with correct type
 	apiInitialized:boolean;
-	defaultProject: string;
+	defaultProjectName: string;
+	defaultProjectId:string;
 	todoistTasksData:any;
 	fileMetadata:any;
 }
@@ -16,7 +23,7 @@ export interface MyPluginSettings {
 export const DEFAULT_SETTINGS: MyPluginSettings = {
 	initialized: false,
 	apiInitialized:false,
-	defaultProject:"Inbox",
+	defaultProjectName:"Inbox",
 	todoistTasksData:{},
 	fileMetadata:{},
 	//mySetting: 'default',
@@ -43,12 +50,17 @@ export class SampleSettingTab extends PluginSettingTab {
 
 		containerEl.createEl('h2', { text: 'Settings for Ultimate Todoist Sync for Obsidian.' });
 
+		const myProjectsOptions: MyObject = (this.plugin.settings.todoistTasksData.projects).reduce((obj, item) => {
+			obj[(item.id).toString()] = item.name;
+			return obj;
+		  }, {});
 
+		  
 
 		new Setting(containerEl)
 			.setName('Todoist API')
 			.setDesc('Please enter todoist api token')
-			.addTextArea((text) =>
+			.addText((text) =>
 				text
 					.setPlaceholder('Enter your API')
 					.setValue(this.plugin.settings.todoistAPIToken)
@@ -70,14 +82,14 @@ export class SampleSettingTab extends PluginSettingTab {
 			})
 
 
-
+		/*
 		new Setting(containerEl)
 			.setName('The default project for new tasks')
 			.setDesc('New tasks are automatically synced to the Inbox. You can modify the project here.')
 			.addText((text) =>
 				text
 					.setPlaceholder('Enter default project name:')
-					.setValue(this.plugin.settings.defaultProject)
+					.setValue(this.plugin.settings.defaultProjectName)
 					.onChange(async (value) => {
 						try{
 							//this.plugin.cacheOperation.saveProjectsToCache()
@@ -90,13 +102,35 @@ export class SampleSettingTab extends PluginSettingTab {
 							new Notice(`Invalid project name `)
 							return
 						}
-						this.plugin.settings.defaultProject = value;
+						this.plugin.settings.defaultProjectName = value;
 						this.plugin.saveSettings()
 						new Notice(`The default project has been modified successfully.`)
 
 					})
 
 		);
+		*/
+
+		new Setting(containerEl)
+			.setName('Default project')
+			.setDesc('New tasks are automatically synced to the default project. You can modify the project here.')
+			.addDropdown(component => 
+				component
+						.addOption(this.plugin.settings.defaultProjectId,this.plugin.settings.defaultProjectName)
+						.addOptions(myProjectsOptions)
+						.onChange((value)=>{
+							this.plugin.settings.defaultProjectId = value
+							this.plugin.settings.defaultProjectName = this.plugin.cacheOperation.getProjectNameByIdFromCache(value)
+							this.plugin.saveSettings()
+							console.log(this.plugin.settings.defaultProjectId)
+							console.log(this.plugin.settings.defaultProjectName)
+							
+						})
+						
+				)
+
+
+		
 
 
 

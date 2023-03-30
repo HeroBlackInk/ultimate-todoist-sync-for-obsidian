@@ -155,7 +155,9 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 				const editor = view.app.workspace.activeEditor?.editor
 				this.lineNumberCheck()
 			}
-			else(console.log(`editor is not focused`))
+			else{
+				//
+			}
 
 			const target = evt.target as HTMLInputElement;
 

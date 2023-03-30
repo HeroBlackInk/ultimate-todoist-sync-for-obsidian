@@ -120,6 +120,7 @@ export class TodoistSync  {
         const cursor = editor.getCursor()
         const line = cursor.line
         const linetxt = editor.getLine(line)
+
     
     
     
@@ -131,9 +132,9 @@ export class TodoistSync  {
                 return
             }
             //console.log('this is a new task')
-    
+            console.log(linetxt)
             const currentTask =await this.taskParser.convertTextToTodoistTaskObject(linetxt,filepath,line,fileContent)
-            //console.log(currentTask)
+            console.log(currentTask)
     
           
     
