@@ -1,6 +1,5 @@
-import MyPlugin from "main";
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting ,TFile} from 'obsidian';
-import { MyPluginSettings } from 'src/settings';
+import { App} from 'obsidian';
+import { UltimateTodoistSyncSettings } from 'src/settings';
 import { TodoistRestAPI } from "./todoistRestAPI";
 
 
@@ -12,10 +11,10 @@ interface Due {
 
 export class CacheOperation   {
 	app:App;
-    settings:MyPluginSettings;
+    settings:UltimateTodoistSyncSettings;
     todoistRestAPI:TodoistRestAPI;
 
-	constructor(app:App, settings:MyPluginSettings,todoistRestAPI:TodoistRestAPI) {
+	constructor(app:App, settings:UltimateTodoistSyncSettings,todoistRestAPI:TodoistRestAPI) {
 		//super(app,settings);
 		this.app = app;
         this.settings = settings;

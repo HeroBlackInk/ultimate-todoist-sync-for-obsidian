@@ -1,14 +1,13 @@
-import MyPlugin from "main";
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting ,TFile} from 'obsidian';
-import { MyPluginSettings } from 'src/settings';
+import { App} from 'obsidian';
+import { UltimateTodoistSyncSettings } from 'src/settings';
 
 
 
 export class TodoistSyncAPI   {
 	app:App;
-    settings:MyPluginSettings;
+    settings:UltimateTodoistSyncSettings;
 
-	constructor(app:App, settings:MyPluginSettings) {
+	constructor(app:App, settings:UltimateTodoistSyncSettings) {
 		//super(app,settings);
 		this.app = app;
         this.settings = settings;

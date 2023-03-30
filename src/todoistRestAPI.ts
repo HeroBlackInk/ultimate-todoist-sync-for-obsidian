@@ -1,13 +1,12 @@
 import { TodoistApi } from "@doist/todoist-api-typescript"
-import MyPlugin from "main";
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting ,TFile} from 'obsidian';
-import { MyPluginSettings } from 'src/settings';
+import { App} from 'obsidian';
+import { UltimateTodoistSyncSettings } from 'src/settings';
 
 
 
 export class TodoistRestAPI  {
 	app:App;
-    settings:MyPluginSettings;
+    settings:UltimateTodoistSyncSettings;
 
 	constructor(app, settings) {
 		//super(app,settings);

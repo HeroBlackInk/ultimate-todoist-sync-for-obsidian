@@ -1,8 +1,7 @@
-import MyPlugin from "main";
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting ,TFile} from 'obsidian';
-import { MyPluginSettings } from 'src/settings';
+import { App} from 'obsidian';
+import { UltimateTodoistSyncSettings } from 'src/settings';
 import { CacheOperation } from "./cacheOperation";
-//import { getAPI } from "obsidian-dataview";
+
 
 
 
@@ -47,10 +46,10 @@ interface todoistTaskObject {
 
 export class TaskParser   {
 	app:App;
-    settings:MyPluginSettings;
+    settings:UltimateTodoistSyncSettings;
     cacheOperation:CacheOperation;
 
-	constructor(app:App, settings:MyPluginSettings,cacheOperation:CacheOperation) {
+	constructor(app:App, settings:UltimateTodoistSyncSettings,cacheOperation:CacheOperation) {
 		//super(app,settings);
 		this.app = app;
         this.settings = settings;

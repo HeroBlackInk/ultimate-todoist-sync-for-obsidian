@@ -1,7 +1,6 @@
 import UltimateTodoistSyncForObsidian from "main";
-import * as path from 'path';
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting ,TFile} from 'obsidian';
-import { MyPluginSettings } from 'src/settings';
+import { App, Editor, MarkdownView, Notice} from 'obsidian';
+import { UltimateTodoistSyncSettings } from 'src/settings';
 import { TodoistRestAPI } from "./todoistRestAPI";
 import { TodoistSyncAPI } from "./todoistSyncAPI";
 import { TaskParser } from "./taskParser";
@@ -16,14 +15,14 @@ type FrontMatter = {
 export class TodoistSync  {
 	app:App;
     plugin: UltimateTodoistSyncForObsidian;
-    settings:MyPluginSettings;
+    settings:UltimateTodoistSyncSettings;
     todoistRestAPI:TodoistRestAPI;
     todoistSyncAPI:TodoistSyncAPI;
     taskParser:TaskParser;
     cacheOperation:CacheOperation;
     fileOperation:FileOperation;
 
-	constructor(app:App, plugin:MyPlugin,settings:MyPluginSettings,todoistRestAPI:TodoistRestAPI,todoistSyncAPI:TodoistSyncAPI,taskParser:TaskParser,cacheOperation:CacheOperation,fileOperation:FileOperation) {
+	constructor(app:App, plugin:MyPlugin,settings:UltimateTodoistSyncSettings,todoistRestAPI:TodoistRestAPI,todoistSyncAPI:TodoistSyncAPI,taskParser:TaskParser,cacheOperation:CacheOperation,fileOperation:FileOperation) {
 		//super(app,settings,todoistRestAPI,todoistSyncAPI,taskParser,cacheOperation);
 		this.app = app;
         this.plugin = plugin;
@@ -724,12 +723,10 @@ export class TodoistSync  {
         const timeString: string = `${now.getFullYear()}${now.getMonth()+1}${now.getDate()}${now.getHours()}${now.getMinutes()}${now.getSeconds()}`;
     
         const name = "todoist-backup-"+timeString+".json"
-        //console.log(path)
-        const pluginFolderPath = path.join(this.app.vault.configDir, 'plugins', 'ultimate-todoist-sync','userData',name);
-        console.log(pluginFolderPath)
-        this.app.vault.create(pluginFolderPath,JSON.stringify(resources))
+
+        this.app.vault.create(name,JSON.stringify(resources))
         //console.log(`todoist 备份成功`)
-        new Notice(`Todoist backup data is saved in the path ${pluginFolderPath}`)
+        new Notice(`Todoist backup data is saved in the path ${name}`)
         } catch (error) {
         console.error("An error occurred while creating Todoist backup:", error);
         }

@@ -1,13 +1,13 @@
-import { App, Notice, Plugin, PluginSettingTab, Setting ,ExtraButtonComponent, DropdownComponent} from 'obsidian';
+import { App, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
 
 
-interface MyObject {
+interface MyProject {
 	id: string;
 	name: string;
   }
 
 
-export interface MyPluginSettings {
+export interface UltimateTodoistSyncSettings {
     initialized:boolean;
 	//mySetting: string;
 	//todoistTasksFilePath: string;
@@ -20,7 +20,7 @@ export interface MyPluginSettings {
 }
 
 
-export const DEFAULT_SETTINGS: MyPluginSettings = {
+export const DEFAULT_SETTINGS: UltimateTodoistSyncSettings = {
 	initialized: false,
 	apiInitialized:false,
 	defaultProjectName:"Inbox",
@@ -35,7 +35,7 @@ export const DEFAULT_SETTINGS: MyPluginSettings = {
 
 
 
-export class SampleSettingTab extends PluginSettingTab {
+export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 	plugin: MyPlugin;
 
 	constructor(app: App, plugin: Plugin) {
@@ -50,7 +50,7 @@ export class SampleSettingTab extends PluginSettingTab {
 
 		containerEl.createEl('h2', { text: 'Settings for Ultimate Todoist Sync for Obsidian.' });
 
-		const myProjectsOptions: MyObject = (this.plugin.settings.todoistTasksData.projects).reduce((obj, item) => {
+		const myProjectsOptions: MyProject = (this.plugin.settings.todoistTasksData.projects).reduce((obj, item) => {
 			obj[(item.id).toString()] = item.name;
 			return obj;
 		  }, {});
@@ -59,7 +59,7 @@ export class SampleSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('Todoist API')
-			.setDesc('Please enter todoist api token')
+			.setDesc('Please enter todoist api token and click the paper airplane button to submit.')
 			.addText((text) =>
 				text
 					.setPlaceholder('Enter your API')
@@ -122,8 +122,7 @@ export class SampleSettingTab extends PluginSettingTab {
 							this.plugin.settings.defaultProjectId = value
 							this.plugin.settings.defaultProjectName = this.plugin.cacheOperation.getProjectNameByIdFromCache(value)
 							this.plugin.saveSettings()
-							console.log(this.plugin.settings.defaultProjectId)
-							console.log(this.plugin.settings.defaultProjectName)
+							
 							
 						})
 						
@@ -155,7 +154,7 @@ export class SampleSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('Backup Todoist Data')
-			.setDesc('Click to backup Todoist data, backup data is saved in the path ".obsidian/plugins/ultimate-todoist-sync/userData"')
+			.setDesc('Click to backup Todoist data, The backed-up files will be stored in the root directory of the Obsidian vault.')
 			.addButton(button => button
 				.setButtonText('Backup')
 				.onClick(() => {
