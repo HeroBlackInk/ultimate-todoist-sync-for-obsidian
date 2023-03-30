@@ -118,7 +118,7 @@ export class TaskParser   {
         //use tag as project name
 
         let projectName = this.settings.defaultProjectName
-        let projectId = this.settings.defaultProjectId
+        let projectId = this.cacheOperation.getProjectIdByNameFromCache(projectName)
         //匹配 tag 和 peoject
         for (const label of labels){
     
