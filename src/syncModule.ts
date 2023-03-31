@@ -616,6 +616,7 @@ export class TodoistSync  {
         for (const e of unSynchronizedEvents) {   //如果要修改代码，让completeTaskInTheFile(e.object_id)按照顺序依次执行，可以将Promise.allSettled()方法改为使用for...of循环来处理未同步的事件。具体步骤如下：
             //console.log(`正在 complete ${e.object_id}`)
             await this.fileOperation.completeTaskInTheFile(e.object_id)
+            await this.cacheOperation.closeTaskToCacheByID(e.object_id)
             new Notice(`Task ${e.object_id} was closed.`)
             processedEvents.push(e)
         }
@@ -643,6 +644,7 @@ export class TodoistSync  {
         for (const e of unSynchronizedEvents) {   //如果要修改代码，让uncompleteTaskInTheFile(e.object_id)按照顺序依次执行，可以将Promise.allSettled()方法改为使用for...of循环来处理未同步的事件。具体步骤如下：
             //console.log(`正在 uncheck task: ${e.object_id}`)
             await this.fileOperation.uncompleteTaskInTheFile(e.object_id)
+            await this.cacheOperation.reopenTaskToCacheByID(e.object_id)
             new Notice(`Task ${e.object_id} was reopend.`)
             processedEvents.push(e)
         }
