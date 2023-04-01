@@ -50,12 +50,10 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 
 		containerEl.createEl('h2', { text: 'Settings for Ultimate Todoist Sync for Obsidian.' });
 
-		const myProjectsOptions: MyProject = (this.plugin.settings.todoistTasksData.projects).reduce((obj, item) => {
+		const myProjectsOptions: MyProject | undefined = this.plugin.settings.todoistTasksData?.projects?.reduce((obj, item) => {
 			obj[(item.id).toString()] = item.name;
 			return obj;
-		  }, {});
-
-		  
+		  }, {});	  
 
 		new Setting(containerEl)
 			.setName('Todoist API')
@@ -75,6 +73,7 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 				button.setIcon('send')
 					  .onClick(async () => {
 							await this.plugin.modifyTodoistAPI(this.plugin.settings.todoistAPIToken)
+							this.display()
 							
 						})
 					
@@ -141,6 +140,10 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 			.setButtonText('Sync projects')
 			.onClick(() => {
 				// Add code here to handle exporting Todoist data
+				if(!this.plugin.settings.apiInitialized){
+					new Notice(`Please set the todoist api first`)
+					return
+				}
 				try{
 					this.plugin.cacheOperation.saveProjectsToCache()
 					this.plugin.saveSettings()
@@ -159,6 +162,10 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 				.setButtonText('Backup')
 				.onClick(() => {
 					// Add code here to handle exporting Todoist data
+					if(!this.plugin.settings.apiInitialized){
+						new Notice(`Please set the todoist api first`)
+						return
+					}
 					this.plugin.todoistSync.backupTodoistAllResources()
 				})
 			);
