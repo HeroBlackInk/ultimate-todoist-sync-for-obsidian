@@ -1,6 +1,6 @@
 import { TodoistApi } from "@doist/todoist-api-typescript"
 import { App} from 'obsidian';
-import { UltimateTodoistSyncSettings } from 'src/settings';
+import { UltimateTodoistSyncSettings } from './settings';
 
 
 

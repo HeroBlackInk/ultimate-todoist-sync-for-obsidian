@@ -1,6 +1,6 @@
-import UltimateTodoistSyncForObsidian from "main";
+import UltimateTodoistSyncForObsidian from "../main";
 import { App, Editor, MarkdownView, Notice} from 'obsidian';
-import { UltimateTodoistSyncSettings } from 'src/settings';
+import { UltimateTodoistSyncSettings } from './settings';
 import { TodoistRestAPI } from "./todoistRestAPI";
 import { TodoistSyncAPI } from "./todoistSyncAPI";
 import { TaskParser } from "./taskParser";

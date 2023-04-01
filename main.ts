@@ -3,19 +3,19 @@ import { MarkdownView, Notice, Plugin } from 'obsidian';
 
 
 //settings
-import { UltimateTodoistSyncSettings,DEFAULT_SETTINGS,UltimateTodoistSyncSettingTab } from 'src/settings';
+import { UltimateTodoistSyncSettings,DEFAULT_SETTINGS,UltimateTodoistSyncSettingTab } from './src/settings';
 //todoist  api
-import { TodoistRestAPI } from 'src/todoistRestAPI';
-import { TodoistSyncAPI } from 'src/todoistSyncAPI';
+import { TodoistRestAPI } from './src/todoistRestAPI';
+import { TodoistSyncAPI } from './src/todoistSyncAPI';
 //task parser 
-import { TaskParser } from 'src/taskParser';
+import { TaskParser } from './src/taskParser';
 //cache task read and write
-import { CacheOperation } from 'src/cacheOperation';
+import { CacheOperation } from './src/cacheOperation';
 //file operation
-import { FileOperation } from 'src/fileOperation';
+import { FileOperation } from './src/fileOperation';
 
 //sync module
-import { TodoistSync } from 'src/syncModule';
+import { TodoistSync } from './src/syncModule';
 
 
 export default class UltimateTodoistSyncForObsidian extends Plugin {

@@ -1,5 +1,5 @@
 import { App} from 'obsidian';
-import { UltimateTodoistSyncSettings } from 'src/settings';
+import { UltimateTodoistSyncSettings } from './settings';
 import { CacheOperation } from "./cacheOperation";
 
 
