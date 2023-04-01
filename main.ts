@@ -35,7 +35,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 		this.addSettingTab(new UltimateTodoistSyncSettingTab(this.app, this));
 		if (!this.settings.todoistAPIToken) {
 			new Notice('Please enter your Todoist API.');
-			return	   
+			//return	   
 		}else{
 			await this.initializePlugin();
 		}
