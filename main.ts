@@ -85,7 +85,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 				return
 			}
 			const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-			const editor = view.app.workspace.activeEditor?.editor
+			const editor = view?.app.workspace.activeEditor?.editor
 	
 			if (evt.key === 'ArrowUp' || evt.key === 'ArrowDown' || evt.key === 'ArrowLeft' || evt.key === 'ArrowRight' ||evt.key === 'PageUp' || evt.key === 'PageDown') {
 				//console.log(`${evt.key} arrow key is released`);
@@ -111,7 +111,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 				return
 			}
 			//console.log('click', evt);
-			if (this.app.workspace.activeEditor?.editor.hasFocus()) {
+			if (this.app.workspace.activeEditor?.editor?.hasFocus()) {
 				//console.log('Click event: editor is focused');
 				const view = this.app.workspace.getActiveViewOfType(MarkdownView)
 				const editor = this.app.workspace.activeEditor?.editor
@@ -128,6 +128,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 					return
 				}
 				this.checkboxEventhandle(evt)
+				//this.todoistSync.fullTextModifiedTaskCheck()
 
 			}
 
@@ -136,7 +137,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 
 
 		//hook editor-change 事件，如果当前line包含 #todoist,说明有new task
-		this.registerEvent(this.app.workspace.on('editor-change',async (editor,view)=>{
+		this.registerEvent(this.app.workspace.on('editor-change',async (editor,view:MarkdownView)=>{
 			if(!this.settings.apiInitialized){
 				return
 			}
@@ -308,33 +309,33 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 		const view = this.app.workspace.getActiveViewOfType(MarkdownView)
 		if(view){
 			const cursor = view.app.workspace.getActiveViewOfType(MarkdownView)?.editor.getCursor()
-			const line = cursor.line
-			const lineText = view.editor.getLine(line)
+			const line = cursor?.line
+			//const lineText = view.editor.getLine(line)
 			const fileContent = view.data
 
 			//console.log(line)
 			//const fileName = view.file?.name
 			const fileName =  view.app.workspace.getActiveViewOfType(MarkdownView)?.app.workspace.activeEditor?.file?.name
 			const filepath =  view.app.workspace.getActiveViewOfType(MarkdownView)?.app.workspace.activeEditor?.file?.path
-			if (typeof this.lastLines === 'undefined' || typeof this.lastLines.get(fileName) === 'undefined'){
-				this.lastLines.set(fileName, line);
+			if (typeof this.lastLines === 'undefined' || typeof this.lastLines.get(fileName as string) === 'undefined'){
+				this.lastLines.set(fileName as string, line as number);
 				return
 			}
 
 					//console.log(`filename is ${fileName}`)
-			if(this.lastLines.has(fileName) && line !== this.lastLines.get(fileName)){
-				const lastLine = this.lastLines.get(fileName)
+			if(this.lastLines.has(fileName as string) && line !== this.lastLines.get(fileName as string)){
+				const lastLine = this.lastLines.get(fileName as string)
 				//console.log('Line changed!', `current line is ${line}`, `last line is ${lastLine}`);
 
 				// 执行你想要的操作
-				const lastLineText = view.editor.getLine(lastLine)
+				const lastLineText = view.editor.getLine(lastLine as number)
 				//console.log(lastLineText)
 				if(!( this.checkModuleClass())){
 					return
 				}
-				this.todoistSync.lineModifiedTaskCheck(filepath,lastLineText,lastLine,fileContent)
+				this.todoistSync.lineModifiedTaskCheck(filepath as string,lastLineText,lastLine as number,fileContent)
 
-				this.lastLines.set(fileName, line);
+				this.lastLines.set(fileName as string, line as number);
 			}
 			else  {
 				//console.log('Line not changed');				
@@ -352,39 +353,30 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 			return
 		}
 		const target = evt.target as HTMLInputElement;
-		let element = target.parentElement;
-		//console.log(target.closest("div"))
+
+		const taskElement = target.closest("div");    //使用 evt.target.closest() 方法寻找特定的父元素，而不是直接访问事件路径中的特定索引
+		//console.log(taskElement)
+		if (!taskElement) return;
 		const regex = /\[todoist_id:: (\d+)\]/; // 匹配 [todoist_id:: 数字] 格式的字符串
-		while (element && !regex.test(element.textContent)) {
-		element = element.parentElement;
-		}
-		if (!element) {
-			console.log("No todoist_id found.");
+		const match = taskElement.textContent?.match(regex) || false;
+		if (match) {
+			const taskId = match[1];
+			//console.log(taskId)
+			//const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+			if (target.checked) {
+				this.todoistSync.closeTask(taskId);
+			} else {
+				this.todoistSync.repoenTask(taskId);
+			}
+		} else {
+			//console.log('未找到 todoist_id');
 			//开始全文搜索，检查status更新
 
 			this.todoistSync.fullTextModifiedTaskCheck()
-		} else {
-			//console.log(`找到了 todoist_id`)
-
-			//console.log(element.textContent)
-			//const todoist_id = await searchTodoistIdFromFilePath()		
-			const match = element.textContent.match(/\[todoist_id:: (\d+)\]/);
-			if (match) {
-				const taskId = match[1];
-				if (target.checked) {
-					this.todoistSync.closeTask(taskId);
-				} else {
-					this.todoistSync.repoenTask(taskId);
-				}
-				// ...
-			} else {
-				console.log("Invalid todoist_id");
-			}
-		
-
-
 		}
 	}
+
+
 
 	//return true
 	checkModuleClass(){

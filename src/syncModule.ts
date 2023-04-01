@@ -313,7 +313,7 @@ export class TodoistSync  {
             const lineTask = await this.taskParser.convertTextToTodoistTaskObject(lineText,filepath,lineNumber,fileContent)
             //console.log(lastLineTask)
             const lineTask_todoist_id = (lineTask.todoist_id).toString()
-            console.log(lineTask_todoist_id )
+            //console.log(lineTask_todoist_id )
             //console.log(`lastline task id is ${lastLineTask_todoist_id}`)
             const savedTask = await this.cacheOperation.loadTaskFromCacheyID(lineTask_todoist_id)  //dataview中 id为数字，todoist中id为字符串，需要转换
             if(!savedTask){
@@ -487,6 +487,7 @@ export class TodoistSync  {
     async closeTask(taskId: string): Promise<void> {
     try {
         await this.todoistRestAPI.CloseTask(taskId);
+        await this.fileOperation.completeTaskInTheFile(taskId)
         await this.cacheOperation.closeTaskToCacheByID(taskId);
         this.plugin.saveSettings()
         new Notice(`Task ${taskId} id closed.`)
@@ -500,6 +501,7 @@ export class TodoistSync  {
     async repoenTask(taskId:string) : Promise<void>{
         try {
             await this.todoistRestAPI.OpenTask(taskId)
+            await this.fileOperation.uncompleteTaskInTheFile(taskId)
             await this.cacheOperation.reopenTaskToCacheByID(taskId)
             this.plugin.saveSettings()
             new Notice(`Task ${taskId} id reopend.`)

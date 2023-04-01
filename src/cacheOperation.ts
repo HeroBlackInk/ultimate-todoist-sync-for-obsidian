@@ -132,7 +132,7 @@ export class CacheOperation   {
         try {
 
             const savedTasks = this.settings.todoistTasksData.tasks
-            console.log(savedTasks)
+            //console.log(savedTasks)
             const savedTask = savedTasks.find((t) => t.id === taskId);
             //console.log(savedTask)
             return(savedTask)
