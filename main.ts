@@ -1,4 +1,4 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin } from 'obsidian';
+import { MarkdownView, Notice, Plugin } from 'obsidian';
 
 
 
@@ -48,7 +48,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 		const ribbonIconEl = this.addRibbonIcon('list-checks', 'Sync with todoist', async (evt: MouseEvent) => {
 			// Called when the user clicks the icon.
 			//new Notice('This is a notice!');
-			const activeFile = evt.view.app.workspace.getActiveFile()
+			const activeFile = this.app.workspace.getActiveFile()
 			if(activeFile){
 				if(!( this.checkModuleClass())){
 					return
@@ -80,11 +80,11 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 			//console.log(`key pressed`)
 			
 			//判断点击事件发生的区域,如果不在编辑器中，return
-			if (!(evt.view.app.workspace.activeEditor?.editor?.hasFocus())) {
+			if (!(this.app.workspace.activeEditor?.editor?.hasFocus())) {
 				(console.log(`editor is not focused`))
 				return
 			}
-			const view = evt.view.app.workspace.getActiveViewOfType(MarkdownView);
+			const view = this.app.workspace.getActiveViewOfType(MarkdownView);
 			const editor = view.app.workspace.activeEditor?.editor
 	
 			if (evt.key === 'ArrowUp' || evt.key === 'ArrowDown' || evt.key === 'ArrowLeft' || evt.key === 'ArrowRight' ||evt.key === 'PageUp' || evt.key === 'PageDown') {
@@ -111,9 +111,9 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 				return
 			}
 			//console.log('click', evt);
-			if (evt.view.app.workspace.activeEditor?.editor.hasFocus()) {
+			if (this.app.workspace.activeEditor?.editor.hasFocus()) {
 				//console.log('Click event: editor is focused');
-				const view = evt.view.app.workspace.getActiveViewOfType(MarkdownView)
+				const view = this.app.workspace.getActiveViewOfType(MarkdownView)
 				const editor = view.app.workspace.activeEditor?.editor
 				this.lineNumberCheck()
 			}
