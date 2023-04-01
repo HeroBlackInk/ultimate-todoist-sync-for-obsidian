@@ -114,7 +114,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 			if (this.app.workspace.activeEditor?.editor.hasFocus()) {
 				//console.log('Click event: editor is focused');
 				const view = this.app.workspace.getActiveViewOfType(MarkdownView)
-				const editor = view.app.workspace.activeEditor?.editor
+				const editor = this.app.workspace.activeEditor?.editor
 				this.lineNumberCheck()
 			}
 			else{
