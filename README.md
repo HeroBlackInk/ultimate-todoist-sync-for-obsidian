@@ -19,23 +19,40 @@ It should be the best Obsidian plugin for synchronizing Todoist tasks so far.
 | Functionality           | Manual Sync | Auto Sync |
 |------------------------|-------------|-----------|
 | Add task                |  ✅          | ✅          |
+| Delete task             |  ✅          | ✅          |
 | Modify task content     | ✅           | ✅         |
 | Modify task due date    | ✅           | ✅         |
+| Modify task description    | 🔜           | 🔜          |
 | Modify task labels/tags | ✅           | ✅         |
 | Mark task as completed  | ✅           | ✅         |
 | Mark task as uncompleted  | ✅           | ✅         |
 | Modify project          | 🔜          | 🔜        |
+| Modify section          | 🔜          | 🔜        |
+| Modify priority         | 🔜          | 🔜        |
+| Add reminder         | 🔜          | 🔜        |
+| Move tasks between files| 🔜          | 🔜        |
+| Added-at  date  | 🔜          | 🔜        |
+| Completed-at  date  | 🔜          | 🔜        |
+| Task notes  | 🔜          | 🔜        |
 
 ### Sync from Todoist to Obsidian
 | Functionality           | Manual Sync | Auto Sync |
 |------------------------|-------------|-----------|
 | Add task                | 🔜            | 🔜         |
+| Delete task             |  🔜           | 🔜         |
 | Modify task content     | ✅           | 🔜         |
 | Modify task due date    | ✅           | 🔜          |
+| Modify task description    | 🔜           | 🔜          |
 | Modify task labels/tags | 🔜          | 🔜        |
-| Mark task as completed  | ✅           |          |
+| Mark task as completed  | ✅           |  🔜        |
 | Mark task as uncompleted  | ✅           | 🔜         |
 | Modify project          | 🔜          | 🔜        |
+| Modify section          | 🔜          | 🔜        |
+| Modify priority         | 🔜          | 🔜        |
+| Add reminder         | 🔜          | 🔜        |
+| Added-at  date  | 🔜          | 🔜        |
+| Completed-at  date  | 🔜          | 🔜        |
+| Task notes  | 🔜          | 🔜        |
 
 > **Some plugins may modify the current view, such as Kanban, which causes the automatic synchronization function to fail. You need to manually click the sync button.**
 
