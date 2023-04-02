@@ -147,6 +147,7 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 				try{
 					this.plugin.cacheOperation.saveProjectsToCache()
 					this.plugin.saveSettings()
+					this.display()
 					new Notice(`projects synchronization successful`)
 				}catch(error){
 					new Notice(`projects synchronization failed:${error}`)
