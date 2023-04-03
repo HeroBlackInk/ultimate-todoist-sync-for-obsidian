@@ -140,7 +140,8 @@ export class TaskParser   {
         const todoist_id = this.getTodoistIdFromLineText(textWithoutIndentation)
     
         if(filepath){
-        description = `[${filepath}](obsidian://open?vault=${this.app.vault.getName()}&file=${filepath})`;
+            let url = encodeURI(`obsidian://open?vault=${this.app.vault.getName()}&file=${filepath}`)
+            description =`[${filepath}](${url})`;
         }
     
         const todoistTask = {
