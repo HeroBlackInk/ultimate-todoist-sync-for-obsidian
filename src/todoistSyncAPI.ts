@@ -188,7 +188,7 @@ export class TodoistSyncAPI   {
         }
     
         const data = await response.json();
-    
+        //console.log(data)
         return data;
         } catch (error) {
         console.error(error);
@@ -202,7 +202,10 @@ export class TodoistSyncAPI   {
         const updatedItemsActivity = await this.getUpdatedItemsActivity()
         const updatedItemsActivityEvents = updatedItemsActivity.events
         //client中不包含obsidian 的activity
-        const filteredArray = updatedItemsActivityEvents.filter(obj => !obj.extra_data.client.includes("obsidian")); 
+        const filteredArray = updatedItemsActivityEvents.filter(obj => {
+          const client = obj.extra_data && obj.extra_data.client;
+          return !client || !client.includes("obsidian");
+        });
         return(filteredArray)
     }
 
