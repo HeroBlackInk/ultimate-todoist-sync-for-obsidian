@@ -78,9 +78,9 @@ New tasks will be added to the default project, and you can change the default p
 | --- | --- | --- |
 |#todoist|Tasks marked with #todoist will be added to Todoist, while tasks without the **#todoist** tag will not be processed.| `- [ ] task #todoist`|
 | 🗓️YYYY-MM-DD | The date format is 🗓️YYYY-MM-DD, indicating the due date of a task. | `- [ ] task content 🗓️2025-02-05 #todoist` |
-| #projectTag | New tasks will be added to the default project(For example,  inbox .), and you can change the default project in the settings or use a tag with the same name to specify a particular project. | `- [ ]taskA 🗓️2024-02-04  #todoist` will be added to inbox.`- [ ]taskB 🗓️2024-02-04 #tag #testProject #todoist` will be added to testProject.|
+| #projectTag | New tasks will be added to the default project(For example,  inbox .), and you can change the default project in the settings or use a tag with the same name to specify a particular project. | `- [ ]taskA 🗓️2024-02-04  #todoist` will be added to inbox.<br>`- [ ]taskB 🗓️2024-02-04 #tag #testProject #todoist` will be added to testProject.|
 | #tag | Note that all tags without a project of the same name are treated as normal tags | `- [ ] task #tagA #tagB #tagC #todoist` |
-|   `!!<number>` | Task priority from 1 (normal) to 4 (urgent). | `- [ ] task !!4 #todoist` |
+|   `!!<number>` | The priority of the task (a number between 1 and 4, 4 for very urgent and 1 for natural).<br>**Note**: Keep in mind that very urgent is the priority 1 on clients. So, the priority 1 in the client corresponds to the number 4 here (Because that's how the official API of Todoist is designed.). | `- [ ] task !!4 #todoist` |
 
 ###  Set a default project for each file separately
 
