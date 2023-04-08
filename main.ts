@@ -1,4 +1,4 @@
-import { MarkdownView, Notice, Plugin } from 'obsidian';
+import { MarkdownView, Notice, Plugin ,Editor} from 'obsidian';
 
 
 
@@ -17,6 +17,9 @@ import { FileOperation } from './src/fileOperation';
 //sync module
 import { TodoistSync } from './src/syncModule';
 
+
+//import modal
+import { SetDefalutProjectInTheFilepathModal } from 'src/modal';
 
 export default class UltimateTodoistSyncForObsidian extends Plugin {
 	settings: UltimateTodoistSyncSettings;
@@ -194,6 +197,18 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 			await this.cacheOperation.updateRenamedFilePath(oldpath,file.path)
 			this.saveSettings()		
 		}));
+
+
+		// set default  project for todoist task in the current file
+		// This adds an editor command that can perform some operation on the current editor instance
+		this.addCommand({
+			id: 'set-default-project-for-todoist-task-in-the-current-file',
+			name: 'Set default project for todoist task in the current file',
+			editorCallback: (editor: Editor, view: MarkdownView) => {
+				new SetDefalutProjectInTheFilepathModal(this.app).onOpen()
+				
+			}
+		});
 	}
 
 
@@ -375,8 +390,6 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 			this.todoistSync.fullTextModifiedTaskCheck()
 		}
 	}
-
-
 
 	//return true
 	checkModuleClass(){
