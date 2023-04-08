@@ -28,7 +28,7 @@ It should be the best Obsidian plugin for synchronizing Todoist tasks so far.
 | Mark task as uncompleted  | ✅           | ✅         |
 | Modify project          | 🔜          | 🔜        |
 | Modify section          | 🔜          | 🔜        |
-| Modify priority         | 🔜          | 🔜        |
+| Modify priority         | ✅           | ✅         |
 | Add reminder         | 🔜          | 🔜        |
 | Move tasks between files| 🔜          | 🔜        |
 | Added-at  date  | 🔜          | 🔜        |

@@ -338,6 +338,8 @@ export class TodoistSync  {
             const dueDateModified = !(await this.taskParser.compareTaskDueDate(lineTask,savedTask))
             //parent id 是否修改
             const parentIdModified = !(lineTask.parentId === savedTask.parentId)
+            //check priority
+            const priorityModified = !(lineTask.priority === savedTask.priority)
 
             try {
             let contentChanged= false;
@@ -346,6 +348,7 @@ export class TodoistSync  {
             let statusChanged = false;
             let dueDateChanged = false;
             let parentIdChanged = false;
+            let priorityChanged = false;
             
             let updatedContent = {}
             if (contentModified) {
@@ -388,8 +391,14 @@ export class TodoistSync  {
                 //parentIdChanged = false;
             }
 
+            if (priorityModified) {
 
-            if (contentChanged || tagsChanged ||dueDateChanged ||projectChanged || parentIdChanged) {
+                updatedContent.priority = lineTask.priority
+                priorityChanged = true;
+            }
+
+
+            if (contentChanged || tagsChanged ||dueDateChanged ||projectChanged || parentIdChanged || priorityChanged) {
                 //console.log("task content was modified");
                 //console.log(updatedContent)
                 const updatedTask = await this.todoistRestAPI.UpdateTask(lineTask.todoist_id.toString(),updatedContent)
@@ -414,7 +423,7 @@ export class TodoistSync  {
 
 
             
-            if (contentChanged || statusChanged ||dueDateChanged ||tagsChanged || projectChanged) {
+            if (contentChanged || statusChanged ||dueDateChanged ||tagsChanged || projectChanged || projectChanged) {
                 console.log(lineTask)
                 console.log(savedTask)
                 //`Task ${lastLineTaskTodoistId} was modified`
