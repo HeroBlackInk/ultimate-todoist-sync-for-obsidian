@@ -21,7 +21,7 @@ export class TodoistRestAPI  {
         return(api)
     }
 
-    async AddTask({ projectId, content, parentId = null, dueDate, labels, description }: { projectId: string, content: string, parentId?: string , dueDate?: string, labels?: Array<string>, description?: string }) {
+    async AddTask({ projectId, content, parentId = null, dueDate, labels, description,priority }: { projectId: string, content: string, parentId?: string , dueDate?: string, labels?: Array<string>, description?: string,priority?:number }) {
         const api = await this.initializeAPI()
         try {
           const newTask = await api.addTask({
@@ -30,7 +30,8 @@ export class TodoistRestAPI  {
             parentId,
             dueDate,
             labels,
-            description
+            description,
+            priority
           });
           return newTask;
         } catch (error) {
@@ -42,12 +43,12 @@ export class TodoistRestAPI  {
 
     //Also note that to remove the due date of a task completely, you should set the due_string parameter to no date or no due date.
     //api 没有 update task project id 的函数
-    async UpdateTask(taskId: string, updates: { content?: string, labels?:Array<string>,dueDate?: string,dueString?:string,parentId?:string }) {
+    async UpdateTask(taskId: string, updates: { content?: string, labels?:Array<string>,dueDate?: string,dueString?:string,parentId?:string,priority?:number }) {
         const api = await this.initializeAPI()
         if (!taskId) {
         throw new Error('taskId is required');
         }
-        if (!updates.content && !updates.dueDate  && !updates.dueString && !updates.labels &&!updates.parentId) {
+        if (!updates.content && !updates.dueDate  && !updates.dueString && !updates.labels &&!updates.parentId && !updates.priority) {
         throw new Error('At least one update is required');
         }
         try {

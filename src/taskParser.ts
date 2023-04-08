@@ -148,7 +148,7 @@ export class TaskParser   {
         const isCompleted = this.isTaskCheckboxChecked(textWithoutIndentation)
         let description = ""
         const todoist_id = this.getTodoistIdFromLineText(textWithoutIndentation)
-    
+        const priority = this.getTaskPriority(textWithoutIndentation)
         if(filepath){
             let url = encodeURI(`obsidian://open?vault=${this.app.vault.getName()}&file=${filepath}`)
             description =`[${filepath}](${url})`;
@@ -164,7 +164,7 @@ export class TaskParser   {
         isCompleted:isCompleted,
         todoist_id:todoist_id || null,
         hasParent:hasParent,
-    
+        priority:priority
         };
         //console.log(`converted task `)
         //console.log(todoistTask)
@@ -189,7 +189,7 @@ export class TaskParser   {
     hasDueDate(text:string){
         const regex = /🗓️\d{4}-\d{2}-\d{2}/; //匹配日期🗓️2023-03-07"
         return(regex.test(text))
-        }
+    }
   
   
     getDueDateFromLineText(text: string) {
@@ -248,18 +248,20 @@ export class TaskParser   {
     //task text get content
     getTaskContentFromLineText(lineText:string) {
         //检查内容是否修改
+        const regexRemovePriority = /\s!!([1-4])\s/
         const regexRemoveTags = /(^|\s)(#[a-zA-Z\d\u4e00-\u9fa5-]+)/g;   //删除tag  const regex = /#[\w\u4e00-\u9fa5-]+/g
         const regexGetContentWithTodoistTag = /(.*)#todoist/;  //提取todoist之前的内容
         const regexRemoveSpace = /\s+$/; //删除末尾的空格
         const regexRemoveDate = /🗓️\d{4}-\d{2}-\d{2}/; //匹配日期🗓️2023-03-07"
         const regexRemoveInlineMetadata = /%%\[\w+::\s*\w+\]%%/;
         const regexRemoveCheckbox =  /^(-|\*)\s+\[(x| )\]\s/;
-        const regexRemoveCHeckboxWithIndentation = /^([ \t]*)?- \[(x| )\]\s/;
+        const regexRemoveCheckboxWithIndentation = /^([ \t]*)?- \[(x| )\]\s/;
         const TaskContent = lineText.replace(regexRemoveInlineMetadata,"")
+                                    .replace(regexRemovePriority," ") //priority 前后必须都有空格，
                                     .replace(regexRemoveTags,"")
                                     .replace(regexRemoveDate,"")
                                     .replace(regexRemoveCheckbox,"")
-                                    .replace(regexRemoveCHeckboxWithIndentation,"")
+                                    .replace(regexRemoveCheckboxWithIndentation,"")
                                     .replace(regexRemoveSpace,"")
     
     
@@ -378,6 +380,12 @@ export class TaskParser   {
         const regex = /^(\t+)/;
         const match = text.match(regex);
         return match ? match[1].length : 0;
+    }
+    //	Task priority from 1 (normal) to 4 (urgent).
+    getTaskPriority(text:string): number{
+        const regex = /\s!!([1-4])\s/
+        const match = text.match(regex)
+        return match ? Number(match[1]) : 1;
     }
   
   
