@@ -420,13 +420,24 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 	}
 
 	async setStatusBarText(){
+		if(!( this.checkModuleClass())){
+			return
+		}
 		const view = this.app.workspace.getActiveViewOfType(MarkdownView)
 		if(!view){
 			this.statusBar.setText('');
 		}
 		else{
 			const filepath = this.app.workspace.getActiveViewOfType(MarkdownView)?.file.path
+			if(filepath === undefined){
+				console.log(`file path undefined`)
+				return
+			}
 			const defaultProjectName = await this.cacheOperation.getDefaultProjectNameForFilepath(filepath as string)
+			if(defaultProjectName === undefined){
+				console.log(`projectName undefined`)
+				return
+			}
 			this.statusBar.setText(defaultProjectName)
 		}
 
