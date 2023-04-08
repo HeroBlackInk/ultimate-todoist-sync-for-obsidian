@@ -69,7 +69,7 @@ export class TaskParser   {
         // 检测 parentID
         let textWithoutIndentation = lineText
         if(this.getTabIndentation(lineText) > 0){
-        //console.log(`缩进为 ${getTabIndentation(lineText)}`)
+        //console.log(`缩进为 ${this.getTabIndentation(lineText)}`)
         textWithoutIndentation = this.removeTaskIndentation(lineText)
         //console.log(textWithoutIndentation)
         //console.log(`这是子任务`)
@@ -77,32 +77,32 @@ export class TaskParser   {
         //const fileContent = await this.fileOperation.readContentFromFilePath(filepath)
         //遍历 line
         const lines = fileContent.split('\n')
-    
-        for (let i = lineNumber; i > 0; i--) {
+        console.log(lines)
+        for (let i = (lineNumber - 1 ); i >= 0; i--) {
             //console.log(`正在check${i}行的缩进`)
             const line = lines[i]
-    
+            console.log(line)
             //如果是空行说明没有parent
             if(this.isLineBlank(line)){
-            break
+                break
             }
             //如果tab数量大于等于当前line,跳过
             if (this.getTabIndentation(line) >= this.getTabIndentation(lineText)) {
-            //console.log(`缩进为 ${getTabIndentation(line)}`)
-            continue       
+                    //console.log(`缩进为 ${this.getTabIndentation(line)}`)
+                    continue       
             }
             if((this.getTabIndentation(line) < this.getTabIndentation(lineText))){
-            //console.log(`缩进为 ${getTabIndentation(line)}`)
-            if(this.hasTodoistId(line)){
-                parentId = this.getTodoistIdFromLineText(line)
-                hasParent = true
-                //console.log(`parent id is ${parentId}`)
-                parentTaskObject = this.cacheOperation.loadTaskFromCacheyID(parentId)
-                break
-            }
-            else{
-                break
-            }
+                //console.log(`缩进为 ${this.getTabIndentation(line)}`)
+                if(this.hasTodoistId(line)){
+                    parentId = this.getTodoistIdFromLineText(line)
+                    hasParent = true
+                    //console.log(`parent id is ${parentId}`)
+                    parentTaskObject = this.cacheOperation.loadTaskFromCacheyID(parentId)
+                    break
+                }
+                else{
+                    break
+                }
             }
         }
     
@@ -127,20 +127,20 @@ export class TaskParser   {
         }
         if(!hasParent){
                     //匹配 tag 和 peoject
-        for (const label of labels){
-    
-            //console.log(label)
-            let labelName = label.replace(/#/g, "");
-            //console.log(labelName)
-            let hasProjectId = this.cacheOperation.getProjectIdByNameFromCache(labelName)
-            if(!hasProjectId){
-                continue
+            for (const label of labels){
+        
+                //console.log(label)
+                let labelName = label.replace(/#/g, "");
+                //console.log(labelName)
+                let hasProjectId = this.cacheOperation.getProjectIdByNameFromCache(labelName)
+                if(!hasProjectId){
+                    continue
+                }
+                projectName = labelName
+                //console.log(`project is ${projectName} ${label}`)
+                projectId = hasProjectId
+                break
             }
-            projectName = labelName
-            //console.log(`project is ${projectName} ${label}`)
-            projectId = hasProjectId
-            break
-        }
         }
 
 
