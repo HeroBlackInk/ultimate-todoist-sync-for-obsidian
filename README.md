@@ -81,6 +81,15 @@ New tasks will be added to the default project, and you can change the default p
 | #projectTag | New tasks will be added to the default project(For example,  inbox .), and you can change the default project in the settings or use a tag with the same name to specify a particular project. | `- [ ]taskA 🗓️2024-02-04  #todoist` will be added to inbox.`- [ ]taskB 🗓️2024-02-04 #tag #testProject #todoist` will be added to testProject.|
 | #tag | Note that all tags without a project of the same name are treated as normal tags | `- [ ] task #tagA #tagB #tagC #todoist` |
 
+###  Set a default project for each file separately
+
+The default project in the setting applies to all files. You can set a separate default project for each file using command. 
+
+<img src="/attachment/command-set-default-project-for-file.png" width="500">
+<img src="/attachment/default-project-for-file-modal.png" width="500">
+
+You can see the current file's default project in the status bar at the bottom right corner.
+<img src="/attachment/statusBar.png" width="500">
 
 
 ### Syncing Tasks
