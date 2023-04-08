@@ -60,7 +60,7 @@ export class TaskParser   {
   
   
     //convert line text to a task object
-    async convertTextToTodoistTaskObject(lineText:string,filepath?:string,lineNumber?:number,fileContent?:string) {
+    async convertTextToTodoistTaskObject(lineText:string,filepath:string,lineNumber?:number,fileContent?:string) {
         //console.log(`linetext is:${lineText}`)
     
         let hasParent = false
@@ -116,8 +116,8 @@ export class TaskParser   {
         //const projectId = await this.cacheOperation.getProjectIdByNameFromCache(projectName)
         //use tag as project name
 
-        let projectName = this.settings.defaultProjectName
-        let projectId = this.cacheOperation.getProjectIdByNameFromCache(projectName)
+        let projectId = this.cacheOperation.getDefaultProjectIdForFilepath(filepath as string)
+        let projectName = this.cacheOperation.getProjectNameByIdFromCache(projectId)
         //匹配 tag 和 peoject
         for (const label of labels){
     

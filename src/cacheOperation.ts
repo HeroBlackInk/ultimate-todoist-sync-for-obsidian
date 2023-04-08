@@ -48,7 +48,7 @@ export class CacheOperation   {
         
     }
 
-    async getDefaultProjectNameForFilepath(filepath:string){
+    getDefaultProjectNameForFilepath(filepath:string){
         const metadatas = this.settings.fileMetadata
         if (!metadatas[filepath] || metadatas[filepath].defaultProjectId === undefined) {
             return this.settings.defaultProjectName
@@ -61,7 +61,7 @@ export class CacheOperation   {
     }
 
 
-    async getDefaultProjectIdForFilepath(filepath:string){
+    getDefaultProjectIdForFilepath(filepath:string){
         const metadatas = this.settings.fileMetadata
         if (!metadatas[filepath] || metadatas[filepath].defaultProjectId === undefined) {
             return this.settings.defaultProjectId
@@ -72,7 +72,7 @@ export class CacheOperation   {
         }
     }
 
-    async setDefaultProjectIdForFilepath(filepath:string,defaultProjectId:string){
+    setDefaultProjectIdForFilepath(filepath:string,defaultProjectId:string){
         const metadatas = this.settings.fileMetadata
         if (!metadatas[filepath]) {
             metadatas[filepath] = {}
