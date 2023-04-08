@@ -122,7 +122,7 @@ export class TaskParser   {
         let projectName = this.cacheOperation.getProjectNameByIdFromCache(projectId)
 
         if(hasParent){
-            projectId = parentId
+            projectId = parentTaskObject.projectId
             projectName =this.cacheOperation.getProjectNameByIdFromCache(projectId)
         }
         if(!hasParent){
