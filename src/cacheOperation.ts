@@ -48,6 +48,42 @@ export class CacheOperation   {
         
     }
 
+    async getDefaultProjectNameForFilepath(filepath:string){
+        const metadatas = this.settings.fileMetadata
+        if (!metadatas[filepath] || metadatas[filepath].defaultProjectId === undefined) {
+            return this.settings.defaultProjectName
+        }
+        else{
+            const defaultProjectId = metadatas[filepath].defaultProjectId
+            const defaultProjectName = this.getProjectNameByIdFromCache(defaultProjectId)
+            return defaultProjectName
+        }
+    }
+
+
+    async getDefaultProjectIdForFilepath(filepath:string){
+        const metadatas = this.settings.fileMetadata
+        if (!metadatas[filepath] || metadatas[filepath].defaultProjectId === undefined) {
+            return this.settings.defaultProjectId
+        }
+        else{
+            const defaultProjectId = metadatas[filepath].defaultProjectId
+            return defaultProjectId
+        }
+    }
+
+    async setDefaultProjectIdForFilepath(filepath:string,defaultProjectId:string){
+        const metadatas = this.settings.fileMetadata
+        if (!metadatas[filepath]) {
+            metadatas[filepath] = {}
+        }
+        metadatas[filepath].defaultProjectId = defaultProjectId
+    
+        // 将更新后的metadatas对象保存回设置对象中
+        this.settings.fileMetadata = metadatas
+
+    }
+
       
     // 从 Cache读取所有task
     loadTasksFromCache() {

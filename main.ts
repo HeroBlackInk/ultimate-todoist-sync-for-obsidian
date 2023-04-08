@@ -1,4 +1,4 @@
-import { MarkdownView, Notice, Plugin ,Editor} from 'obsidian';
+import { MarkdownView, Notice, Plugin ,Editor, WorkspaceLeaf} from 'obsidian';
 
 
 
@@ -30,6 +30,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 	fileOperation:FileOperation;
 	todoistSync:TodoistSync;
 	lastLines: Map<string,number>;
+	statusBar;
 
 	async onload() {
 
@@ -198,6 +199,10 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 			this.saveSettings()		
 		}));
 
+		this.app.workspace.on('active-leaf-change',(leaf)=>{
+			this.setStatusBarText()
+		})
+
 
 		// set default  project for todoist task in the current file
 		// This adds an editor command that can perform some operation on the current editor instance
@@ -205,10 +210,17 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 			id: 'set-default-project-for-todoist-task-in-the-current-file',
 			name: 'Set default project for todoist task in the current file',
 			editorCallback: (editor: Editor, view: MarkdownView) => {
-				new SetDefalutProjectInTheFilepathModal(this.app).onOpen()
+				const filepath = view.file.path
+				new SetDefalutProjectInTheFilepathModal(this.app,this,this.cacheOperation,filepath)
 				
 			}
 		});
+
+		//display default project for the current file on status bar
+		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
+		this.statusBar = this.addStatusBarItem();
+
+
 	}
 
 
@@ -406,6 +418,20 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 		
 
 	}
+
+	async setStatusBarText(){
+		const view = this.app.workspace.getActiveViewOfType(MarkdownView)
+		if(!view){
+			this.statusBar.setText('');
+		}
+		else{
+			const filepath = this.app.workspace.getActiveViewOfType(MarkdownView)?.file.path
+			const defaultProjectName = await this.cacheOperation.getDefaultProjectNameForFilepath(filepath as string)
+			this.statusBar.setText(defaultProjectName)
+		}
+
+	}
+
 
 
 }
