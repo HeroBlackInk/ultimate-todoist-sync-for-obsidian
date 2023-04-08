@@ -65,6 +65,7 @@ export class TaskParser   {
     
         let hasParent = false
         let parentId = null
+        let parentTaskObject = null
         // 检测 parentID
         let textWithoutIndentation = lineText
         if(this.getTabIndentation(lineText) > 0){
@@ -96,6 +97,7 @@ export class TaskParser   {
                 parentId = this.getTodoistIdFromLineText(line)
                 hasParent = true
                 //console.log(`parent id is ${parentId}`)
+                parentTaskObject = this.cacheOperation.loadTaskFromCacheyID(parentId)
                 break
             }
             else{
@@ -118,7 +120,13 @@ export class TaskParser   {
 
         let projectId = this.cacheOperation.getDefaultProjectIdForFilepath(filepath as string)
         let projectName = this.cacheOperation.getProjectNameByIdFromCache(projectId)
-        //匹配 tag 和 peoject
+
+        if(hasParent){
+            projectId = parentId
+            projectName =this.cacheOperation.getProjectNameByIdFromCache(projectId)
+        }
+        if(!hasParent){
+                    //匹配 tag 和 peoject
         for (const label of labels){
     
             //console.log(label)
@@ -133,6 +141,8 @@ export class TaskParser   {
             projectId = hasProjectId
             break
         }
+        }
+
 
         const content = this.getTaskContentFromLineText(textWithoutIndentation)
         const isCompleted = this.isTaskCheckboxChecked(textWithoutIndentation)
