@@ -193,7 +193,7 @@ export class TaskParser   {
   
   
     getDueDateFromLineText(text: string) {
-        const regex = /(🗓️|📅|📆|🗓)(\d{4}-\d{2}-\d{2})/;
+        const regex = /(?:🗓️|📅|📆|🗓)(\d{4}-\d{2}-\d{2})/;
         const result = regex.exec(text);
         return result ? result[1] : null;
     }

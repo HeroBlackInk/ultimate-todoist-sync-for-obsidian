@@ -131,9 +131,9 @@ export class TodoistSync  {
                 return
             }
             //console.log('this is a new task')
-            console.log(linetxt)
+            //console.log(linetxt)
             const currentTask =await this.taskParser.convertTextToTodoistTaskObject(linetxt,filepath,line,fileContent)
-            console.log(currentTask)
+            //console.log(currentTask)
     
           
     
@@ -143,7 +143,7 @@ export class TodoistSync  {
                 const newTask = await this.todoistRestAPI.AddTask(currentTask)
                 const { id: todoist_id, projectId: todoist_projectId, url: todoist_url } = newTask;
                 newTask.path = filepath;
-                console.log(newTask);
+                //console.log(newTask);
                 new Notice(`new task ${newTask.content} id is ${newTask.id}`)
                 //newTask写入缓存
                 this.cacheOperation.appendTaskToCache(newTask)
@@ -187,7 +187,7 @@ export class TodoistSync  {
                         frontMatter.todoistCount = newFrontMatter.todoistCount;
                       });
                       */
-                      console.log(newFrontMatter)
+                      //console.log(newFrontMatter)
                       await this.cacheOperation.updateFileMetadata(filepath,newFrontMatter)
 
                     
