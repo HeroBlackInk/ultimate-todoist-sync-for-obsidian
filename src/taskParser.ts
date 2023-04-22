@@ -187,13 +187,13 @@ export class TaskParser   {
   
   
     hasDueDate(text:string){
-        const regex = /🗓️\d{4}-\d{2}-\d{2}/; //匹配日期🗓️2023-03-07"
+        const regex = /(🗓️|📅|📆|🗓)\d{4}-\d{2}-\d{2}/; //匹配日期🗓️2023-03-07"
         return(regex.test(text))
     }
   
   
     getDueDateFromLineText(text: string) {
-        const regex = /🗓️(\d{4}-\d{2}-\d{2})/;
+        const regex = /(🗓️|📅|📆|🗓)(\d{4}-\d{2}-\d{2})/;
         const result = regex.exec(text);
         return result ? result[1] : null;
     }
@@ -252,7 +252,7 @@ export class TaskParser   {
         const regexRemoveTags = /(^|\s)(#[a-zA-Z\d\u4e00-\u9fa5-]+)/g;   //删除tag  const regex = /#[\w\u4e00-\u9fa5-]+/g
         const regexGetContentWithTodoistTag = /(.*)#todoist/;  //提取todoist之前的内容
         const regexRemoveSpace = /\s+$/; //删除末尾的空格
-        const regexRemoveDate = /🗓️\d{4}-\d{2}-\d{2}/; //匹配日期🗓️2023-03-07"
+        const regexRemoveDate = /(🗓️|📅|📆|🗓)\d{4}-\d{2}-\d{2}/; //匹配日期🗓️2023-03-07"
         const regexRemoveInlineMetadata = /%%\[\w+::\s*\w+\]%%/;
         const regexRemoveCheckbox =  /^(-|\*)\s+\[(x| )\]\s/;
         const regexRemoveCheckboxWithIndentation = /^([ \t]*)?- \[(x| )\]\s/;
@@ -406,7 +406,7 @@ export class TaskParser   {
   
   //在linetext中插入日期
     insertDueDateBeforeTodoist(text, dueDate) {
-    return text.replace(/#todoist/, `🗓️${dueDate} #todoist`);
+    return text.replace(/#todoist/, `📅${dueDate} #todoist`);
   }
 
     //extra date from obsidian event

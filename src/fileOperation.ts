@@ -178,7 +178,7 @@ export class FileOperation   {
             }
             else if(newTaskDueDate === ""){
                 //remove 日期from text
-                const regexRemoveDate = /🗓️\d{4}-\d{2}-\d{2}/; //匹配日期🗓️2023-03-07"
+                const regexRemoveDate = /(🗓️|📅|📆|🗓)\d{4}-\d{2}-\d{2}/; //匹配日期🗓️2023-03-07"
                 lines[i] = line.replace(regexRemoveDate,"")
                 modified = true
             }
