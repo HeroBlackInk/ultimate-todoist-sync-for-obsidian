@@ -65,7 +65,7 @@ It should be the best Obsidian plugin for synchronizing Todoist tasks so far.
 
 ## Configuration
 
-1. In the Obsidian settings, click on the "Plugins" tab and then click the gear icon next to the "Ultimeta Todoist Sync for Obsidian" plugin.
+1. In the Obsidian settings, click on the "Plugins" tab and then click the gear icon next to the "Ultimate Todoist Sync for Obsidian" plugin.
 2. Enter the Todoist API..
 
 ## Usage

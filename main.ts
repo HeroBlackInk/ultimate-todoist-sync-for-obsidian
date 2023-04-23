@@ -260,7 +260,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 			this.cacheOperation ===undefined
 			this.fileOperation ===undefined
 			this.todoistSync === undefined
-			new Notice(`Ultimita Todoist Sync plugin initialization failed, please check the todoist api`)
+			new Notice(`Ultimate Todoist Sync plugin initialization failed, please check the todoist api`)
 			return false		
 		}
 
@@ -294,7 +294,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 			this.settings.todoistTasksData.events = []
 			this.settings.initialized = true
 			this.saveSettings()
-			new Notice(`Ultimita Todoist Sync initialization successful. Todoist data has been backed up.`)
+			new Notice(`Ultimate Todoist Sync initialization successful. Todoist data has been backed up.`)
 
 		}
 
@@ -304,7 +304,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 		//每次启动前备份所有数据
 		//this.todoistSync.backupTodoistAllResources()
 		this.settings.apiInitialized = true
-		new Notice(`Ultimita Todoist Sync loaded successfully.`)
+		new Notice(`Ultimate Todoist Sync loaded successfully.`)
 		return true
 		
 
