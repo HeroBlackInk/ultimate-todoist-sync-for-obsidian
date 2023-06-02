@@ -231,7 +231,7 @@ export class TodoistSync  {
     
         for (let i = 0; i < lines.length; i++) {
         const line = lines[i]
-        if (!line.includes("todoist_id") && line.includes('#todoist')) {
+        if (!this.taskParser.hasTodoistId(line) && this.taskParser.hasTodoistTag(line)) {
             //console.log('this is a new task')
             //console.log(`current line is ${i}`)
             //console.log(`line text: ${line}`)
@@ -465,7 +465,7 @@ export class TodoistSync  {
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i]
-            if (line.includes("todoist_id") && line.includes('#todoist')) {
+            if (this.taskParser.hasTodoistId(line) && this.taskParser.hasTodoistTag(line)) {
                 //console.log(`current line is ${i}`)
                 //console.log(`line text: ${line}`)
                 try {
@@ -499,7 +499,7 @@ export class TodoistSync  {
         await this.fileOperation.completeTaskInTheFile(taskId)
         await this.cacheOperation.closeTaskToCacheByID(taskId);
         this.plugin.saveSettings()
-        new Notice(`Task ${taskId} id closed.`)
+        new Notice(`Task ${taskId} is closed.`)
     } catch (error) {
         console.error('Error closing task:', error);
         throw error; // 抛出错误使调用方能够捕获并处理它
@@ -513,7 +513,7 @@ export class TodoistSync  {
             await this.fileOperation.uncompleteTaskInTheFile(taskId)
             await this.cacheOperation.reopenTaskToCacheByID(taskId)
             this.plugin.saveSettings()
-            new Notice(`Task ${taskId} id reopend.`)
+            new Notice(`Task ${taskId} is reopend.`)
         } catch (error) {
             console.error('Error opening task:', error);
             throw error; // 抛出错误使调用方能够捕获并处理它
@@ -537,7 +537,7 @@ export class TodoistSync  {
 
         if (response) {
             //console.log(`Task ${taskId} 删除成功`);
-            new Notice(`Task ${taskId} was deleted.`)
+            new Notice(`Task ${taskId} is deleted.`)
             deletedTaskIds.push(taskId); // 将被删除的任务 ID 加入数组
         }
         } catch (error) {
