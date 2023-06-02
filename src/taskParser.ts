@@ -42,7 +42,34 @@ interface todoistTaskObject {
     due_lang?: string;
     assignee_id?: string;
 }
-    
+  
+
+const REGEX = {
+    TODOIST_TAG: /^[\s]*[-] \[[x ]\] [\s\S]*#todoist[\s\S]*$/i,
+    TODOIST_ID: /\[todoist_id::\s*\d+\]/,
+    TODOIST_ID_NUM:/\[todoist_id::\s*(.*?)\]/,
+    DUE_DATE_WITH_EMOJ: /(🗓️|📅|📆|🗓)\d{4}-\d{2}-\d{2}/, //包含emoj
+    DUE_DATE : /(?:🗓️|📅|📆|🗓)(\d{4}-\d{2}-\d{2})/ ,
+    PROJECT_NAME: /\[project::\s*(.*?)\]/,
+    TASK_CONTENT: {
+        REMOVE_PRIORITY: /\s!!([1-4])\s/,
+        REMOVE_TAGS: /(^|\s)(#[a-zA-Z\d\u4e00-\u9fa5-]+)/g,
+        CONTENT_WITH_TODOIST_TAG: /(.*)#todoist/,
+        REMOVE_SPACE: /\s+$/,
+        REMOVE_DATE: /(🗓️|📅|📆|🗓)\d{4}-\d{2}-\d{2}/,
+        REMOVE_INLINE_METADATA: /%%\[\w+::\s*\w+\]%%/,
+        REMOVE_CHECKBOX:  /^(-|\*)\s+\[(x| )\]\s/,
+        REMOVE_CHECKBOX_WITH_INDENTATION: /^([ \t]*)?- \[(x| )\]\s/
+    },
+    ALL_TAGS: /#[\w\u4e00-\u9fa5-]+/g,
+    TASK_CHECKBOX: /- \[(x|X)\] /,
+    TASK_INDENTATION: /^(\s{2,}|\t)(-|\*)\s+\[(x| )\]/,
+    TAB_INDENTATION: /^(\t+)/,
+    TASK_PRIORITY: /\s!!([1-4])\s/,
+    BLANK_LINE: /^\s*$/,
+    TODOIST_EVENT_DATE: /(\d{4})-(\d{2})-(\d{2})/
+}
+
 
 export class TaskParser   {
 	app:App;
@@ -167,7 +194,7 @@ export class TaskParser   {
         priority:priority
         };
         //console.log(`converted task `)
-        //console.log(todoistTask)
+        console.log(todoistTask)
         return todoistTask;
     }
   
@@ -175,43 +202,44 @@ export class TaskParser   {
   
   
     hasTodoistTag(text:string){
-        const regex =/^[\s]*[-] \[[x ]\] [\s\S]*#todoist[\s\S]*$/i; //检测todoist tag
-        return(regex.test(text))
+        console.log("检查是否包含 todoist tag")
+        console.log(text)
+        return(REGEX.TODOIST_TAG.test(text))
     }
+    
   
   
     hasTodoistId(text:string){
-        const regex = /\[todoist_id::\s*\d+\]/; //检测todoist_id
-        return(regex.test(text))
+        const result = REGEX.TODOIST_ID.test(text)
+        console.log("检查是否包含 todoist id")
+        console.log(text)
+        return(result)
     }
   
   
     hasDueDate(text:string){
-        const regex = /(🗓️|📅|📆|🗓)\d{4}-\d{2}-\d{2}/; //匹配日期🗓️2023-03-07"
-        return(regex.test(text))
+        return(REGEX.DUE_DATE_WITH_EMOJ.test(text))
     }
   
   
     getDueDateFromLineText(text: string) {
-        const regex = /(?:🗓️|📅|📆|🗓)(\d{4}-\d{2}-\d{2})/;
-        const result = regex.exec(text);
+        const result = REGEX.DUE_DATE.exec(text);
+        return result ? result[1] : null;
+    }
+
+  
+  
+    getProjectNameFromLineText(text:string){
+        const result = REGEX.PROJECT_NAME.exec(text);
         return result ? result[1] : null;
     }
   
   
-    getProjectNameFromLineText(text:string){
-        const regex = /\[project::\s*(.*?)\]/;
-        const result = regex.exec(text);
-        const projectName = result ? result[1] : null; // project 变量将包含 "example"
-        return(projectName)
-        }
-  
-  
     getTodoistIdFromLineText(text:string){
-        const regex = /\[todoist_id::\s*(.*?)\]/;
-        const result = regex.exec(text);
-        const todoist_id = result ? result[1] : null; // project 变量将包含 "example"
-        return(todoist_id)
+        //console.log(text)
+        const result = REGEX.TODOIST_ID_NUM.exec(text);
+        //console.log(result)
+        return result ? result[1] : null;
     }
   
     getDueDateFromDataview(dataviewTask:object){
@@ -245,44 +273,27 @@ export class TaskParser   {
   
   
   
-    //task text get content
     getTaskContentFromLineText(lineText:string) {
-        //检查内容是否修改
-        const regexRemovePriority = /\s!!([1-4])\s/
-        const regexRemoveTags = /(^|\s)(#[a-zA-Z\d\u4e00-\u9fa5-]+)/g;   //删除tag  const regex = /#[\w\u4e00-\u9fa5-]+/g
-        const regexGetContentWithTodoistTag = /(.*)#todoist/;  //提取todoist之前的内容
-        const regexRemoveSpace = /\s+$/; //删除末尾的空格
-        const regexRemoveDate = /(🗓️|📅|📆|🗓)\d{4}-\d{2}-\d{2}/; //匹配日期🗓️2023-03-07"
-        const regexRemoveInlineMetadata = /%%\[\w+::\s*\w+\]%%/;
-        const regexRemoveCheckbox =  /^(-|\*)\s+\[(x| )\]\s/;
-        const regexRemoveCheckboxWithIndentation = /^([ \t]*)?- \[(x| )\]\s/;
-        const TaskContent = lineText.replace(regexRemoveInlineMetadata,"")
-                                    .replace(regexRemovePriority," ") //priority 前后必须都有空格，
-                                    .replace(regexRemoveTags,"")
-                                    .replace(regexRemoveDate,"")
-                                    .replace(regexRemoveCheckbox,"")
-                                    .replace(regexRemoveCheckboxWithIndentation,"")
-                                    .replace(regexRemoveSpace,"")
-    
-    
+        const TaskContent = lineText.replace(REGEX.TASK_CONTENT.REMOVE_INLINE_METADATA,"")
+                                    .replace(REGEX.TASK_CONTENT.REMOVE_PRIORITY," ") //priority 前后必须都有空格，
+                                    .replace(REGEX.TASK_CONTENT.REMOVE_TAGS,"")
+                                    .replace(REGEX.TASK_CONTENT.REMOVE_DATE,"")
+                                    .replace(REGEX.TASK_CONTENT.REMOVE_CHECKBOX,"")
+                                    .replace(REGEX.TASK_CONTENT.REMOVE_CHECKBOX_WITH_INDENTATION,"")
+                                    .replace(REGEX.TASK_CONTENT.REMOVE_SPACE,"")
         return(TaskContent)
-    
     }
   
   
     //get all tags from task text
     getAllTagsFromLineText(lineText:string){
-        
-        //const regex = /#[\w-]+/g;
-        const regex = /#[\w\u4e00-\u9fa5-]+/g  //加上了中文字符
-        const tags = lineText.match(regex); // tags 变量将包含 ["#tag1", "#tag2_text", "#tag-3"]
+        const tags = lineText.match(REGEX.ALL_TAGS);
         return(tags)
     }
   
     //get checkbox status
-    isTaskCheckboxChecked(text) {
-        const regex = /- \[(x|X)\] /;
-        return regex.test(text);
+    isTaskCheckboxChecked(lineText:string) {
+        return(REGEX.TASK_CHECKBOX.test(lineText))
     }
   
   
@@ -368,23 +379,22 @@ export class TaskParser   {
   
     //判断任务是否缩进
     isIndentedTask(text:string) {
-        const regex = /^(\s{2,}|\t)(-|\*)\s+\[(x| )\]/;
-        return regex.test(text);
+        return(REGEX.TASK_INDENTATION.test(text));
     }
   
   
     //判断制表符的数量
     //console.log(getTabIndentation("\t\t- [x] This is a task with two tabs")); // 2
     //console.log(getTabIndentation("  - [x] This is a task without tabs")); // 0
-    getTabIndentation(text) {
-        const regex = /^(\t+)/;
-        const match = text.match(regex);
+    getTabIndentation(lineText:string){
+        const match = REGEX.TAB_INDENTATION.exec(lineText)
         return match ? match[1].length : 0;
     }
+
+
     //	Task priority from 1 (normal) to 4 (urgent).
-    getTaskPriority(text:string): number{
-        const regex = /\s!!([1-4])\s/
-        const match = text.match(regex)
+    getTaskPriority(lineText:string): number{
+        const match = REGEX.TASK_PRIORITY.exec(lineText)
         return match ? Number(match[1]) : 1;
     }
   
@@ -398,9 +408,8 @@ export class TaskParser   {
   
   
     //判断line是不是空行
-    isLineBlank(line) {
-        const pattern = /^\s*$/; // 匹配由零个或多个空白字符组成的行
-        return pattern.test(line);
+    isLineBlank(lineText:string) {
+        return(REGEX.BLANK_LINE.test(lineText))
     }
   
   
@@ -414,20 +423,9 @@ export class TaskParser   {
     //const str = "2023-03-27T15:59:59.000000Z";
     //const dateStr = extractDate(str);
     //console.log(dateStr); // 输出 2023-03-27
-    extractDateFromTodoistEvent(str:string) {
-        try {
-          if(str === null){
-            return null
-          }
-          const regex = /(\d{4})-(\d{2})-(\d{2})/;
-          const matches = str.match(regex);
-          if (!matches) throw new Error('No date found in string.');
-          const dateStr = `${matches[1]}-${matches[2]}-${matches[3]}`;
-          return dateStr;
-        } catch (error) {
-          console.error(`Error extracting date from string '${str}': ${error}`);
-          return null;
-        }
+    extractDateFromTodoistEvent(lineText:string) {
+        const result = REGEX.TODOIST_EVENT_DATE.exec(lineText);
+        return result ? result[1] : null;
       }
      
 }

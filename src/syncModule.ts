@@ -124,14 +124,9 @@ export class TodoistSync  {
     
     
         //添加task
-        if (this.taskParser.hasTodoistTag(linetxt)) {   //是否包含#todoist
-            if(this.taskParser.hasTodoistId(linetxt))   //是否包含todoist id
-            {
-                //console.log('task is esixted')
-                return
-            }
-            //console.log('this is a new task')
-            //console.log(linetxt)
+        if ((!this.taskParser.hasTodoistId(linetxt) && this.taskParser.hasTodoistTag(linetxt))) {   //是否包含#todoist
+            console.log('this is a new task')
+            console.log(linetxt)
             const currentTask =await this.taskParser.convertTextToTodoistTaskObject(linetxt,filepath,line,fileContent)
             //console.log(currentTask)
     
