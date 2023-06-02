@@ -14,7 +14,10 @@ type Event = {
   extra_data: Record<string, any>;
 };
 
-
+type FilterOptions = {
+  event_type?: string;
+  object_type?: string;
+};
 
 export class TodoistSyncAPI   {
 	app:App;
@@ -126,8 +129,15 @@ export class TodoistSyncAPI   {
     }
   
   
-    filterActivityEvents(events: Event[], event_type: string, object_type: string): Event[] {
-      return events.filter(event => event.event_type === event_type && event.object_type === object_type);
+
+    
+
+    filterActivityEvents(events: Event[], options: FilterOptions): Event[] {
+      return events.filter(event => 
+        (options.event_type ? event.event_type === options.event_type : true) &&
+        (options.object_type ? event.object_type === options.object_type : true)
+    
+        );
     };
 
     //get completed items activity
