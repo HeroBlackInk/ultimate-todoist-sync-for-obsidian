@@ -39,25 +39,41 @@ export class TodoistSync  {
 
 
       
-    async deletedTaskCheck(): Promise<void> {
+    async deletedTaskCheck(file_path:string): Promise<void> {
+
+        let file
+        let currentFileValue
+        let view
+        let filepath
+
+        if(filepath){
+            file = this.app.vault.getAbstractFileByPath(file_path)
+            filepath = file_path
+            currentFileValue = await this.app.vault.read(file)
+        }
+        else{
+            view = this.app.workspace.getActiveViewOfType(MarkdownView);
+            //const editor = this.app.workspace.activeEditor?.editor
+            file = this.app.workspace.getActiveFile()
+            filepath = file?.path
+            //使用view.data 代替 valut.read。vault.read有延迟
+            currentFileValue = view?.data
+        }
 
 
-        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-        //const editor = this.app.workspace.activeEditor?.editor
-        const file = this.app.workspace.getActiveFile()
-        const filepath = file.path
         //console.log(filepath)
       
+
         //const frontMatter = await this.fileOperation.getFrontMatter(file);
         const frontMatter = await this.cacheOperation.getFileMetadata(filepath)
         if (!frontMatter || !frontMatter.todoistTasks) {
           console.log('frontmatter没有task')
           return;
         }
-      
-        const currentFileValueReadFromFile = await this.app.vault.cachedRead(file)
-        //使用view.data 代替 valut.read。vault.read有延迟
-        const currentFileValue = view?.data ?? currentFileValueReadFromFile
+        
+
+        
+
         //console.log(currentFileValue)
         const currentFileValueWithOutFrontMatter = currentFileValue.replace(/^---[\s\S]*?---\n/, '');
         const frontMatter_todoistTasks = frontMatter.todoistTasks;
@@ -124,7 +140,6 @@ export class TodoistSync  {
     
     
         //添加task
-        console.log('new task check')
         if ((!this.taskParser.hasTodoistId(linetxt) && this.taskParser.hasTodoistTag(linetxt))) {   //是否包含#todoist
             console.log('this is a new task')
             console.log(linetxt)
@@ -201,13 +216,29 @@ export class TodoistSync  {
     }
     
     
-    async fullTextNewTaskCheck(): Promise<void>{
-        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-        const file = this.app.workspace.getActiveFile()
-        const filepath = file.path
-        //const content = await this.app.vault.read(file)
-        const contentFromFile = await	this.app.vault.cachedRead(file)
-        const content = view?.data ?? contentFromFile
+    async fullTextNewTaskCheck(file_path:string): Promise<void>{
+
+        let file
+        let currentFileValue
+        let view
+        let filepath
+
+        if(filepath){
+            file = this.app.vault.getAbstractFileByPath(file_path)
+            filepath = file_path
+            currentFileValue = await this.app.vault.read(file)
+        }
+        else{
+            view = this.app.workspace.getActiveViewOfType(MarkdownView);
+            //const editor = this.app.workspace.activeEditor?.editor
+            file = this.app.workspace.getActiveFile()
+            filepath = file?.path
+            //使用view.data 代替 valut.read。vault.read有延迟
+            currentFileValue = view?.data
+        }
+
+
+        const content = currentFileValue
     
         let newFrontMatter
         //frontMatteer
@@ -227,7 +258,6 @@ export class TodoistSync  {
     
         for (let i = 0; i < lines.length; i++) {
         const line = lines[i]
-        console.log('full text new task check')
         if (!this.taskParser.hasTodoistId(line) && this.taskParser.hasTodoistTag(line)) {
             //console.log('this is a new task')
             //console.log(`current line is ${i}`)
@@ -304,7 +334,6 @@ export class TodoistSync  {
         //const lineText = await this.fileOperation.getLineTextFromFilePath(filepath,lineNumber)
 
         //检查task
-        console.log('modified task check')
         if (this.taskParser.hasTodoistId(lineText) && this.taskParser.hasTodoistTag(lineText)) {
 
             const lineTask = await this.taskParser.convertTextToTodoistTaskObject(lineText,filepath,lineNumber,fileContent)
@@ -440,20 +469,29 @@ export class TodoistSync  {
     }
 
 
-    async fullTextModifiedTaskCheck(): Promise<void>{
+    async fullTextModifiedTaskCheck(file_path:string): Promise<void>{
 
-        //console.log(`检查file修改的任务`)
+        let file
+        let currentFileValue
+        let view
+        let filepath
 
-        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-        const file = this.app.workspace.getActiveFile()
-        const filepath = this.app.workspace.getActiveFile()?.path
-        //console.log(filepath)
-        //const editor = this.app.workspace.activeEditor?.editor
-        //const filepath = this.app.workspace.activeEditor?.file?.path
-        //console.log(filepath)
-        //const file = this.app.vault.getAbstractFileByPath(filepath);
-        const content1 = await this.app.vault.read(file)
-        const content = view?.data ?? content1
+        if(filepath){
+            file = this.app.vault.getAbstractFileByPath(file_path)
+            filepath = file_path
+            currentFileValue = await this.app.vault.read(file)
+        }
+        else{
+            view = this.app.workspace.getActiveViewOfType(MarkdownView);
+            //const editor = this.app.workspace.activeEditor?.editor
+            file = this.app.workspace.getActiveFile()
+            filepath = file?.path
+            //使用view.data 代替 valut.read。vault.read有延迟
+            currentFileValue = view?.data
+        }
+
+
+        const content = currentFileValue
         //console.log(content)
 
 
@@ -462,7 +500,6 @@ export class TodoistSync  {
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i]
-            console.log('full text modified task check')
             if (this.taskParser.hasTodoistId(line) && this.taskParser.hasTodoistTag(line)) {
                 //console.log(`current line is ${i}`)
                 //console.log(`line text: ${line}`)
@@ -557,66 +594,17 @@ export class TodoistSync  {
     return deletedTaskIds;
     }
 
-    // 获取未同步的item completed事件
-    async  getObdisianUnsynchronizedCompletedEvents() {
-        const completedItemsActivityEvents = await this.todoistSyncAPI.getNonObsidianCompletedItemsActivity()
-    
-        // 找出 task id 存在于 Obsidian 中的 activity
-        const savedTasks = await this.cacheOperation.loadTasksFromCache()
-        const result1 = completedItemsActivityEvents.filter(
-        (objA) => savedTasks.some((objB) => objB.id === objA.object_id)
-        )
-    
-        // 删除已经保存的 events
-        const savesEvents = this.settings.todoistTasksData.events
-        const result2 = result1.filter(
-        (objA) => !savesEvents.some((objB) => objB.id === objA.id)
-        )
-        return result2
-    }
+
   
-    // 获取未同步的item uncompleted事件
-    async  getObdisianUnsynchronizedUncompletedEvents() {
-        const uncompletedItemsActivityEvents = await this.todoistSyncAPI.getNonObsidianUncompletedItemsActivity()
-    
-        // 找出 task id 存在于 Obsidian 中的 activity
-        const savedTasks = await this.cacheOperation.loadTasksFromCache()
-        const result1 = uncompletedItemsActivityEvents.filter(
-        (objA) => savedTasks.some((objB) => objB.id === objA.object_id)
-        )
-    
-        // 删除已经保存的 events
-        const savesEvents = await this.cacheOperation.loadEventsFromCache()
-        const result2 = result1.filter(
-        (objA) => !savesEvents.some((objB) => objB.id === objA.id)
-        )
-        return result2
-    }
+ 
   
   
-    // 获取未同步的item updated事件
-    async  getObdisianUnsynchronizedUpdatedEvents() {
-        const updatedItemsActivityEvents = await this.todoistSyncAPI.getNonObsidianUpdatedItemsActivity()
-    
-        // 找出 task id 存在于 Obsidian 中的 activity
-        const savedTasks = this.cacheOperation.loadTasksFromCache()
-        const result1 = updatedItemsActivityEvents.filter(
-        (objA) => savedTasks.some((objB) => objB.id === objA.object_id)
-        )
-    
-        // 删除已经保存的 events
-        const savedEvents = await this.cacheOperation.loadEventsFromCache()
-        const result2 = result1.filter(
-        (objA) => !savedEvents.some((objB) => objB.id === objA.id)
-        )
-        return result2
-    }
+
 
 
     // 同步已完成的任务状态到 Obsidian file
-    async  syncCompletedTaskStatusToObsidian() {
+    async  syncCompletedTaskStatusToObsidian(unSynchronizedEvents) {
         // 获取未同步的事件
-        const unSynchronizedEvents = await this.getObdisianUnsynchronizedCompletedEvents()
         //console.log(unSynchronizedEvents)    
         try {
         
@@ -626,7 +614,7 @@ export class TodoistSync  {
             //console.log(`正在 complete ${e.object_id}`)
             await this.fileOperation.completeTaskInTheFile(e.object_id)
             await this.cacheOperation.closeTaskToCacheByID(e.object_id)
-            new Notice(`Task ${e.object_id} was closed.`)
+            new Notice(`Task ${e.object_id} is closed.`)
             processedEvents.push(e)
         }
 
@@ -641,9 +629,8 @@ export class TodoistSync  {
   
   
     // 同步已完成的任务状态到 Obsidian file
-    async  syncUncompletedTaskStatusToObsidian() {
-        // 获取未同步的事件
-        const unSynchronizedEvents = await this.getObdisianUnsynchronizedUncompletedEvents()
+    async  syncUncompletedTaskStatusToObsidian(unSynchronizedEvents) {
+
         //console.log(unSynchronizedEvents)
     
         try {
@@ -654,7 +641,7 @@ export class TodoistSync  {
             //console.log(`正在 uncheck task: ${e.object_id}`)
             await this.fileOperation.uncompleteTaskInTheFile(e.object_id)
             await this.cacheOperation.reopenTaskToCacheByID(e.object_id)
-            new Notice(`Task ${e.object_id} was reopend.`)
+            new Notice(`Task ${e.object_id} is reopend.`)
             processedEvents.push(e)
         }
     
@@ -670,9 +657,7 @@ export class TodoistSync  {
     }
   
     // 同步updated item状态到 Obsidian 中
-    async  syncUpdatedTaskToObsidian() {
-        // 获取未同步的事件
-        const unSynchronizedEvents = await this.getObdisianUnsynchronizedUpdatedEvents()
+    async  syncUpdatedTaskToObsidian(unSynchronizedEvents) {
         //console.log(unSynchronizedEvents) 
         try {
         
@@ -695,7 +680,7 @@ export class TodoistSync  {
 
             //await this.fileOperation.syncUpdatedTaskToTheFile(e)
             //还要修改cache中的数据
-            new Notice(`Task ${e.object_id} was updated.`)
+            new Notice(`Task ${e.object_id} is updated.`)
             processedEvents.push(e)
         }
     
@@ -726,6 +711,39 @@ export class TodoistSync  {
 
     }
 
+
+    async syncTodoistToObsidian(){
+        const all_activity_events = await this.todoistSyncAPI.getNonObsidianAllActivityEvents()
+
+
+        // 找出 task id 存在于 Obsidian 中的 activity
+        const savedTasks = await this.cacheOperation.loadTasksFromCache()
+        const result1 = all_activity_events.filter(
+        (objA) => savedTasks.some((objB) => objB.id === objA.object_id)
+        )
+    
+        // remove synchonized events
+        const savedEvents = await this.cacheOperation.loadEventsFromCache()
+        const result2 = result1.filter(
+        (objA) => !savedEvents.some((objB) => objB.id === objA.id)
+        )
+
+
+        const unsynchronized_item_completed_events = this.todoistSyncAPI.filterActivityEvents(result2, "completed", "item")
+        const unsynchronized_item_uncompleted_events = this.todoistSyncAPI.filterActivityEvents(result2, "uncompleted", "item")
+        const unsynchronized_item_updated_events = this.todoistSyncAPI.filterActivityEvents(result2, "updated", "item")
+        console.log(unsynchronized_item_completed_events)
+        console.log(unsynchronized_item_uncompleted_events)
+        console.log(unsynchronized_item_updated_events)
+
+        await this.syncCompletedTaskStatusToObsidian(unsynchronized_item_completed_events)
+        await this.syncUncompletedTaskStatusToObsidian(unsynchronized_item_uncompleted_events)
+        await this.syncUpdatedTaskToObsidian(unsynchronized_item_updated_events)
+
+    }
+
+
+
     async  backupTodoistAllResources() {
         try {
         const resources = await this.todoistSyncAPI.getAllResources()
@@ -743,6 +761,9 @@ export class TodoistSync  {
         }
 
     }
+
+
+
     
 
 }

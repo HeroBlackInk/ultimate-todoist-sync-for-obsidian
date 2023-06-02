@@ -2,6 +2,19 @@ import { App} from 'obsidian';
 import { UltimateTodoistSyncSettings } from './settings';
 
 
+type Event = {
+  id: string;
+  object_type: string;
+  object_id: string;
+  event_type: string;
+  event_date: string;
+  parent_project_id: string;
+  parent_item_id: string | null;
+  initiator_id: string | null;
+  extra_data: Record<string, any>;
+};
+
+
 
 export class TodoistSyncAPI   {
 	app:App;
@@ -44,10 +57,42 @@ export class TodoistSyncAPI   {
       throw new Error('Failed to fetch all resources due to network error');
     }
     }
+
+    //backup todoist
+    async getUserResource() { 
+      const accessToken = this.settings.todoistAPIToken
+      const url = 'https://api.todoist.com/sync/v9/sync';
+      const options = {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams({
+          sync_token: "*",
+          resource_types: '["user_plan_limits"]'
+        })
+      };
+    
+      try {
+        const response = await fetch(url, options);
+    
+        if (!response.ok) {
+          throw new Error(`Failed to fetch all resources: ${response.status} ${response.statusText}`);
+        }
+    
+        const data = await response.json();
+        console.log(data)
+        return data;
+      } catch (error) {
+        console.error(error);
+        throw new Error('Failed to fetch user resources due to network error');
+      }
+      }
   
     //get activity logs
     //result  {count:number,events:[]}
-    async getActivity() {
+    async getAllActivityEvents() {
     const accessToken = this.settings.todoistAPIToken
       const headers = new Headers({
         Authorization: `Bearer ${accessToken}`
@@ -71,8 +116,20 @@ export class TodoistSyncAPI   {
         throw error;
       }
     }
+
+    async getNonObsidianAllActivityEvents() {
+      const allActivity = await this.getAllActivityEvents()
+      const allActivityEvents = allActivity.events
+      //client中不包含obsidian 的activity
+      const filteredArray = allActivityEvents.filter(obj => !obj.extra_data.client.includes("obsidian")); 
+      return(filteredArray)  
+    }
   
   
+    filterActivityEvents(events: Event[], event_type: string, object_type: string): Event[] {
+      return events.filter(event => event.event_type === event_type && event.object_type === object_type);
+    };
+
     //get completed items activity
     //result  {count:number,events:[]}
     async getCompletedItemsActivity() {

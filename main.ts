@@ -31,6 +31,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 	lastLines: Map<string,number>;
 	statusBar;
 	lineContentNewTaskCheckStatusLock: Boolean;
+	syncTodoistToObsidianStatusLock: Boolean;
 
 	async onload() {
 
@@ -57,10 +58,13 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 				if(!( this.checkModuleClass())){
 					return
 				}
-				await this.todoistSync.syncCompletedTaskStatusToObsidian()
-				await this.todoistSync.syncUncompletedTaskStatusToObsidian()
-				await this.todoistSync.syncUpdatedTaskToObsidian()
-				//await this.saveSettings()
+				if(this.syncTodoistToObsidianStatusLock == true){
+					return
+				}
+				this.syncTodoistToObsidianStatusLock = true
+				await this.todoistSync.syncTodoistToObsidian()
+				this.syncTodoistToObsidianStatusLock = false
+				await this.saveSettings()
 
 				await this.todoistSync.fullTextNewTaskCheck()
 				await this.todoistSync.deletedTaskCheck()
@@ -205,6 +209,8 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 			this.saveSettings()		
 		}));
 
+		this.registerInterval(window.setInterval(async () => await this.scheduledSynchronization(), 20 * 1000));
+
 		this.app.workspace.on('active-leaf-change',(leaf)=>{
 			this.setStatusBarText()
 		})
@@ -258,6 +264,8 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 		this.cacheOperation = new CacheOperation(this.app,this.settings,this.todoistRestAPI)
 		const ini = await this.cacheOperation.saveProjectsToCache()
 
+
+
 		if(!ini){
 			this.todoistRestAPI === undefined
 			this.todoistSyncAPI === undefined
@@ -288,6 +296,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 		
 				//每次启动前备份所有数据
 				this.todoistSync.backupTodoistAllResources()
+
 			}catch(error){
 				console.log(`error creating user data folder: ${error}`)
 				new Notice(`error creating user data folder`)
@@ -307,10 +316,12 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 
 		this.initializeModuleClass()
 
-		//每次启动前备份所有数据
-		//this.todoistSync.backupTodoistAllResources()
+		
+		//get user plan resources
+		this.todoistSyncAPI.getUserResource()
 		this.settings.apiInitialized = true
 		this.lineContentNewTaskCheckStatusLock = false
+		this.syncTodoistToObsidianStatusLock = false
 		new Notice(`Ultimate Todoist Sync loaded successfully.`)
 		return true
 		
@@ -450,7 +461,36 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 
 	}
 
+	async scheduledSynchronization(){
+		if(!( this.checkModuleClass())){
+			return
+		}
+		console.log("The scheduled synchronization task is currently executing.")
+		try {
 
+			if(this.syncTodoistToObsidianStatusLock == true){
+				console.log('sync locked')
+				return
+			}
+			this.syncTodoistToObsidianStatusLock = true
+			await this.todoistSync.syncTodoistToObsidian();
+			this.syncTodoistToObsidianStatusLock = false
+			await this.saveSettings();
+
+			const fileMetadata = this.settings.fileMetadata
+			for (let key in fileMetadata){
+				console.log(key)
+				await this.todoistSync.fullTextNewTaskCheck(key);
+				await this.todoistSync.deletedTaskCheck(key);
+				await this.todoistSync.fullTextModifiedTaskCheck(key);
+			}
+
+		  } catch (error) {
+			//console.error('An error occurred:', error);
+			new Notice('An error occurred:', error)
+		  }
+		  console.log("The scheduled synchronization task is done.")
+	}
 
 }
 

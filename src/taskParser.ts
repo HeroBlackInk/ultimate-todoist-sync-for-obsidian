@@ -99,16 +99,16 @@ export class TaskParser   {
         //console.log(`缩进为 ${this.getTabIndentation(lineText)}`)
         textWithoutIndentation = this.removeTaskIndentation(lineText)
         //console.log(textWithoutIndentation)
-        console.log(`这是子任务`)
+        //console.log(`这是子任务`)
         //读取filepath
         //const fileContent = await this.fileOperation.readContentFromFilePath(filepath)
         //遍历 line
         const lines = fileContent.split('\n')
-        console.log(lines)
+        //console.log(lines)
         for (let i = (lineNumber - 1 ); i >= 0; i--) {
-            console.log(`正在check${i}行的缩进`)
+            //console.log(`正在check${i}行的缩进`)
             const line = lines[i]
-            console.log(line)
+            //console.log(line)
             //如果是空行说明没有parent
             if(this.isLineBlank(line)){
                 break
@@ -194,7 +194,7 @@ export class TaskParser   {
         priority:priority
         };
         //console.log(`converted task `)
-        console.log(todoistTask)
+        //console.log(todoistTask)
         return todoistTask;
     }
   
