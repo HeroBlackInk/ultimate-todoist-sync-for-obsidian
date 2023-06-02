@@ -715,28 +715,31 @@ export class TodoistSync  {
     async syncTodoistToObsidian(){
         const all_activity_events = await this.todoistSyncAPI.getNonObsidianAllActivityEvents()
 
+        // remove synchonized events
+        const savedEvents = await this.cacheOperation.loadEventsFromCache()
+        const result1 = all_activity_events.filter(
+        (objA) => !savedEvents.some((objB) => objB.id === objA.id)
+        )
 
         // 找出 task id 存在于 Obsidian 中的 activity
         const savedTasks = await this.cacheOperation.loadTasksFromCache()
-        const result1 = all_activity_events.filter(
+        const result2 = result1.filter(
         (objA) => savedTasks.some((objB) => objB.id === objA.object_id)
         )
     
-        // remove synchonized events
-        const savedEvents = await this.cacheOperation.loadEventsFromCache()
-        const result2 = result1.filter(
-        (objA) => !savedEvents.some((objB) => objB.id === objA.id)
-        )
+
 
 
         const unsynchronized_item_completed_events = this.todoistSyncAPI.filterActivityEvents(result2, { event_type: 'completed', object_type: 'item' })
         const unsynchronized_item_uncompleted_events = this.todoistSyncAPI.filterActivityEvents(result2, { event_type: 'uncompleted', object_type: 'item' })
         const unsynchronized_item_updated_events = this.todoistSyncAPI.filterActivityEvents(result2, { event_type: 'updated', object_type: 'item' })
-        const unsynchronized_project_events = this.todoistSyncAPI.filterActivityEvents(all_activity_events, { object_type: 'project' })
+        const unsynchronized_notes_added_events = this.todoistSyncAPI.filterActivityEvents(result2, { event_type: 'added', object_type: 'note' })
+        const unsynchronized_project_events = this.todoistSyncAPI.filterActivityEvents(result1, { object_type: 'project' })
         console.log(unsynchronized_item_completed_events)
         console.log(unsynchronized_item_uncompleted_events)
         console.log(unsynchronized_item_updated_events)
         console.log(unsynchronized_project_events) 
+        console.log(unsynchronized_notes_added_events)
 
         await this.syncCompletedTaskStatusToObsidian(unsynchronized_item_completed_events)
         await this.syncUncompletedTaskStatusToObsidian(unsynchronized_item_uncompleted_events)
@@ -744,6 +747,7 @@ export class TodoistSync  {
         if(unsynchronized_project_events.length){
             console.log('New project event')
             await this.cacheOperation.saveProjectsToCache()
+            await this.cacheOperation.appendEventsToCache(unsynchronized_project_events)
         }
 
     }

@@ -479,7 +479,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 
 			const fileMetadata = this.settings.fileMetadata
 			for (let key in fileMetadata){
-				console.log(key)
+				//console.log(key)
 				await this.todoistSync.fullTextNewTaskCheck(key);
 				await this.todoistSync.deletedTaskCheck(key);
 				await this.todoistSync.fullTextModifiedTaskCheck(key);
