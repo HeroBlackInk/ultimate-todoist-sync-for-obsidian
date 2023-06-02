@@ -74,7 +74,7 @@ export class TodoistSync  {
       
               if (response) {
                 //console.log(`task ${taskId} 删除成功`);
-                new Notice(`task ${taskId} was deleted`)
+                new Notice(`task ${taskId} is deleted`)
                 return taskId; // 返回被删除的任务 ID
               }
             } catch (error) {
@@ -124,6 +124,7 @@ export class TodoistSync  {
     
     
         //添加task
+        console.log('new task check')
         if ((!this.taskParser.hasTodoistId(linetxt) && this.taskParser.hasTodoistTag(linetxt))) {   //是否包含#todoist
             console.log('this is a new task')
             console.log(linetxt)
@@ -226,6 +227,7 @@ export class TodoistSync  {
     
         for (let i = 0; i < lines.length; i++) {
         const line = lines[i]
+        console.log('full text new task check')
         if (!this.taskParser.hasTodoistId(line) && this.taskParser.hasTodoistTag(line)) {
             //console.log('this is a new task')
             //console.log(`current line is ${i}`)
@@ -302,7 +304,7 @@ export class TodoistSync  {
         //const lineText = await this.fileOperation.getLineTextFromFilePath(filepath,lineNumber)
 
         //检查task
-
+        console.log('modified task check')
         if (this.taskParser.hasTodoistId(lineText) && this.taskParser.hasTodoistTag(lineText)) {
 
             const lineTask = await this.taskParser.convertTextToTodoistTaskObject(lineText,filepath,lineNumber,fileContent)
@@ -460,6 +462,7 @@ export class TodoistSync  {
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i]
+            console.log('full text modified task check')
             if (this.taskParser.hasTodoistId(line) && this.taskParser.hasTodoistTag(line)) {
                 //console.log(`current line is ${i}`)
                 //console.log(`line text: ${line}`)

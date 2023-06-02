@@ -1,7 +1,6 @@
 import { MarkdownView, Notice, Plugin ,Editor, WorkspaceLeaf} from 'obsidian';
 
 
-
 //settings
 import { UltimateTodoistSyncSettings,DEFAULT_SETTINGS,UltimateTodoistSyncSettingTab } from './src/settings';
 //todoist  api
@@ -31,6 +30,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 	todoistSync:TodoistSync;
 	lastLines: Map<string,number>;
 	statusBar;
+	lineContentNewTaskCheckStatusLock: Boolean;
 
 	async onload() {
 
@@ -149,8 +149,14 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 			this.lineNumberCheck()
 			if(!(this.checkModuleClass())){
 				return
-			}		
+			}
+			if(this.lineContentNewTaskCheckStatusLock == true){
+				console.log('task check is locked')
+				return
+			}
+			this.lineContentNewTaskCheckStatusLock = true	
 			await this.todoistSync.lineContentNewTaskCheck(editor,view)
+			this.lineContentNewTaskCheckStatusLock = false
 			this.saveSettings()
 		}))
 
@@ -304,6 +310,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 		//每次启动前备份所有数据
 		//this.todoistSync.backupTodoistAllResources()
 		this.settings.apiInitialized = true
+		this.lineContentNewTaskCheckStatusLock = false
 		new Notice(`Ultimate Todoist Sync loaded successfully.`)
 		return true
 		

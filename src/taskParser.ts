@@ -99,14 +99,14 @@ export class TaskParser   {
         //console.log(`缩进为 ${this.getTabIndentation(lineText)}`)
         textWithoutIndentation = this.removeTaskIndentation(lineText)
         //console.log(textWithoutIndentation)
-        //console.log(`这是子任务`)
+        console.log(`这是子任务`)
         //读取filepath
         //const fileContent = await this.fileOperation.readContentFromFilePath(filepath)
         //遍历 line
         const lines = fileContent.split('\n')
         console.log(lines)
         for (let i = (lineNumber - 1 ); i >= 0; i--) {
-            //console.log(`正在check${i}行的缩进`)
+            console.log(`正在check${i}行的缩进`)
             const line = lines[i]
             console.log(line)
             //如果是空行说明没有parent
@@ -202,8 +202,8 @@ export class TaskParser   {
   
   
     hasTodoistTag(text:string){
-        console.log("检查是否包含 todoist tag")
-        console.log(text)
+        //console.log("检查是否包含 todoist tag")
+        //console.log(text)
         return(REGEX.TODOIST_TAG.test(text))
     }
     
@@ -211,8 +211,8 @@ export class TaskParser   {
   
     hasTodoistId(text:string){
         const result = REGEX.TODOIST_ID.test(text)
-        console.log("检查是否包含 todoist id")
-        console.log(text)
+        //console.log("检查是否包含 todoist id")
+        //console.log(text)
         return(result)
     }
   
@@ -423,9 +423,20 @@ export class TaskParser   {
     //const str = "2023-03-27T15:59:59.000000Z";
     //const dateStr = extractDate(str);
     //console.log(dateStr); // 输出 2023-03-27
-    extractDateFromTodoistEvent(lineText:string) {
-        const result = REGEX.TODOIST_EVENT_DATE.exec(lineText);
-        return result ? result[1] : null;
-      }
-     
+    extractDateFromTodoistEvent(str:string) {
+        try {
+          if(str === null){
+            return null
+          }
+          const regex = /(\d{4})-(\d{2})-(\d{2})/;
+          const matches = str.match(regex);
+          if (!matches) throw new Error('No date found in string.');
+          const dateStr = `${matches[1]}-${matches[2]}-${matches[3]}`;
+          console.log(dateStr)
+          return dateStr;
+        } catch (error) {
+          console.error(`Error extracting date from string '${str}': ${error}`);
+          return null;
+        }
+    }
 }
