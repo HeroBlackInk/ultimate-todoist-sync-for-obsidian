@@ -287,8 +287,14 @@ export class TaskParser   {
   
     //get all tags from task text
     getAllTagsFromLineText(lineText:string){
-        const tags = lineText.match(REGEX.ALL_TAGS);
-        return(tags)
+        let tags = lineText.match(REGEX.ALL_TAGS);
+    
+        if (tags) {
+            // Remove '#' from each tag
+            tags = tags.map(tag => tag.replace('#', ''));
+        }
+    
+        return tags;
     }
   
     //get checkbox status
