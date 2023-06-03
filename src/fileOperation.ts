@@ -72,7 +72,7 @@ export class FileOperation   {
     
         for (let i = 0; i < lines.length; i++) {
         const line = lines[i]
-        if (line.includes(taskId) && line.includes('#todoist')) {
+        if (line.includes(taskId) && this.taskParser.hasTodoistTag(line)) {
             lines[i] = line.replace('[ ]', '[x]')
             modified = true
             break
@@ -100,7 +100,7 @@ export class FileOperation   {
     
         for (let i = 0; i < lines.length; i++) {
         const line = lines[i]
-        if (line.includes(taskId) && line.includes('#todoist')) {
+        if (line.includes(taskId) && this.taskParser.hasTodoistTag(line)) {
             lines[i] = line.replace(/- \[(x|X)\]/g, '- [ ]');
             modified = true
             break
@@ -129,7 +129,7 @@ export class FileOperation   {
     
         for (let i = 0; i < lines.length; i++) {
         const line = lines[i]
-        if (line.includes(taskId) && line.includes('#todoist')) {
+        if (line.includes(taskId) && this.taskParser.hasTodoistTag(line)) {
             const oldTaskContent = this.taskParser.getTaskContentFromLineText(line)
             const newTaskContent = evt.extra_data.content
 
@@ -163,9 +163,9 @@ export class FileOperation   {
     
         for (let i = 0; i < lines.length; i++) {
         const line = lines[i]
-        if (line.includes(taskId) && line.includes('#todoist')) {
+        if (line.includes(taskId) && this.taskParser.hasTodoistTag(line)) {
             const oldTaskDueDate = this.taskParser.getDueDateFromLineText(line) || ""
-            const newTaskDueDate = this.taskParser.extractDateFromTodoistEvent(evt.extra_data.due_date) || ""
+            const newTaskDueDate = this.taskParser.ISOStringToLocalDateString(evt.extra_data.due_date) || ""
             
             //console.log(`${taskId} duedate is updated`)
             console.log(oldTaskDueDate)
@@ -198,6 +198,45 @@ export class FileOperation   {
         }
         
     }
+
+
+    // sync new task note to file
+    async syncAddedTaskNoteToTheFile(evt:Object) {
+
+
+        const taskId = evt.parent_item_id
+        const note = evt.extra_data.content
+        const datetime = this.taskParser.ISOStringToLocalDatetimeString(evt.event_date)
+        // 获取任务文件路径
+        const currentTask = await this.cacheOperation.loadTaskFromCacheyID(taskId)
+        const filepath = currentTask.path
+    
+        // 获取文件对象并更新内容
+        const file = this.app.vault.getAbstractFileByPath(filepath)
+        const content = await this.app.vault.read(file)
+    
+        const lines = content.split('\n')
+        let modified = false
+    
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i]
+            if (line.includes(taskId) && this.taskParser.hasTodoistTag(line)) {
+                const indent = '\t'.repeat(line.length - line.trimStart().length + 1);
+                const noteLine = `${indent}- ${datetime} ${note}`;
+                lines.splice(i + 1, 0, noteLine);
+                modified = true
+                break
+            }
+        }
+    
+        if (modified) {
+        const newContent = lines.join('\n')
+        //console.log(newContent)
+        await this.app.vault.modify(file, newContent)
+        }
+        
+    }
+
 
     //避免使用该方式，通过view可以获得实时更新的value
     async readContentFromFilePath(filepath:string){

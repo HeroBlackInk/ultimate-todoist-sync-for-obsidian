@@ -711,43 +711,77 @@ export class TodoistSync  {
 
     }
 
+    // sync added task note to obsidian
+    async  syncAddedTaskNoteToObsidian(unSynchronizedEvents) {
+        // 获取未同步的事件
+        //console.log(unSynchronizedEvents)    
+        try {
+        
+        // 处理未同步的事件并等待所有处理完成
+        const processedEvents = []
+        for (const e of unSynchronizedEvents) {   //如果要修改代码，让completeTaskInTheFile(e.object_id)按照顺序依次执行，可以将Promise.allSettled()方法改为使用for...of循环来处理未同步的事件。具体步骤如下：
+            console.log(e)
+            //const taskid = e.parent_item_id
+            //const note = e.extra_data.content
+            await this.fileOperation.syncAddedTaskNoteToTheFile(e)
+            //await this.cacheOperation.closeTaskToCacheByID(e.object_id)
+            new Notice(`Task ${e.parent_item_id} note is added.`)
+            processedEvents.push(e)
+        }
+
+        // 将新事件合并到现有事件中并保存到 JSON
+        
+        await this.cacheOperation.appendEventsToCache(processedEvents)
+        this.plugin.saveSettings()
+        } catch (error) {
+        console.error('同步任务状态时出错：', error)
+        }
+    }
+
 
     async syncTodoistToObsidian(){
-        const all_activity_events = await this.todoistSyncAPI.getNonObsidianAllActivityEvents()
-
-        // remove synchonized events
-        const savedEvents = await this.cacheOperation.loadEventsFromCache()
-        const result1 = all_activity_events.filter(
-        (objA) => !savedEvents.some((objB) => objB.id === objA.id)
-        )
-
-        // 找出 task id 存在于 Obsidian 中的 activity
-        const savedTasks = await this.cacheOperation.loadTasksFromCache()
-        const result2 = result1.filter(
-        (objA) => savedTasks.some((objB) => objB.id === objA.object_id)
-        )
+        try{
+            const all_activity_events = await this.todoistSyncAPI.getNonObsidianAllActivityEvents()
+            
+            // remove synchonized events
+            const savedEvents = await this.cacheOperation.loadEventsFromCache()
+            const result1 = all_activity_events.filter(
+            (objA) => !savedEvents.some((objB) => objB.id === objA.id)
+            )
+    
+            // 找出 task id 存在于 Obsidian 中的 activity
+            const savedTasks = await this.cacheOperation.loadTasksFromCache()
+            const result2 = result1.filter(
+            (objA) => savedTasks.some((objB) => objB.id === objA.object_id)
+            )
+        
+    
+    
+    
+            const unsynchronized_item_completed_events = this.todoistSyncAPI.filterActivityEvents(result2, { event_type: 'completed', object_type: 'item' })
+            const unsynchronized_item_uncompleted_events = this.todoistSyncAPI.filterActivityEvents(result2, { event_type: 'uncompleted', object_type: 'item' })
+            const unsynchronized_item_updated_events = this.todoistSyncAPI.filterActivityEvents(result2, { event_type: 'updated', object_type: 'item' })
+            const unsynchronized_notes_added_events = this.todoistSyncAPI.filterActivityEvents(result1, { event_type: 'added', object_type: 'note' })
+            const unsynchronized_project_events = this.todoistSyncAPI.filterActivityEvents(result1, { object_type: 'project' })
+            console.log(unsynchronized_item_completed_events)
+            console.log(unsynchronized_item_uncompleted_events)
+            console.log(unsynchronized_item_updated_events)
+            console.log(unsynchronized_project_events) 
+            console.log(unsynchronized_notes_added_events)
+    
+            await this.syncCompletedTaskStatusToObsidian(unsynchronized_item_completed_events)
+            await this.syncUncompletedTaskStatusToObsidian(unsynchronized_item_uncompleted_events)
+            await this.syncUpdatedTaskToObsidian(unsynchronized_item_updated_events)
+            await this.syncAddedTaskNoteToObsidian(unsynchronized_notes_added_events)
+            if(unsynchronized_project_events.length){
+                console.log('New project event')
+                await this.cacheOperation.saveProjectsToCache()
+                await this.cacheOperation.appendEventsToCache(unsynchronized_project_events)
+            }
     
 
-
-
-        const unsynchronized_item_completed_events = this.todoistSyncAPI.filterActivityEvents(result2, { event_type: 'completed', object_type: 'item' })
-        const unsynchronized_item_uncompleted_events = this.todoistSyncAPI.filterActivityEvents(result2, { event_type: 'uncompleted', object_type: 'item' })
-        const unsynchronized_item_updated_events = this.todoistSyncAPI.filterActivityEvents(result2, { event_type: 'updated', object_type: 'item' })
-        const unsynchronized_notes_added_events = this.todoistSyncAPI.filterActivityEvents(result2, { event_type: 'added', object_type: 'note' })
-        const unsynchronized_project_events = this.todoistSyncAPI.filterActivityEvents(result1, { object_type: 'project' })
-        console.log(unsynchronized_item_completed_events)
-        console.log(unsynchronized_item_uncompleted_events)
-        console.log(unsynchronized_item_updated_events)
-        console.log(unsynchronized_project_events) 
-        console.log(unsynchronized_notes_added_events)
-
-        await this.syncCompletedTaskStatusToObsidian(unsynchronized_item_completed_events)
-        await this.syncUncompletedTaskStatusToObsidian(unsynchronized_item_uncompleted_events)
-        await this.syncUpdatedTaskToObsidian(unsynchronized_item_updated_events)
-        if(unsynchronized_project_events.length){
-            console.log('New project event')
-            await this.cacheOperation.saveProjectsToCache()
-            await this.cacheOperation.appendEventsToCache(unsynchronized_project_events)
+        }catch (err){
+            console.error('An error occurred while synchronizing:', err);
         }
 
     }

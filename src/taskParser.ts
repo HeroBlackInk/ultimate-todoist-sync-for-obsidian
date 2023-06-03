@@ -359,8 +359,9 @@ export class TaskParser   {
         //console.log('due date 发生了变化')
         return false;
         }
-    
-        if (lineTaskDue === todoistTaskDue.date) {
+        
+        const oldDueDateUTCString = this.localDateStringToUTCDateString(lineTaskDue)
+        if (oldDueDateUTCString === todoistTaskDue.date) {
         //console.log('due date 一致')
         return true;
         } else if (lineTaskDue.toString() === "Invalid Date" || todoistTaskDue.toString() === "Invalid Date") {
@@ -427,22 +428,98 @@ export class TaskParser   {
     //extra date from obsidian event
     // 使用示例
     //const str = "2023-03-27T15:59:59.000000Z";
-    //const dateStr = extractDate(str);
+    //const dateStr = ISOStringToLocalDateString(str);
     //console.log(dateStr); // 输出 2023-03-27
-    extractDateFromTodoistEvent(str:string) {
+    ISOStringToLocalDateString(utcTimeString:string) {
         try {
-          if(str === null){
+          if(utcTimeString === null){
             return null
           }
-          const regex = /(\d{4})-(\d{2})-(\d{2})/;
-          const matches = str.match(regex);
-          if (!matches) throw new Error('No date found in string.');
-          const dateStr = `${matches[1]}-${matches[2]}-${matches[3]}`;
-          console.log(dateStr)
-          return dateStr;
+          let utcDateString = utcTimeString;
+          let dateObj = new Date(utcDateString); // 将UTC格式字符串转换为Date对象
+          let localDateString = dateObj.toLocaleString(); // 将Date对象转换为本地时间字符串
+          let localDateObj = new Date(localDateString);
+          let year = localDateObj.getFullYear();
+          let month = (localDateObj.getMonth() + 1).toString().padStart(2, '0');
+          let date = localDateObj.getDate().toString().padStart(2, '0');
+          let hours = localDateObj.getHours().toString().padStart(2, '0');
+          let minutes = localDateObj.getMinutes().toString().padStart(2, '0');
+          let result = `${year}-${month}-${date}`;
+          return(result);
         } catch (error) {
-          console.error(`Error extracting date from string '${str}': ${error}`);
+          console.error(`Error extracting date from string '${utcTimeString}': ${error}`);
           return null;
         }
     }
+
+
+        //extra date from obsidian event
+    // 使用示例
+    //const str = "2023-03-27T15:59:59.000000Z";
+    //const dateStr = ISOStringToLocalDatetimeString(str);
+    //console.log(dateStr); // 输出 2023-03-27T15:59
+    ISOStringToLocalDatetimeString(utcTimeString:string) {
+        try {
+          if(utcTimeString === null){
+            return null
+          }
+          let utcDateString = utcTimeString;
+          let dateObj = new Date(utcDateString); // 将UTC格式字符串转换为Date对象
+          let localDateString = dateObj.toLocaleString(); // 将Date对象转换为本地时间字符串
+          let localDateObj = new Date(localDateString);
+          let year = localDateObj.getFullYear();
+          let month = (localDateObj.getMonth() + 1).toString().padStart(2, '0');
+          let date = localDateObj.getDate().toString().padStart(2, '0');
+          let hours = localDateObj.getHours().toString().padStart(2, '0');
+          let minutes = localDateObj.getMinutes().toString().padStart(2, '0');
+          let result = `${year}-${month}-${date}T${hours}:${minutes}`;
+          return(result);
+        } catch (error) {
+          console.error(`Error extracting date from string '${utcTimeString}': ${error}`);
+          return null;
+        }
+    }
+
+
+
+    //convert date from obsidian event
+    // 使用示例
+    //const str = "2023-03-27";
+    //const utcStr = localDateStringToUTCDatetimeString(str);
+    //console.log(dateStr); // 输出 2023-03-27T00:00:00.000Z
+    localDateStringToUTCDatetimeString(localDateString:string) {
+        try {
+          if(localDateString === null){
+            return null
+          }
+          localDateString = localDateString + "T08:00";
+          let localDateObj = new Date(localDateString);
+          let ISOString = localDateObj.toISOString()
+          return(ISOString);
+        } catch (error) {
+          console.error(`Error extracting date from string '${localDateString}': ${error}`);
+          return null;
+        }
+    }
+    
+    //convert date from obsidian event
+    // 使用示例
+    //const str = "2023-03-27";
+    //const utcStr = localDateStringToUTCDateString(str);
+    //console.log(dateStr); // 输出 2023-03-27
+    localDateStringToUTCDateString(localDateString:string) {
+        try {
+          if(localDateString === null){
+            return null
+          }
+          localDateString = localDateString + "T08:00";
+          let localDateObj = new Date(localDateString);
+          let ISOString = localDateObj.toISOString()
+          let utcDateString = ISOString.slice(0,10)
+          return(utcDateString);
+        } catch (error) {
+          console.error(`Error extracting date from string '${localDateString}': ${error}`);
+          return null;
+        }
+    } 
 }

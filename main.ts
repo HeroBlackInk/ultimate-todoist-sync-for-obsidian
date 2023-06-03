@@ -318,7 +318,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 
 		
 		//get user plan resources
-		this.todoistSyncAPI.getUserResource()
+		//const rsp = await this.todoistSyncAPI.getUserResource()
 		this.settings.apiInitialized = true
 		this.lineContentNewTaskCheckStatusLock = false
 		this.syncTodoistToObsidianStatusLock = false
@@ -465,7 +465,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 		if(!( this.checkModuleClass())){
 			return
 		}
-		console.log("The scheduled synchronization task is currently executing.")
+		console.log("Todoist scheduled synchronization task is currently executing.")
 		try {
 
 			if(this.syncTodoistToObsidianStatusLock == true){
@@ -489,7 +489,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 			//console.error('An error occurred:', error);
 			new Notice('An error occurred:', error)
 		  }
-		  console.log("The scheduled synchronization task is done.")
+		  console.log("Todoist scheduled synchronization task is done.")
 	}
 
 }

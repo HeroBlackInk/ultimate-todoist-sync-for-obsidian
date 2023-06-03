@@ -92,6 +92,45 @@ export class TodoistSyncAPI   {
         throw new Error('Failed to fetch user resources due to network error');
       }
       }
+
+
+
+      //update user timezone
+      async updateUserTimezone() { 
+        const unixTimestampString: string = Math.floor(Date.now() / 1000).toString();
+        const accessToken = this.settings.todoistAPIToken
+        const url = 'https://api.todoist.com/sync/v9/sync';
+        const commands = [
+          {
+            'type': "user_update",
+            'uuid': unixTimestampString,
+            'args': { 'timezone': 'Asia/Shanghai' },
+          },
+        ];
+        const options = {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: new URLSearchParams({ commands: JSON.stringify(commands) })
+        };
+      
+        try {
+          const response = await fetch(url, options);
+      
+          if (!response.ok) {
+            throw new Error(`Failed to fetch all resources: ${response.status} ${response.statusText}`);
+          }
+      
+          const data = await response.json();
+          console.log(data)
+          return data;
+        } catch (error) {
+          console.error(error);
+          throw new Error('Failed to fetch user resources due to network error');
+        }
+        }
   
     //get activity logs
     //result  {count:number,events:[]}
@@ -121,11 +160,19 @@ export class TodoistSyncAPI   {
     }
 
     async getNonObsidianAllActivityEvents() {
-      const allActivity = await this.getAllActivityEvents()
-      const allActivityEvents = allActivity.events
-      //client中不包含obsidian 的activity
-      const filteredArray = allActivityEvents.filter(obj => !obj.extra_data.client.includes("obsidian")); 
-      return(filteredArray)  
+      try{
+        const allActivity = await this.getAllActivityEvents()
+        //console.log(allActivity)
+        const allActivityEvents = allActivity.events
+        //client中不包含obsidian 的activity
+        const filteredArray = allActivityEvents.filter(obj => !obj.extra_data.client?.includes("obsidian")); 
+        //console.log(filteredArray)
+        return(filteredArray)
+
+      }catch(err){
+        console.error('An error occurred:', err);
+      }
+
     }
   
   
