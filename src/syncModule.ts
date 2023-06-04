@@ -618,10 +618,15 @@ export class TodoistSync  {
             processedEvents.push(e)
         }
 
-        // 将新事件合并到现有事件中并保存到 JSON
+        // Save events to the local database."
         //const allEvents = [...savedEvents, ...unSynchronizedEvents]
         await this.cacheOperation.appendEventsToCache(processedEvents)
         this.plugin.saveSettings()
+
+
+        
+
+
         } catch (error) {
         console.error('同步任务状态时出错：', error)
         }

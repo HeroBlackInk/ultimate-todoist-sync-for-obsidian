@@ -68,6 +68,9 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 
 				await this.todoistSync.fullTextNewTaskCheck()
 				await this.todoistSync.deletedTaskCheck()
+				if(this.syncTodoistToObsidianStatusLock == true){
+					return
+				}
 				await this.todoistSync.fullTextModifiedTaskCheck()
 				this.saveSettings()
 
@@ -379,6 +382,9 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 				if(!( this.checkModuleClass())){
 					return
 				}
+				if(this.syncTodoistToObsidianStatusLock = true){
+					return
+				}
 				this.todoistSync.lineModifiedTaskCheck(filepath as string,lastLineText,lastLine as number,fileContent)
 
 				this.lastLines.set(fileName as string, line as number);
@@ -475,14 +481,21 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 			}
 			this.syncTodoistToObsidianStatusLock = true
 			await this.todoistSync.syncTodoistToObsidian();
+			console.log('sync from todoist to obsidian done')
 			this.syncTodoistToObsidianStatusLock = false
 			await this.saveSettings();
+
+			// Sleep for 5 seconds
+			await new Promise(resolve => setTimeout(resolve, 5000));
 
 			const fileMetadata = this.settings.fileMetadata
 			for (let key in fileMetadata){
 				//console.log(key)
 				await this.todoistSync.fullTextNewTaskCheck(key);
 				await this.todoistSync.deletedTaskCheck(key);
+				if(this.syncTodoistToObsidianStatusLock == true){
+					return
+				}
 				await this.todoistSync.fullTextModifiedTaskCheck(key);
 			}
 

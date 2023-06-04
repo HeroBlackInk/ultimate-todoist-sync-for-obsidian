@@ -44,32 +44,35 @@ interface todoistTaskObject {
 }
   
 
+const keywords = {
+    TODOIST_TAG: "#todoist",
+    DUE_DATE: "🗓️|📅|📆|🗓",
+};
+
 const REGEX = {
-    TODOIST_TAG: /^[\s]*[-] \[[x ]\] [\s\S]*#todoist[\s\S]*$/i,
+    TODOIST_TAG: new RegExp(`^[\\s]*[-] \\[[x ]\\] [\\s\\S]*${keywords.TODOIST_TAG}[\\s\\S]*$`, "i"),
     TODOIST_ID: /\[todoist_id::\s*\d+\]/,
     TODOIST_ID_NUM:/\[todoist_id::\s*(.*?)\]/,
-    DUE_DATE_WITH_EMOJ: /(🗓️|📅|📆|🗓)\d{4}-\d{2}-\d{2}/, //包含emoj
-    DUE_DATE : /(?:🗓️|📅|📆|🗓)(\d{4}-\d{2}-\d{2})/ ,
+    DUE_DATE_WITH_EMOJ: new RegExp(`(${keywords.DUE_DATE})\\d{4}-\\d{2}-\\d{2}`),
+    DUE_DATE : new RegExp(`(?:${keywords.DUE_DATE})(\\d{4}-\\d{2}-\\d{2})`),
     PROJECT_NAME: /\[project::\s*(.*?)\]/,
     TASK_CONTENT: {
         REMOVE_PRIORITY: /\s!!([1-4])\s/,
         REMOVE_TAGS: /(^|\s)(#[a-zA-Z\d\u4e00-\u9fa5-]+)/g,
-        CONTENT_WITH_TODOIST_TAG: /(.*)#todoist/,
         REMOVE_SPACE: /\s+$/,
-        REMOVE_DATE: /(🗓️|📅|📆|🗓)\d{4}-\d{2}-\d{2}/,
+        REMOVE_DATE: new RegExp(`(${keywords.DUE_DATE})\\d{4}-\\d{2}-\\d{2}`),
         REMOVE_INLINE_METADATA: /%%\[\w+::\s*\w+\]%%/,
-        REMOVE_CHECKBOX:  /^(-|\*)\s+\[(x| )\]\s/,
-        REMOVE_CHECKBOX_WITH_INDENTATION: /^([ \t]*)?- \[(x| )\]\s/
+        REMOVE_CHECKBOX:  /^(-|\*)\s+\[(x|X| )\]\s/,
+        REMOVE_CHECKBOX_WITH_INDENTATION: /^([ \t]*)?(-|\*)\s+\[(x|X| )\]\s/
     },
     ALL_TAGS: /#[\w\u4e00-\u9fa5-]+/g,
-    TASK_CHECKBOX: /- \[(x|X)\] /,
-    TASK_INDENTATION: /^(\s{2,}|\t)(-|\*)\s+\[(x| )\]/,
+    TASK_CHECKBOX_CHECKED: /- \[(x|X)\] /,
+    TASK_INDENTATION: /^(\s{2,}|\t)(-|\*)\s+\[(x|X| )\]/,
     TAB_INDENTATION: /^(\t+)/,
     TASK_PRIORITY: /\s!!([1-4])\s/,
     BLANK_LINE: /^\s*$/,
     TODOIST_EVENT_DATE: /(\d{4})-(\d{2})-(\d{2})/
-}
-
+};
 
 export class TaskParser   {
 	app:App;
@@ -299,7 +302,7 @@ export class TaskParser   {
   
     //get checkbox status
     isTaskCheckboxChecked(lineText:string) {
-        return(REGEX.TASK_CHECKBOX.test(lineText))
+        return(REGEX.TASK_CHECKBOX_CHECKED.test(lineText))
     }
   
   
@@ -422,7 +425,8 @@ export class TaskParser   {
   
   //在linetext中插入日期
     insertDueDateBeforeTodoist(text, dueDate) {
-    return text.replace(/#todoist/, `📅${dueDate} #todoist`);
+        const regex = new RegExp(`(${keywords.TODOIST_TAG})`)
+        return text.replace(regex, `📅${dueDate} $1`);
   }
 
     //extra date from obsidian event
