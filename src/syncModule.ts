@@ -449,12 +449,12 @@ export class TodoistSync  {
 
 
             
-            if (contentChanged || statusChanged ||dueDateChanged ||tagsChanged || projectChanged || projectChanged) {
+            if (contentChanged || statusChanged ||dueDateChanged ||tagsChanged || projectChanged || priorityChanged) {
                 console.log(lineTask)
                 console.log(savedTask)
                 //`Task ${lastLineTaskTodoistId} was modified`
                 this.plugin.saveSettings()
-                new Notice(`Task ${lineTask_todoist_id} was modified`)
+                new Notice(`Task ${lineTask_todoist_id} is modified`)
 
             } else {
                 //console.log(`Task ${lineTask_todoist_id} did not change`);
@@ -765,7 +765,10 @@ export class TodoistSync  {
     
             const unsynchronized_item_completed_events = this.todoistSyncAPI.filterActivityEvents(result2, { event_type: 'completed', object_type: 'item' })
             const unsynchronized_item_uncompleted_events = this.todoistSyncAPI.filterActivityEvents(result2, { event_type: 'uncompleted', object_type: 'item' })
+
+            //Items updated (only changes to content, description, due_date and responsible_uid)
             const unsynchronized_item_updated_events = this.todoistSyncAPI.filterActivityEvents(result2, { event_type: 'updated', object_type: 'item' })
+
             const unsynchronized_notes_added_events = this.todoistSyncAPI.filterActivityEvents(result1, { event_type: 'added', object_type: 'note' })
             const unsynchronized_project_events = this.todoistSyncAPI.filterActivityEvents(result1, { object_type: 'project' })
             console.log(unsynchronized_item_completed_events)

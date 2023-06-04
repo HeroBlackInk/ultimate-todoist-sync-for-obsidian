@@ -93,7 +93,7 @@ export class TodoistRestAPI  {
         try {
     
         const isSuccess = await api.reopenTask(taskId);
-        console.log(`task ${taskId} opend`)
+        console.log(`Task ${taskId} is reopend`)
         return(isSuccess)
     
         } catch (error) {
@@ -107,7 +107,7 @@ export class TodoistRestAPI  {
         const api = await this.initializeAPI()
         try {
         const isSuccess = await api.closeTask(taskId);
-        console.log(`task ${taskId} closed`)
+        console.log(`Task ${taskId} is closed`)
         return isSuccess;
         } catch (error) {
         console.error('Error closing task:', error);

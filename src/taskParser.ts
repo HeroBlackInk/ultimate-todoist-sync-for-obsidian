@@ -457,11 +457,11 @@ export class TaskParser   {
     }
 
 
-        //extra date from obsidian event
+    //extra date from obsidian event
     // 使用示例
     //const str = "2023-03-27T15:59:59.000000Z";
     //const dateStr = ISOStringToLocalDatetimeString(str);
-    //console.log(dateStr); // 输出 2023-03-27T15:59
+    //console.log(dateStr); // 输出 Mon Mar 27 2023 23:59:59 GMT+0800 (China Standard Time)
     ISOStringToLocalDatetimeString(utcTimeString:string) {
         try {
           if(utcTimeString === null){
@@ -469,14 +469,7 @@ export class TaskParser   {
           }
           let utcDateString = utcTimeString;
           let dateObj = new Date(utcDateString); // 将UTC格式字符串转换为Date对象
-          let localDateString = dateObj.toLocaleString(); // 将Date对象转换为本地时间字符串
-          let localDateObj = new Date(localDateString);
-          let year = localDateObj.getFullYear();
-          let month = (localDateObj.getMonth() + 1).toString().padStart(2, '0');
-          let date = localDateObj.getDate().toString().padStart(2, '0');
-          let hours = localDateObj.getHours().toString().padStart(2, '0');
-          let minutes = localDateObj.getMinutes().toString().padStart(2, '0');
-          let result = `${year}-${month}-${date}T${hours}:${minutes}`;
+          let result = dateObj.toString();
           return(result);
         } catch (error) {
           console.error(`Error extracting date from string '${utcTimeString}': ${error}`);

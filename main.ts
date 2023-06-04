@@ -382,7 +382,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 				if(!( this.checkModuleClass())){
 					return
 				}
-				if(this.syncTodoistToObsidianStatusLock = true){
+				if(this.syncTodoistToObsidianStatusLock == true){
 					return
 				}
 				this.todoistSync.lineModifiedTaskCheck(filepath as string,lastLineText,lastLine as number,fileContent)
@@ -481,7 +481,6 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 			}
 			this.syncTodoistToObsidianStatusLock = true
 			await this.todoistSync.syncTodoistToObsidian();
-			console.log('sync from todoist to obsidian done')
 			this.syncTodoistToObsidianStatusLock = false
 			await this.saveSettings();
 
