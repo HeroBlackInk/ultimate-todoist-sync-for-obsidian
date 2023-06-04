@@ -15,6 +15,7 @@ export interface UltimateTodoistSyncSettings {
 	apiInitialized:boolean;
 	defaultProjectName: string;
 	defaultProjectId:string;
+	automaticSynchronizationInterval:Number;
 	todoistTasksData:any;
 	fileMetadata:any;
 }
@@ -24,6 +25,7 @@ export const DEFAULT_SETTINGS: UltimateTodoistSyncSettings = {
 	initialized: false,
 	apiInitialized:false,
 	defaultProjectName:"Inbox",
+	automaticSynchronizationInterval: 300, //default aync interval 300s
 	todoistTasksData:{},
 	fileMetadata:{},
 	//mySetting: 'default',
@@ -67,11 +69,11 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 						this.plugin.settings.apiInitialized = false;
 						//
 					})
-
+	
 			)
 			.addExtraButton((button) => {
 				button.setIcon('send')
-					  .onClick(async () => {
+					.onClick(async () => {
 							await this.plugin.modifyTodoistAPI(this.plugin.settings.todoistAPIToken)
 							this.display()
 							
@@ -79,6 +81,38 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 					
 					
 			})
+
+			
+
+
+		new Setting(containerEl)
+		.setName('Automatic synchronization interval time')
+		.setDesc('Please specify the desired interval time, with seconds as the default unit. The default setting is 300 seconds, which corresponds to syncing once every 5 minutes. You can customize it, but it cannot be lower than 20 seconds.')
+		.addText((text) =>
+			text
+				.setPlaceholder('Sync interval')
+				.setValue(this.plugin.settings.automaticSynchronizationInterval.toString())
+				.onChange(async (value) => {
+					const intervalNum = Number(value)
+					if(isNaN(intervalNum)){
+						new Notice(`Wrong type,please enter a number.`)
+						return
+					}
+					if(intervalNum < 20 ){
+						new Notice(`The synchronization interval time cannot be less than 20 seconds.`)
+						return
+					}
+					if (!Number.isInteger(intervalNum)) {
+						new Notice('The synchronization interval must be an integer.');
+						return;
+					}
+					this.plugin.settings.automaticSynchronizationInterval = intervalNum;
+					this.plugin.saveSettings()
+					new Notice('Settings have been updated.');
+					//
+				})
+
+)
 
 
 		/*

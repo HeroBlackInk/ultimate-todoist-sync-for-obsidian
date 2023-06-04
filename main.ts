@@ -209,7 +209,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 			this.saveSettings()		
 		}));
 
-		this.registerInterval(window.setInterval(async () => await this.scheduledSynchronization(), 20 * 1000));
+		this.registerInterval(window.setInterval(async () => await this.scheduledSynchronization(), this.settings.automaticSynchronizationInterval * 1000));
 
 		this.app.workspace.on('active-leaf-change',(leaf)=>{
 			this.setStatusBarText()
@@ -308,6 +308,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 			this.settings.todoistTasksData.tasks = []
 			this.settings.todoistTasksData.events = []
 			this.settings.initialized = true
+			this.settings.automaticSynchronizationInterval = 300
 			this.saveSettings()
 			new Notice(`Ultimate Todoist Sync initialization successful. Todoist data has been backed up.`)
 
