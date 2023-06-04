@@ -46,7 +46,7 @@ export class TodoistSync  {
         let view
         let filepath
 
-        if(filepath){
+        if(file_path){
             file = this.app.vault.getAbstractFileByPath(file_path)
             filepath = file_path
             currentFileValue = await this.app.vault.read(file)
@@ -223,7 +223,7 @@ export class TodoistSync  {
         let view
         let filepath
 
-        if(filepath){
+        if(file_path){
             file = this.app.vault.getAbstractFileByPath(file_path)
             filepath = file_path
             currentFileValue = await this.app.vault.read(file)
@@ -454,7 +454,28 @@ export class TodoistSync  {
                 console.log(savedTask)
                 //`Task ${lastLineTaskTodoistId} was modified`
                 this.plugin.saveSettings()
-                new Notice(`Task ${lineTask_todoist_id} is modified`)
+                let message = `Task ${lineTask_todoist_id} is updated.`;
+    
+                if (contentChanged) {
+                    message += " Content was changed.";
+                }
+                if (statusChanged) {
+                    message += " Status was changed.";
+                }
+                if (dueDateChanged) {
+                    message += " Due date was changed.";
+                }
+                if (tagsChanged) {
+                    message += " Tags were changed.";
+                }
+                if (projectChanged) {
+                    message += " Project was changed.";
+                }
+                if (priorityChanged) {
+                    message += " Priority was changed.";
+                }
+                
+                new Notice(message);
 
             } else {
                 //console.log(`Task ${lineTask_todoist_id} did not change`);
@@ -476,7 +497,7 @@ export class TodoistSync  {
         let view
         let filepath
 
-        if(filepath){
+        if(file_path){
             file = this.app.vault.getAbstractFileByPath(file_path)
             filepath = file_path
             currentFileValue = await this.app.vault.read(file)
@@ -754,11 +775,16 @@ export class TodoistSync  {
             (objA) => !savedEvents.some((objB) => objB.id === objA.id)
             )
     
-            // 找出 task id 存在于 Obsidian 中的 activity
+           
             const savedTasks = await this.cacheOperation.loadTasksFromCache()
+            // 找出 task id 存在于 Obsidian 中的 task activity
             const result2 = result1.filter(
             (objA) => savedTasks.some((objB) => objB.id === objA.object_id)
             )
+            // 找出 task id 存在于 Obsidian 中的 note activity
+            const result3 = result1.filter(
+                (objA) => savedTasks.some((objB) => objB.id === objA.parent_item_id)
+                )
         
     
     
@@ -769,7 +795,7 @@ export class TodoistSync  {
             //Items updated (only changes to content, description, due_date and responsible_uid)
             const unsynchronized_item_updated_events = this.todoistSyncAPI.filterActivityEvents(result2, { event_type: 'updated', object_type: 'item' })
 
-            const unsynchronized_notes_added_events = this.todoistSyncAPI.filterActivityEvents(result1, { event_type: 'added', object_type: 'note' })
+            const unsynchronized_notes_added_events = this.todoistSyncAPI.filterActivityEvents(result3, { event_type: 'added', object_type: 'note' })
             const unsynchronized_project_events = this.todoistSyncAPI.filterActivityEvents(result1, { object_type: 'project' })
             console.log(unsynchronized_item_completed_events)
             console.log(unsynchronized_item_uncompleted_events)
