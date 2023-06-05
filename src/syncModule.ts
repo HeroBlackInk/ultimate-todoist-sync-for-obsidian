@@ -136,7 +136,8 @@ export class TodoistSync  {
         const line = cursor.line
         const linetxt = editor.getLine(line)
 
-    
+       
+
     
     
         //添加task
@@ -237,6 +238,11 @@ export class TodoistSync  {
             currentFileValue = view?.data
         }
 
+        if(this.settings.enableFullVaultSync){
+            //console.log('full vault sync enabled')
+            //console.log(filepath)
+            await this.fileOperation.addTodoistTagToFile(filepath)
+        }
 
         const content = currentFileValue
     

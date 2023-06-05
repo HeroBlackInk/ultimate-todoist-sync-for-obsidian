@@ -113,6 +113,45 @@ export class FileOperation   {
         }
     }
 
+    //add #todoist at the end of task line, if full vault sync enabled
+    async addTodoistTagToFile(filepath: string) {    
+        // 获取文件对象并更新内容
+        const file = this.app.vault.getAbstractFileByPath(filepath)
+        const content = await this.app.vault.read(file)
+    
+        const lines = content.split('\n')
+        let modified = false
+    
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i]
+            if(!this.taskParser.isMarkdownTask(line)){
+                //console.log(line)
+                //console.log("It is not a markdown task.")
+                continue;
+            }
+            //if content is empty
+            if(this.taskParser.getTaskContentFromLineText(line) == ""){
+                //console.log("Line content is empty")
+                continue;
+            }
+            if (!this.taskParser.hasTodoistId(line) && !this.taskParser.hasTodoistTag(line)) {
+                //console.log(line)
+                //console.log('prepare to add todoist tag')
+                const newLine = this.taskParser.addTodoistTag(line);
+                //console.log(newLine)
+                lines[i] = newLine
+                modified = true
+            }
+        }
+        
+        if (modified) {
+            //console.log('file is modified')
+            const newContent = lines.join('\n')
+            //console.log(newContent)
+            await this.app.vault.modify(file, newContent)
+        }
+    }
+
     // sync updated task content  to file
     async syncUpdatedTaskContentToTheFile(evt:Object) {
         const taskId = evt.object_id
@@ -128,15 +167,15 @@ export class FileOperation   {
         let modified = false
     
         for (let i = 0; i < lines.length; i++) {
-        const line = lines[i]
-        if (line.includes(taskId) && this.taskParser.hasTodoistTag(line)) {
-            const oldTaskContent = this.taskParser.getTaskContentFromLineText(line)
-            const newTaskContent = evt.extra_data.content
+            const line = lines[i]
+            if (line.includes(taskId) && this.taskParser.hasTodoistTag(line)) {
+                const oldTaskContent = this.taskParser.getTaskContentFromLineText(line)
+                const newTaskContent = evt.extra_data.content
 
-            lines[i] = line.replace(oldTaskContent, newTaskContent)
-            modified = true
-            break
-        }
+                lines[i] = line.replace(oldTaskContent, newTaskContent)
+                modified = true
+                break
+            }
         }
     
         if (modified) {

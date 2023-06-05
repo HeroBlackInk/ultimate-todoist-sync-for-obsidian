@@ -518,5 +518,14 @@ export class TaskParser   {
           console.error(`Error extracting date from string '${localDateString}': ${error}`);
           return null;
         }
-    } 
+    }
+    
+    isMarkdownTask(str: string): boolean {
+        const taskRegex = /^\s*-\s+\[([x ])\]/;
+        return taskRegex.test(str);
+    }
+
+    addTodoistTag(str: string): string {
+        return(str +` ${keywords.TODOIST_TAG}`);
+    }
 }

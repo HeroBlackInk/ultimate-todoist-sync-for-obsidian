@@ -18,6 +18,7 @@ export interface UltimateTodoistSyncSettings {
 	automaticSynchronizationInterval:Number;
 	todoistTasksData:any;
 	fileMetadata:any;
+	enableFullVaultSync: boolean;
 }
 
 
@@ -28,6 +29,7 @@ export const DEFAULT_SETTINGS: UltimateTodoistSyncSettings = {
 	automaticSynchronizationInterval: 300, //default aync interval 300s
 	todoistTasksData:{},
 	fileMetadata:{},
+	enableFullVaultSync:false,
 	//mySetting: 'default',
 	//todoistTasksFilePath: 'todoistTasks.json'
 
@@ -112,7 +114,7 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 					//
 				})
 
-)
+		)
 
 
 		/*
@@ -163,7 +165,19 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 
 
 		
-
+		new Setting(containerEl)
+			.setName('Full vault sync')
+			.setDesc('By default, only tasks marked with #todoist are synchronized. If this option is turned on, all tasks in the vault will be synchronized.')
+			.addToggle(component => 
+				component
+						.setValue(this.plugin.settings.enableFullVaultSync)
+						.onChange((value)=>{
+							this.plugin.settings.enableFullVaultSync = value
+							this.plugin.saveSettings()
+							new Notice("Full vault sync is enabled.")							
+						})
+						
+				)						
 
 
 
