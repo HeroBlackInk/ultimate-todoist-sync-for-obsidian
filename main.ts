@@ -30,8 +30,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 	todoistSync:TodoistSync;
 	lastLines: Map<string,number>;
 	statusBar;
-	lineContentNewTaskCheckStatusLock: Boolean;
-	syncTodoistToObsidianStatusLock: Boolean;
+	syncLock: Boolean;
 
 	async onload() {
 
@@ -49,34 +48,6 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 		this.lastLines = new Map();
 
 
-		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('list-checks', 'Sync with todoist', async (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			//new Notice('This is a notice!');
-			const activeFile = this.app.workspace.getActiveFile()
-			if(activeFile){
-				if(!( this.checkModuleClass())){
-					return
-				}
-				if(this.syncTodoistToObsidianStatusLock == true){
-					return
-				}
-				this.syncTodoistToObsidianStatusLock = true
-				await this.todoistSync.syncTodoistToObsidian()
-				this.syncTodoistToObsidianStatusLock = false
-				await this.saveSettings()
-
-				await this.todoistSync.fullTextNewTaskCheck()
-				await this.todoistSync.deletedTaskCheck()
-				if(this.syncTodoistToObsidianStatusLock == true){
-					return
-				}
-				await this.todoistSync.fullTextModifiedTaskCheck()
-				this.saveSettings()
-
-			}
-
-		});
 
 
 
@@ -110,7 +81,9 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 				if(!( this.checkModuleClass())){
 					return
 				}
+				if (!await this.checkAndHandleSyncLock()) return;
 				await this.todoistSync.deletedTaskCheck();
+				this.syncLock = false;
 				this.saveSettings()		
 			}
 		});
@@ -157,13 +130,9 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 			if(!(this.checkModuleClass())){
 				return
 			}
-			if(this.lineContentNewTaskCheckStatusLock == true){
-				console.log('task check is locked')
-				return
-			}
-			this.lineContentNewTaskCheckStatusLock = true	
+			if (!await this.checkAndHandleSyncLock()) return;
 			await this.todoistSync.lineContentNewTaskCheck(editor,view)
-			this.lineContentNewTaskCheckStatusLock = false
+			this.syncLock = false
 			this.saveSettings()
 		}))
 
@@ -184,8 +153,10 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 			console.log(frontMatter.todoistTasks)
 			if(!( this.checkModuleClass())){
 					return
-				}
+			}
+			if (!await this.checkAndHandleSyncLock()) return;
 			await this.todoistSync.deleteTasksByIds(frontMatter.todoistTasks)
+			this.syncLock = false
 			this.saveSettings()
 			
 			
@@ -210,6 +181,20 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 				}
 			await this.cacheOperation.updateRenamedFilePath(oldpath,file.path)
 			this.saveSettings()		
+		}));
+
+
+		//Listen for file modified events and execute fullTextNewTaskCheck
+		this.registerEvent(this.app.vault.on('modify', async (file) => {
+			if(!this.settings.apiInitialized){
+				return
+			}
+			const filepath = file.path
+			console.log(`${filepath} is modified`)
+			if (!await this.checkAndHandleSyncLock()) return;
+			await this.todoistSync.fullTextNewTaskCheck(filepath)
+			this.syncLock = false;
+
 		}));
 
 		this.registerInterval(window.setInterval(async () => await this.scheduledSynchronization(), this.settings.automaticSynchronizationInterval * 1000));
@@ -324,8 +309,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 		//get user plan resources
 		//const rsp = await this.todoistSyncAPI.getUserResource()
 		this.settings.apiInitialized = true
-		this.lineContentNewTaskCheckStatusLock = false
-		this.syncTodoistToObsidianStatusLock = false
+		this.syncLock = false
 		new Notice(`Ultimate Todoist Sync loaded successfully.`)
 		return true
 		
@@ -354,7 +338,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 
 	}
 
-	lineNumberCheck(){
+	async lineNumberCheck(){
 		const view = this.app.workspace.getActiveViewOfType(MarkdownView)
 		if(view){
 			const cursor = view.app.workspace.getActiveViewOfType(MarkdownView)?.editor.getCursor()
@@ -382,12 +366,12 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 				if(!( this.checkModuleClass())){
 					return
 				}
-				if(this.syncTodoistToObsidianStatusLock == true){
-					return
-				}
-				this.todoistSync.lineModifiedTaskCheck(filepath as string,lastLineText,lastLine as number,fileContent)
-
 				this.lastLines.set(fileName as string, line as number);
+				if (!await this.checkAndHandleSyncLock()) return;
+				await this.todoistSync.lineModifiedTaskCheck(filepath as string,lastLineText,lastLine as number,fileContent)
+				this.syncLock = false;
+
+				
 			}
 			else  {
 				//console.log('Line not changed');				
@@ -400,7 +384,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 
 	}
 
-	checkboxEventhandle(evt:MouseEvent){
+	async checkboxEventhandle(evt:MouseEvent){
 		if(!( this.checkModuleClass())){
 			return
 		}
@@ -423,8 +407,9 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 		} else {
 			//console.log('未找到 todoist_id');
 			//开始全文搜索，检查status更新
-
-			this.todoistSync.fullTextModifiedTaskCheck()
+			if (!await this.checkAndHandleSyncLock()) return;
+			await this.todoistSync.fullTextModifiedTaskCheck()
+			this.syncLock = false;
 		}
 	}
 
@@ -468,41 +453,88 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 
 	}
 
-	async scheduledSynchronization(){
-		if(!( this.checkModuleClass())){
-			return
+	async scheduledSynchronization() {
+		if (!(this.checkModuleClass())) {
+			return;
 		}
-		console.log("Todoist scheduled synchronization task is currently executing.")
+		console.log("Todoist scheduled synchronization task started at", new Date().toLocaleString());
 		try {
-
-			if(this.syncTodoistToObsidianStatusLock == true){
-				console.log('sync locked')
-				return
+			if (!await this.checkAndHandleSyncLock()) return;
+			try {
+				await this.todoistSync.syncTodoistToObsidian();
+			} catch(error) {
+				console.error('An error occurred in syncTodoistToObsidian:', error);
 			}
-			this.syncTodoistToObsidianStatusLock = true
-			await this.todoistSync.syncTodoistToObsidian();
-			this.syncTodoistToObsidianStatusLock = false
-			await this.saveSettings();
+			this.syncLock = false;
+			try {
+				await this.saveSettings();
+			} catch(error) {
+				console.error('An error occurred in saveSettings:', error);
+			}
 
 			// Sleep for 5 seconds
 			await new Promise(resolve => setTimeout(resolve, 5000));
 
-			const fileMetadata = this.settings.fileMetadata
-			for (let key in fileMetadata){
-				//console.log(key)
-				await this.todoistSync.fullTextNewTaskCheck(key);
-				await this.todoistSync.deletedTaskCheck(key);
-				if(this.syncTodoistToObsidianStatusLock == true){
-					return
+			const filesToSync = this.settings.fileMetadata;
+			//console.log(filesToSync)
+			for (let fileKey in filesToSync) {
+				//console.log(fileKey)
+				if (!await this.checkAndHandleSyncLock()) return;
+				try {
+					await this.todoistSync.fullTextNewTaskCheck(fileKey);
+				} catch(error) {
+					console.error('An error occurred in fullTextNewTaskCheck:', error);
 				}
-				await this.todoistSync.fullTextModifiedTaskCheck(key);
+				this.syncLock = false;
+
+				if (!await this.checkAndHandleSyncLock()) return;
+				try {
+					await this.todoistSync.deletedTaskCheck(fileKey);
+				} catch(error) {
+					console.error('An error occurred in deletedTaskCheck:', error);
+				}
+				this.syncLock = false;
+
+				if (!await this.checkAndHandleSyncLock()) return;
+				try {
+					await this.todoistSync.fullTextModifiedTaskCheck(fileKey);
+				} catch(error) {
+					console.error('An error occurred in fullTextModifiedTaskCheck:', error);
+				}
+				this.syncLock = false;
 			}
 
-		  } catch (error) {
-			//console.error('An error occurred:', error);
-			new Notice('An error occurred:', error)
-		  }
-		  console.log("Todoist scheduled synchronization task is done.")
+		} catch (error) {
+			console.error('An error occurred:', error);
+			new Notice('An error occurred:', error);
+			this.syncLock = false;
+		}
+		console.log("Todoist scheduled synchronization task completed at", new Date().toLocaleString());
+	}
+
+	async checkSyncLock() {
+		let checkCount = 0;
+		while (this.syncLock == true && checkCount < 10) {
+		  await new Promise(resolve => setTimeout(resolve, 1000));
+		  checkCount++;
+		}
+		if (this.syncLock == true) {
+		  return false;
+		}
+		return true;
+	}
+
+	async checkAndHandleSyncLock() {
+		if (this.syncLock) {
+			console.log('sync locked.');
+			const isSyncLockChecked = await this.checkSyncLock();
+			if (!isSyncLockChecked) {
+				return false;
+			}
+			console.log('sync unlocked.')
+		}
+		this.syncLock = true;
+		return true;
 	}
 
 }

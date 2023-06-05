@@ -247,11 +247,11 @@ export class TodoistSync  {
     
         if (!frontMatter) {
             console.log('frontmatter is empty');
-            return;
+            newFrontMatter = {};
+        }else{
+            newFrontMatter = { ...frontMatter };
         }
-    
-        newFrontMatter = { ...frontMatter };
-        
+
     
         let hasNewTask = false;
         const lines = content.split('\n')
@@ -305,9 +305,9 @@ export class TodoistSync  {
         if(hasNewTask){
             //文本和 frontMatter
             try {
-            // 保存file
-            const newContent = lines.join('\n')
-            await this.app.vault.modify(file, newContent)
+                // 保存file
+                const newContent = lines.join('\n')
+                await this.app.vault.modify(file, newContent)
     
             
                 // 更新 front matter
@@ -490,62 +490,54 @@ export class TodoistSync  {
     }
 
 
-    async fullTextModifiedTaskCheck(file_path:string): Promise<void>{
+    async fullTextModifiedTaskCheck(file_path: string): Promise<void> {
 
-        let file
-        let currentFileValue
-        let view
-        let filepath
-
-        if(file_path){
-            file = this.app.vault.getAbstractFileByPath(file_path)
-            filepath = file_path
-            currentFileValue = await this.app.vault.read(file)
-        }
-        else{
+        let file;
+        let currentFileValue;
+        let view;
+        let filepath;
+      
+        try {
+          if (file_path) {
+            file = this.app.vault.getAbstractFileByPath(file_path);
+            filepath = file_path;
+            currentFileValue = await this.app.vault.read(file);
+          } else {
             view = this.app.workspace.getActiveViewOfType(MarkdownView);
-            //const editor = this.app.workspace.activeEditor?.editor
-            file = this.app.workspace.getActiveFile()
-            filepath = file?.path
-            //使用view.data 代替 valut.read。vault.read有延迟
-            currentFileValue = view?.data
-        }
-
-
-        const content = currentFileValue
-        //console.log(content)
-
-
-        let hasModifiedTask = false;
-        const lines = content.split('\n')
-
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i]
+            file = this.app.workspace.getActiveFile();
+            filepath = file?.path;
+            currentFileValue = view?.data;
+          }
+      
+          const content = currentFileValue;
+      
+          let hasModifiedTask = false;
+          const lines = content.split('\n');
+      
+          for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
             if (this.taskParser.hasTodoistId(line) && this.taskParser.hasTodoistTag(line)) {
-                //console.log(`current line is ${i}`)
-                //console.log(`line text: ${line}`)
-                try {
-                await this.lineModifiedTaskCheck(filepath,line,i,content)
-                hasModifiedTask = true
-                } catch (error) {
-                    console.error('Error modify task:', error);
-                    continue
-                }
-            
+              try {
+                await this.lineModifiedTaskCheck(filepath, line, i, content);
+                hasModifiedTask = true;
+              } catch (error) {
+                console.error('Error modifying task:', error);
+                continue;
+              }
             }
-        }
-        if(hasModifiedTask){
-            //文本和 frontMatter
+          }
+      
+          if (hasModifiedTask) {
             try {
-                //do nothing
-                
+              // Perform necessary actions on the modified content and front matter
             } catch (error) {
-                console.error(error);
+              console.error('Error processing modified content:', error);
             }
-
+          }
+        } catch (error) {
+          console.error('Error:', error);
         }
-    
-    }
+      }
 
 
     // Close a task by calling API and updating JSON file
