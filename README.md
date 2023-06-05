@@ -67,9 +67,9 @@ By enabling this option, the plugin will automatically add `#todoist` to all tas
 
 | Syntax | Description | Example |
 | --- | --- | --- |
-|#todoist|Tasks marked with #todoist will be added to Todoist, while tasks without the **#todoist** tag will not be processed.If you have enabled Full vault sync in the settings, `#todoist` will be added automatically.| `- [ ] task #todoist`|
+|#todoist|Tasks marked with `#todoist` will be added to Todoist, while tasks without the `#todoist` tag will not be processed.If you have enabled Full vault sync in the settings, `#todoist` will be added automatically.| `- [ ] task #todoist`|
 | 📅YYYY-MM-DD | The date format is 📅YYYY-MM-DD, indicating the due date of a task. | `- [ ] task content 📅2025-02-05 #todoist`   <br>Supports the following calendar emojis.📅📆🗓🗓️|
-| #projectTag | New tasks will be added to the default project(For example,  inbox .), and you can change the default project in the settings or use a tag with the same name to specify a particular project. | `- [ ] taskA #todoist` will be added to inbox.<br>`- [ ]taskB #tag #testProject #todoist` will be added to testProject.|
+| #projectTag | New tasks will be added to the default project(For example,  inbox .), and you can change the default project in the settings or use a tag with the same name to specify a particular project. | `- [ ] taskA #todoist` will be added to inbox.<br>`- [ ] taskB #tag #testProject #todoist` will be added to testProject.|
 | #tag | Note that all tags without a project of the same name are treated as normal tags | `- [ ] task #tagA #tagB #tagC #todoist` |
 |   `!!<number>` | The priority of the task (a number between 1 and 4, 4 for very urgent and 1 for natural).<br>**Note**: Keep in mind that very urgent is the priority 1 on clients. So, the priority 1 in the client corresponds to the number 4 here (Because that's how the official API of Todoist is designed.). | `- [ ] task !!4 #todoist` |
 
@@ -83,11 +83,6 @@ The default project in the setting applies to all files. You can set a separate 
 You can see the current file's default project in the status bar at the bottom right corner.
 <img src="/attachment/statusBar.png" width="500">
 
-
-### Syncing Tasks
-
-For the automatic synchronization function that has been completed, the plugin will automatically detect it in edit mode. However, some plugins, such as Kanban, may modify the view and cause automatic synchronization to fail, requiring manual clicking of the Sync Button.
- 
 
 
 ## Disclaimer
