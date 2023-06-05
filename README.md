@@ -63,7 +63,7 @@ By enabling this option, the plugin will automatically add `#todoist` to all tas
 
 
 ### Task format
-Tasks marked with #todoist will be added to Todoist, while tasks without the **#todoist** tag will not be processed.
+
 
 | Syntax | Description | Example |
 | --- | --- | --- |
