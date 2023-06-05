@@ -168,23 +168,35 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 
 
 		new Setting(containerEl)
-		.setName('Sync Projects')
-		.setDesc('When there are changes in Todoist projects, please click this button to manually synchronize.')
+		.setName('Scan all tasks in the vault')
+		.setDesc('Scan tasks in all files in the vault. In general, you do not need to perform this operation.')
 		.addButton(button => button
-			.setButtonText('Sync projects')
-			.onClick(() => {
+			.setButtonText('Scan')
+			.onClick(async () => {
 				// Add code here to handle exporting Todoist data
 				if(!this.plugin.settings.apiInitialized){
 					new Notice(`Please set the todoist api first`)
 					return
 				}
 				try{
-					this.plugin.cacheOperation.saveProjectsToCache()
-					this.plugin.saveSettings()
-					this.display()
+					const files = this.app.vault.getFiles()
+					files.forEach(async (v, i) => {
+						if(v.extension == "md"){
+							try{
+								if (!await this.plugin.checkAndHandleSyncLock()) return;
+								console.log(v.path)
+								await this.plugin.todoistSync.fullTextNewTaskCheck(v.path)
+								this.plugin.syncLock = false
+							}catch(error){
+								console.error(`An error occurred while check new tasks in the file: ${v.path}, ${error.message}`);
+								this.plugin.syncLock = false
+							}
+
+						}
+					});
 					new Notice(`projects synchronization successful`)
 				}catch(error){
-					new Notice(`projects synchronization failed:${error}`)
+					new Notice(`An error occurred while scanning the vault.:${error}`)
 				}
 
 			})

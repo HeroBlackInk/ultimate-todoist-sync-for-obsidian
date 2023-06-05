@@ -285,6 +285,12 @@ export class FileOperation   {
         return todoistId;
     }
 
+    //get all files in the vault
+    async getAllFilesInTheVault(){
+        const files = this.app.vault.getFiles()
+        return(files)
+    }
+
 
 
 

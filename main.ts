@@ -77,14 +77,20 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 				this.lineNumberCheck()
 			}
 			if(evt.key === "Delete" || evt.key === "Backspace"){
-				//console.log(`${evt.key} key is released`);
-				if(!( this.checkModuleClass())){
-					return
+				try{
+					//console.log(`${evt.key} key is released`);
+					if(!( this.checkModuleClass())){
+						return
+					}
+					if (!await this.checkAndHandleSyncLock()) return;
+					await this.todoistSync.deletedTaskCheck();
+					this.syncLock = false;
+					this.saveSettings()	
+				}catch(error){
+					console.error(`An error occurred while deleting tasks: ${error}`);
+					this.syncLock = false
 				}
-				if (!await this.checkAndHandleSyncLock()) return;
-				await this.todoistSync.deletedTaskCheck();
-				this.syncLock = false;
-				this.saveSettings()		
+	
 			}
 		});
 
@@ -122,42 +128,55 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 
 		//hook editor-change 事件，如果当前line包含 #todoist,说明有new task
 		this.registerEvent(this.app.workspace.on('editor-change',async (editor,view:MarkdownView)=>{
-			if(!this.settings.apiInitialized){
-				return
+			try{
+				if(!this.settings.apiInitialized){
+					return
+				}
+	
+				this.lineNumberCheck()
+				if(!(this.checkModuleClass())){
+					return
+				}
+				if (!await this.checkAndHandleSyncLock()) return;
+				await this.todoistSync.lineContentNewTaskCheck(editor,view)
+				this.syncLock = false
+				this.saveSettings()
+
+			}catch(error){
+				console.error(`An error occurred while check new task in line: ${error.message}`);
+				this.syncLock = false
 			}
 
-			this.lineNumberCheck()
-			if(!(this.checkModuleClass())){
-				return
-			}
-			if (!await this.checkAndHandleSyncLock()) return;
-			await this.todoistSync.lineContentNewTaskCheck(editor,view)
-			this.syncLock = false
-			this.saveSettings()
 		}))
 
 		//监听删除事件，当文件被删除后，读取frontMatter中的tasklist,批量删除
 		this.registerEvent(this.app.metadataCache.on('deleted', async(file,prevCache) => {
-			if(!this.settings.apiInitialized){
-				return
-			}
-			//console.log('a new file has modified')
-			console.log(`file deleted`)
-			//读取frontMatter
-			const frontMatter = await this.cacheOperation.getFileMetadata(file.path)
-			if(frontMatter === null || frontMatter.todoistTasks === undefined){
-				console.log('There is no task in the deleted files.')
-				return
-			}
-			//判断todoistTasks是否为null
-			console.log(frontMatter.todoistTasks)
-			if(!( this.checkModuleClass())){
+			try{
+				if(!this.settings.apiInitialized){
 					return
+				}
+				//console.log('a new file has modified')
+				console.log(`file deleted`)
+				//读取frontMatter
+				const frontMatter = await this.cacheOperation.getFileMetadata(file.path)
+				if(frontMatter === null || frontMatter.todoistTasks === undefined){
+					console.log('There is no task in the deleted files.')
+					return
+				}
+				//判断todoistTasks是否为null
+				console.log(frontMatter.todoistTasks)
+				if(!( this.checkModuleClass())){
+						return
+				}
+				if (!await this.checkAndHandleSyncLock()) return;
+				await this.todoistSync.deleteTasksByIds(frontMatter.todoistTasks)
+				this.syncLock = false
+				this.saveSettings()
+			}catch(error){
+				console.error(`An error occurred while deleting task in the file: ${error}`);
+				this.syncLock = false
 			}
-			if (!await this.checkAndHandleSyncLock()) return;
-			await this.todoistSync.deleteTasksByIds(frontMatter.todoistTasks)
-			this.syncLock = false
-			this.saveSettings()
+
 			
 			
 		}));
@@ -186,15 +205,22 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 
 		//Listen for file modified events and execute fullTextNewTaskCheck
 		this.registerEvent(this.app.vault.on('modify', async (file) => {
-			if(!this.settings.apiInitialized){
-				return
+			try {
+				if(!this.settings.apiInitialized){
+					return
+				}
+				const filepath = file.path
+				console.log(`${filepath} is modified`)
+				if (!await this.checkAndHandleSyncLock()) return;
+				
+				await this.todoistSync.fullTextNewTaskCheck(filepath)
+				this.syncLock = false;
+			} catch(error) {
+				console.error(`An error occurred while modifying the file: ${error.message}`);
+				this.syncLock = false
+				// You can add further error handling logic here. For example, you may want to 
+				// revert certain operations, or alert the user about the error.
 			}
-			const filepath = file.path
-			console.log(`${filepath} is modified`)
-			if (!await this.checkAndHandleSyncLock()) return;
-			await this.todoistSync.fullTextNewTaskCheck(filepath)
-			this.syncLock = false;
-
 		}));
 
 		this.registerInterval(window.setInterval(async () => await this.scheduledSynchronization(), this.settings.automaticSynchronizationInterval * 1000));
@@ -367,9 +393,15 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 					return
 				}
 				this.lastLines.set(fileName as string, line as number);
-				if (!await this.checkAndHandleSyncLock()) return;
-				await this.todoistSync.lineModifiedTaskCheck(filepath as string,lastLineText,lastLine as number,fileContent)
-				this.syncLock = false;
+				try{
+					if (!await this.checkAndHandleSyncLock()) return;
+					await this.todoistSync.lineModifiedTaskCheck(filepath as string,lastLineText,lastLine as number,fileContent)
+					this.syncLock = false;
+				}catch(error){
+					console.error(`An error occurred while check modified task in line text: ${error}`);
+					this.syncLock = false
+				}
+
 
 				
 			}
@@ -407,9 +439,15 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 		} else {
 			//console.log('未找到 todoist_id');
 			//开始全文搜索，检查status更新
-			if (!await this.checkAndHandleSyncLock()) return;
-			await this.todoistSync.fullTextModifiedTaskCheck()
-			this.syncLock = false;
+			try{
+				if (!await this.checkAndHandleSyncLock()) return;
+				await this.todoistSync.fullTextModifiedTaskCheck()
+				this.syncLock = false;
+			}catch(error){
+				console.error(`An error occurred while check modified tasks in the file: ${error}`);
+				this.syncLock = false;
+			}
+
 		}
 	}
 
