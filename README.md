@@ -6,6 +6,8 @@ It should be the best Obsidian plugin for synchronizing Todoist tasks so far.
 ## CHANGELOG
 ### prelease [1.0.37] - 2023-06-05
 
+https://github.com/HeroBlackInk/ultimate-todoist-sync-for-obsidian/releases/tag/v1.0.37-beta
+
 - New feature
     - Two-way automatic synchronization, no longer need to manually click the sync button.
     - Full vault sync option, automatically adding `#todoist` to all tasks.
