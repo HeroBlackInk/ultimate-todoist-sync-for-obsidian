@@ -211,6 +211,18 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 				}
 				const filepath = file.path
 				console.log(`${filepath} is modified`)
+
+				//get current view
+				
+				const activateFile = this.app.workspace.getActiveFile()
+
+				console.log(activateFile?.path)
+
+				//To avoid conflicts, Do not check files being edited
+				if(activateFile?.path == filepath){
+					return
+				}
+
 				if (!await this.checkAndHandleSyncLock()) return;
 				
 				await this.todoistSync.fullTextNewTaskCheck(filepath)

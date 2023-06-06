@@ -59,7 +59,7 @@ const REGEX = {
     TASK_CONTENT: {
         REMOVE_PRIORITY: /\s!!([1-4])\s/,
         REMOVE_TAGS: /(^|\s)(#[a-zA-Z\d\u4e00-\u9fa5-]+)/g,
-        REMOVE_SPACE: /\s+$/,
+        REMOVE_SPACE: /^\s+|\s+$/g,
         REMOVE_DATE: new RegExp(`(${keywords.DUE_DATE})\\d{4}-\\d{2}-\\d{2}`),
         REMOVE_INLINE_METADATA: /%%\[\w+::\s*\w+\]%%/,
         REMOVE_CHECKBOX:  /^(-|\*)\s+\[(x|X| )\]\s/,
