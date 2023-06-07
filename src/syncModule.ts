@@ -181,7 +181,7 @@ export class TodoistSync  {
                       //console.log(frontMatter);
                   
                       if (!frontMatter) {
-                        console.log('frontmatter is empty');
+                        //console.log('frontmatter is empty');
                         //return;
                       }
                   
@@ -210,6 +210,7 @@ export class TodoistSync  {
     
               } catch (error) {
                     console.error('Error adding task:', error);
+                    console.log(`The error occurred in the file: ${filepath}`)
                     return
               }
     
@@ -338,6 +339,10 @@ export class TodoistSync  {
 
     async lineModifiedTaskCheck(filepath:string,lineText:string,lineNumber:number,fileContent:string): Promise<void>{
         //const lineText = await this.fileOperation.getLineTextFromFilePath(filepath,lineNumber)
+
+        if(this.settings.enableFullVaultSync){
+            await this.fileOperation.addTodoistTagToLine(filepath,lineText,lineNumber,fileContent)
+        }
 
         //检查task
         if (this.taskParser.hasTodoistId(lineText) && this.taskParser.hasTodoistTag(lineText)) {

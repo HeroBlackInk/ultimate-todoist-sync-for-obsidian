@@ -182,8 +182,33 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 
 
 		new Setting(containerEl)
+		.setName('Manual Sync')
+		.setDesc('Click the sync button to trigger a sync.')
+		.addButton(button => button
+			.setButtonText('Sync')
+			.onClick(async () => {
+				// Add code here to handle exporting Todoist data
+				if(!this.plugin.settings.apiInitialized){
+					new Notice(`Please set the todoist api first`)
+					return
+				}
+				try{
+					await this.plugin.scheduledSynchronization()
+					this.plugin.syncLock = false
+					new Notice(`Sync completed..`)
+				}catch(error){
+					new Notice(`An error occurred while syncing.:${error}`)
+					this.plugin.syncLock = false
+				}
+
+			})
+		);				
+
+
+
+		new Setting(containerEl)
 		.setName('Scan all tasks in the vault')
-		.setDesc('Scan tasks in all files in the vault. In general, you do not need to perform this operation.')
+		.setDesc('Scan tasks in all files in the vault and add `#todoist`. In general, you do not need to perform this operation.')
 		.addButton(button => button
 			.setButtonText('Scan')
 			.onClick(async () => {
@@ -192,25 +217,27 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 					new Notice(`Please set the todoist api first`)
 					return
 				}
+				if (!await this.plugin.checkAndHandleSyncLock()) return;
 				try{
 					const files = this.app.vault.getFiles()
 					files.forEach(async (v, i) => {
 						if(v.extension == "md"){
 							try{
-								if (!await this.plugin.checkAndHandleSyncLock()) return;
-								console.log(v.path)
-								await this.plugin.todoistSync.fullTextNewTaskCheck(v.path)
-								this.plugin.syncLock = false
+								//console.log(`Scanning file ${v.path}`)
+								await this.plugin.fileOperation.addTodoistTagToFile(v.path)
+								
 							}catch(error){
 								console.error(`An error occurred while check new tasks in the file: ${v.path}, ${error.message}`);
-								this.plugin.syncLock = false
+								
 							}
 
 						}
 					});
-					new Notice(`projects synchronization successful`)
+					this.plugin.syncLock = false
+					new Notice(`All files have been scanned.`)
 				}catch(error){
 					new Notice(`An error occurred while scanning the vault.:${error}`)
+					this.plugin.syncLock = false
 				}
 
 			})

@@ -31,6 +31,21 @@ export class CacheOperation   {
 
 
 
+    async newEmptyFileMetadata(filepath:string){
+        const metadatas = this.settings.fileMetadata
+        if(metadatas[filepath]) {
+            return
+        }
+        else{
+            metadatas[filepath] = {}
+        }
+        metadatas[filepath].todoistTasks = [];
+        metadatas[filepath].todoistCount = 0;
+        // 将更新后的metadatas对象保存回设置对象中
+        this.settings.fileMetadata = metadatas
+
+    }
+
     async updateFileMetadata(filepath:string,newMetadata) {
         const metadatas = this.settings.fileMetadata
     
