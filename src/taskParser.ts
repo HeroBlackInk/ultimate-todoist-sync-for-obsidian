@@ -528,4 +528,10 @@ export class TaskParser   {
     addTodoistTag(str: string): string {
         return(str +` ${keywords.TODOIST_TAG}`);
     }
+
+    getObsidianUrlFromFilepath(filepath:string){
+        const url = encodeURI(`obsidian://open?vault=${this.app.vault.getName()}&file=${filepath}`)
+        const obsidianUrl =`[${filepath}](${url})`;
+        return(obsidianUrl)
+    }
 }

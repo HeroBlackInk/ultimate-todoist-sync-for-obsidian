@@ -29,7 +29,9 @@ export class CacheOperation   {
         return this.settings.fileMetadata[filepath] ?? null
     }
 
-
+    async getFileMetadatas(){
+        return this.settings.fileMetadata ?? null
+    }
 
     async newEmptyFileMetadata(filepath:string){
         const metadatas = this.settings.fileMetadata

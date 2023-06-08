@@ -207,10 +207,10 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 
 
 		new Setting(containerEl)
-		.setName('Scan all tasks in the vault')
-		.setDesc('Scan tasks in all files in the vault and add `#todoist`. In general, you do not need to perform this operation.')
+		.setName('Check Database')
+		.setDesc('Check for possible issues: file renaming not updated, or missed tasks not synchronized.')
 		.addButton(button => button
-			.setButtonText('Scan')
+			.setButtonText('Check Database')
 			.onClick(async () => {
 				// Add code here to handle exporting Todoist data
 				if(!this.plugin.settings.apiInitialized){
@@ -218,7 +218,44 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 					return
 				}
 				if (!await this.plugin.checkAndHandleSyncLock()) return;
+
+
+
 				try{
+					//check renamed files
+					const metadatas = await this.plugin.cacheOperation.getFileMetadatas()
+					for (const key in metadatas) {
+						const value = metadatas[key];
+						const newDescription = this.plugin.taskParser.getObsidianUrlFromFilepath(key)
+						value.todoistTasks.forEach(async(taskId) => {
+							const taskObject = await this.plugin.cacheOperation.loadTaskFromCacheyID(taskId)
+							const oldDescription = taskObject.description
+							if(newDescription != oldDescription){
+								console.log('Preparing to update description.')
+								console.log(oldDescription)
+								console.log(newDescription)
+								try{
+									await this.plugin.todoistSync.updateTaskDescription(key)
+								}catch(error){
+									console.error(`An error occurred while updating task discription: ${error.message}`);
+								}
+
+							}
+			
+						});
+
+					  }
+					  
+					//check empty file metadata
+					
+					//check calendar format
+
+
+
+					//check omitted tasks
+					if(!this.plugin.settings.enableFullVaultSync){
+						return
+					}
 					const files = this.app.vault.getFiles()
 					files.forEach(async (v, i) => {
 						if(v.extension == "md"){
@@ -236,7 +273,7 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 					this.plugin.syncLock = false
 					new Notice(`All files have been scanned.`)
 				}catch(error){
-					new Notice(`An error occurred while scanning the vault.:${error}`)
+					console.error(`An error occurred while scanning the vault.:${error}`)
 					this.plugin.syncLock = false
 				}
 

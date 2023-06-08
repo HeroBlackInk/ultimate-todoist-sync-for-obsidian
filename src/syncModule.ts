@@ -850,13 +850,14 @@ export class TodoistSync  {
         if(!metadata || !metadata.todoistTasks){
             return
         }
-        const url = encodeURI(`obsidian://open?vault=${this.app.vault.getName()}&file=${filepath}`)
-        const description =`[${filepath}](${url})`;
+        const description = this.taskParser.getObsidianUrlFromFilepath(filepath)
         let updatedContent = {}
         updatedContent.description = description
         try {
             metadata.todoistTasks.forEach(async(taskId) => {
-                await this.todoistRestAPI.UpdateTask(taskId,updatedContent)
+                const updatedTask = await this.todoistRestAPI.UpdateTask(taskId,updatedContent)
+                updatedTask.path = filepath
+                this.cacheOperation.updateTaskToCacheByID(updatedTask);
 
         });
         } catch(error) {
