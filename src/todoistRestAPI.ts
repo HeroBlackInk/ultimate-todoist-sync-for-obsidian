@@ -65,12 +65,12 @@ export class TodoistRestAPI  {
 
     //Also note that to remove the due date of a task completely, you should set the due_string parameter to no date or no due date.
     //api 没有 update task project id 的函数
-    async UpdateTask(taskId: string, updates: { content?: string, labels?:Array<string>,dueDate?: string,dueDatetime?: string,dueString?:string,parentId?:string,priority?:number }) {
+    async UpdateTask(taskId: string, updates: { content?: string, description?: string, labels?:Array<string>,dueDate?: string,dueDatetime?: string,dueString?:string,parentId?:string,priority?:number }) {
         const api = await this.initializeAPI()
         if (!taskId) {
         throw new Error('taskId is required');
         }
-        if (!updates.content && !updates.dueDate && !updates.dueDatetime && !updates.dueString && !updates.labels &&!updates.parentId && !updates.priority) {
+        if (!updates.content && !updates.description &&!updates.dueDate && !updates.dueDatetime && !updates.dueString && !updates.labels &&!updates.parentId && !updates.priority) {
         throw new Error('At least one update is required');
         }
         try {
@@ -86,6 +86,9 @@ export class TodoistRestAPI  {
         throw new Error(`Error updating task: ${error.message}`);
         }
     }
+
+
+
 
     //open a task
     async OpenTask(taskId:string) {

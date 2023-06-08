@@ -375,7 +375,7 @@ export class CacheOperation   {
             console.log(`oldpath is ${oldpath}`)
             console.log(`newpath is ${newpath}`)
             const savedTask = await this.loadTasksFromCache()
-            console.log(savedTask)
+            //console.log(savedTask)
             const newTasks = savedTask.map(obj => {
                 if (obj.path === oldpath) {
                   return { ...obj, path: newpath };

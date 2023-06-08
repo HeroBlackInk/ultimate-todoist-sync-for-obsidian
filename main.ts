@@ -199,7 +199,17 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 					return
 				}
 			await this.cacheOperation.updateRenamedFilePath(oldpath,file.path)
-			this.saveSettings()		
+			this.saveSettings()
+			
+			//update task description
+			if (!await this.checkAndHandleSyncLock()) return;
+			try {
+				await this.todoistSync.updateTaskDescription(file.path)
+			} catch(error) {
+				console.error('An error occurred in updateTaskDescription:', error);
+			}
+			this.syncLock = false;
+
 		}));
 
 

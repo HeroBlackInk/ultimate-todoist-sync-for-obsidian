@@ -844,6 +844,30 @@ export class TodoistSync  {
     }
 
 
+    //After renaming the file, check all tasks in the file and update all links.
+    async updateTaskDescription(filepath:string){
+        const metadata = await this.cacheOperation.getFileMetadata(filepath)
+        if(!metadata || !metadata.todoistTasks){
+            return
+        }
+        const url = encodeURI(`obsidian://open?vault=${this.app.vault.getName()}&file=${filepath}`)
+        const description =`[${filepath}](${url})`;
+        let updatedContent = {}
+        updatedContent.description = description
+        try {
+            metadata.todoistTasks.forEach(async(taskId) => {
+                await this.todoistRestAPI.UpdateTask(taskId,updatedContent)
+
+        });
+        } catch(error) {
+            console.error('An error occurred in updateTaskDescription:', error);
+        }
+
+
+
+    }
+
+
 
     
 
