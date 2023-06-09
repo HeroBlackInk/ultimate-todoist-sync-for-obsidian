@@ -1,6 +1,6 @@
 import { App, Modal ,Setting } from "obsidian";
 import  UltimateTodoistSyncForObsidian  from "../main"
-import { CacheOperation } from './cacheOperation';
+
 
 interface MyProject {
 	id: string;
@@ -12,13 +12,12 @@ export class SetDefalutProjectInTheFilepathModal extends Modal {
   defaultProjectName: string
   filepath:string
   plugin:UltimateTodoistSyncForObsidian
-  cacheOperation:CacheOperation;
+
     
-  constructor(app: App,plugin:UltimateTodoistSyncForObsidian, cacheOperation:CacheOperation,filepath:string) {
+  constructor(app: App,plugin:UltimateTodoistSyncForObsidian, filepath:string) {
     super(app);
     this.filepath = filepath
     this.plugin = plugin
-    this.cacheOperation = cacheOperation
     this.open()
   }
 
@@ -27,8 +26,8 @@ export class SetDefalutProjectInTheFilepathModal extends Modal {
     contentEl.empty();
     contentEl.createEl('h5', { text: 'Set default project for todoist tasks in the current file' });
 
-    this.defaultProjectId = await this.cacheOperation.getDefaultProjectIdForFilepath(this.filepath)
-    this.defaultProjectName = await this.cacheOperation.getProjectNameByIdFromCache(this.defaultProjectId)
+    this.defaultProjectId = await this.plugin.cacheOperation.getDefaultProjectIdForFilepath(this.filepath)
+    this.defaultProjectName = await this.plugin.cacheOperation.getProjectNameByIdFromCache(this.defaultProjectId)
     console.log(this.defaultProjectId)
     console.log(this.defaultProjectName)
     const myProjectsOptions: MyProject | undefined = this.plugin.settings.todoistTasksData?.projects?.reduce((obj, item) => {
@@ -51,7 +50,7 @@ export class SetDefalutProjectInTheFilepathModal extends Modal {
                     //this.plugin.settings.defaultProjectId = this.result
                     //this.plugin.settings.defaultProjectName = this.plugin.cacheOperation.getProjectNameByIdFromCache(this.result)
                     //this.plugin.saveSettings()
-                    this.cacheOperation.setDefaultProjectIdForFilepath(this.filepath,value)
+                    this.plugin.cacheOperation.setDefaultProjectIdForFilepath(this.filepath,value)
                     this.plugin.setStatusBarText()
                     this.close();
                     

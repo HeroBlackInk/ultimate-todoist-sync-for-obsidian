@@ -1,8 +1,5 @@
 import { App} from 'obsidian';
-import { UltimateTodoistSyncSettings } from './settings';
-import { TodoistRestAPI } from "./todoistRestAPI";
-
-
+import UltimateTodoistSyncForObsidian from "../main";
 
 interface Due {
     date?: string;
@@ -11,14 +8,12 @@ interface Due {
 
 export class CacheOperation   {
 	app:App;
-    settings:UltimateTodoistSyncSettings;
-    todoistRestAPI:TodoistRestAPI;
+    plugin: UltimateTodoistSyncForObsidian;
 
-	constructor(app:App, settings:UltimateTodoistSyncSettings,todoistRestAPI:TodoistRestAPI) {
+	constructor(app:App, plugin: UltimateTodoistSyncForObsidian) {
 		//super(app,settings);
 		this.app = app;
-        this.settings = settings;
-        this.todoistRestAPI = todoistRestAPI;
+        this.plugin = plugin;
 	}
 
           
@@ -26,15 +21,15 @@ export class CacheOperation   {
       
       
     async getFileMetadata(filepath:string) {
-        return this.settings.fileMetadata[filepath] ?? null
+        return this.plugin.settings.fileMetadata[filepath] ?? null
     }
 
     async getFileMetadatas(){
-        return this.settings.fileMetadata ?? null
+        return this.plugin.settings.fileMetadata ?? null
     }
 
     async newEmptyFileMetadata(filepath:string){
-        const metadatas = this.settings.fileMetadata
+        const metadatas = this.plugin.settings.fileMetadata
         if(metadatas[filepath]) {
             return
         }
@@ -44,12 +39,12 @@ export class CacheOperation   {
         metadatas[filepath].todoistTasks = [];
         metadatas[filepath].todoistCount = 0;
         // 将更新后的metadatas对象保存回设置对象中
-        this.settings.fileMetadata = metadatas
+        this.plugin.settings.fileMetadata = metadatas
 
     }
 
     async updateFileMetadata(filepath:string,newMetadata) {
-        const metadatas = this.settings.fileMetadata
+        const metadatas = this.plugin.settings.fileMetadata
     
         // 如果元数据对象不存在，则创建一个新的对象并添加到metadatas中
         if (!metadatas[filepath]) {
@@ -61,14 +56,53 @@ export class CacheOperation   {
         metadatas[filepath].todoistCount = newMetadata.todoistCount;
     
         // 将更新后的metadatas对象保存回设置对象中
-        this.settings.fileMetadata = metadatas
+        this.plugin.settings.fileMetadata = metadatas
         
     }
 
+
+    //Check errors in filemata where the filepath is incorrect.
+    async checkFileMetada(){
+        const metadatas =  await this.getFileMetadatas()
+        for (const key in metadatas) {
+            const value = metadatas[key];
+            if(!value.todoistTasks){
+                //todo 
+                //delelte empty metadata
+                return
+            }
+            let filepath = key
+            //check if file exist
+            let file = this.app.vault.getAbstractFileByPath(filepath)
+            if(!file){
+                //search new filepath
+                console.log('file is not exist') 
+                const todoistId1 = value.todoistTasks[0]
+                const searchResult = await this.plugin.fileOperation.searchFilepathsByTaskidInVault(todoistId1)
+                console.log(searchResult)
+
+            }
+
+
+            //const fileContent = await this.app.vault.read(file)
+            //check if file include all tasks
+
+
+            /*
+            value.todoistTasks.forEach(async(taskId) => {
+                const taskObject = await this.plugin.cacheOperation.loadTaskFromCacheyID(taskId)
+
+
+            });
+            */
+          }
+    
+    }
+
     getDefaultProjectNameForFilepath(filepath:string){
-        const metadatas = this.settings.fileMetadata
+        const metadatas = this.plugin.settings.fileMetadata
         if (!metadatas[filepath] || metadatas[filepath].defaultProjectId === undefined) {
-            return this.settings.defaultProjectName
+            return this.plugin.settings.defaultProjectName
         }
         else{
             const defaultProjectId = metadatas[filepath].defaultProjectId
@@ -79,9 +113,9 @@ export class CacheOperation   {
 
 
     getDefaultProjectIdForFilepath(filepath:string){
-        const metadatas = this.settings.fileMetadata
+        const metadatas = this.plugin.settings.fileMetadata
         if (!metadatas[filepath] || metadatas[filepath].defaultProjectId === undefined) {
-            return this.settings.defaultProjectId
+            return this.plugin.settings.defaultProjectId
         }
         else{
             const defaultProjectId = metadatas[filepath].defaultProjectId
@@ -90,14 +124,14 @@ export class CacheOperation   {
     }
 
     setDefaultProjectIdForFilepath(filepath:string,defaultProjectId:string){
-        const metadatas = this.settings.fileMetadata
+        const metadatas = this.plugin.settings.fileMetadata
         if (!metadatas[filepath]) {
             metadatas[filepath] = {}
         }
         metadatas[filepath].defaultProjectId = defaultProjectId
     
         // 将更新后的metadatas对象保存回设置对象中
-        this.settings.fileMetadata = metadatas
+        this.plugin.settings.fileMetadata = metadatas
 
     }
 
@@ -105,7 +139,7 @@ export class CacheOperation   {
     // 从 Cache读取所有task
     loadTasksFromCache() {
     try {
-        const savedTasks = this.settings.todoistTasksData.tasks
+        const savedTasks = this.plugin.settings.todoistTasksData.tasks
         return savedTasks;
     } catch (error) {
         console.error(`Error loading tasks from Cache: ${error}`);
@@ -117,7 +151,7 @@ export class CacheOperation   {
     // 覆盖保存所有task到cache
     saveTasksToCache(newTasks) {
         try {
-            this.settings.todoistTasksData.tasks = newTasks
+            this.plugin.settings.todoistTasksData.tasks = newTasks
             
         } catch (error) {
             console.error(`Error saving tasks to Cache: ${error}`);
@@ -131,7 +165,7 @@ export class CacheOperation   {
     // append event 到 Cache
     appendEventToCache(event:Object[]) {
         try {
-            this.settings.todoistTasksData.events.push(event)
+            this.plugin.settings.todoistTasksData.events.push(event)
         } catch (error) {
             console.error(`Error append event to Cache: ${error}`);
         }
@@ -140,7 +174,7 @@ export class CacheOperation   {
     // append events 到 Cache
     appendEventsToCache(events:Object[]) {
         try {
-            this.settings.todoistTasksData.events.push(...events)
+            this.plugin.settings.todoistTasksData.events.push(...events)
         } catch (error) {
             console.error(`Error append events to Cache: ${error}`);
         }
@@ -151,7 +185,7 @@ export class CacheOperation   {
     loadEventsFromCache() {
     try {
 
-            const savedEvents = this.settings.todoistTasksData.events
+            const savedEvents = this.plugin.settings.todoistTasksData.events
             return savedEvents;
         } catch (error) {
             console.error(`Error loading events from Cache: ${error}`);
@@ -166,12 +200,12 @@ export class CacheOperation   {
             if(task === null){
                 return
             }
-            const savedTasks = this.settings.todoistTasksData.tasks
+            const savedTasks = this.plugin.settings.todoistTasksData.tasks
             //const taskAlreadyExists = savedTasks.some((t) => t.id === task.id);
             //if (!taskAlreadyExists) {
              //，使用push方法将字符串插入到Cache对象时，它将被视为一个简单的键值对，其中键是数组的数字索引，而值是该字符串本身。但如果您使用push方法将另一个Cache对象（或数组）插入到Cache对象中，则该对象将成为原始Cache对象的一个嵌套子对象。在这种情况下，键是数字索引，值是嵌套的Cache对象本身。
             //}
-            this.settings.todoistTasksData.tasks.push(task);  
+            this.plugin.settings.todoistTasksData.tasks.push(task);  
         } catch (error) {
             console.error(`Error appending task to Cache: ${error}`);
         }
@@ -184,7 +218,7 @@ export class CacheOperation   {
     loadTaskFromCacheyID(taskId) {
         try {
 
-            const savedTasks = this.settings.todoistTasksData.tasks
+            const savedTasks = this.plugin.settings.todoistTasksData.tasks
             //console.log(savedTasks)
             const savedTask = savedTasks.find((t) => t.id === taskId);
             //console.log(savedTask)
@@ -217,7 +251,7 @@ export class CacheOperation   {
 
     modifyTaskToCacheByID(taskId: string, { content, due }: { content?: string, due?: Due }): void {
         try {
-          const savedTasks = this.settings.todoistTasksData.tasks;
+          const savedTasks = this.plugin.settings.todoistTasksData.tasks;
           const taskIndex = savedTasks.findIndex((task) => task.id === taskId);
       
           if (taskIndex !== -1) {
@@ -237,7 +271,7 @@ export class CacheOperation   {
       
             savedTasks[taskIndex] = updatedTask;
       
-            this.settings.todoistTasksData.tasks = savedTasks;
+            this.plugin.settings.todoistTasksData.tasks = savedTasks;
           } else {
             throw new Error(`Task with ID ${taskId} not found in cache.`);
           }
@@ -250,7 +284,7 @@ export class CacheOperation   {
       //open a task status
     reopenTaskToCacheByID(taskId:string) {
         try {
-            const savedTasks = this.settings.todoistTasksData.tasks
+            const savedTasks = this.plugin.settings.todoistTasksData.tasks
 
         
             // 遍历数组以查找具有指定 ID 的项
@@ -261,7 +295,7 @@ export class CacheOperation   {
                 break; // 找到并修改了该项，跳出循环
             }
             }
-            this.settings.todoistTasksData.tasks = savedTasks
+            this.plugin.settings.todoistTasksData.tasks = savedTasks
         
         } catch (error) {
             console.error(`Error open task to Cache file: ${error}`);
@@ -274,7 +308,7 @@ export class CacheOperation   {
     //close a task status
     closeTaskToCacheByID(taskId:string):Promise<void> {
         try {
-            const savedTasks = this.settings.todoistTasksData.tasks
+            const savedTasks = this.plugin.settings.todoistTasksData.tasks
         
             // 遍历数组以查找具有指定 ID 的项
             for (let i = 0; i < savedTasks.length; i++) {
@@ -284,7 +318,7 @@ export class CacheOperation   {
                 break; // 找到并修改了该项，跳出循环
             }
             }
-            this.settings.todoistTasksData.tasks = savedTasks
+            this.plugin.settings.todoistTasksData.tasks = savedTasks
         
         } catch (error) {
             console.error(`Error close task to Cache file: ${error}`);
@@ -296,9 +330,9 @@ export class CacheOperation   {
     // 通过 ID 删除任务
     deleteTaskFromCache(taskId) {
         try {
-        const savedTasks = this.settings.todoistTasksData.tasks
+        const savedTasks = this.plugin.settings.todoistTasksData.tasks
         const newSavedTasks = savedTasks.filter((t) => t.id !== taskId);
-        this.settings.todoistTasksData.tasks = newSavedTasks                                         
+        this.plugin.settings.todoistTasksData.tasks = newSavedTasks                                         
         } catch (error) {
         console.error(`Error deleting task from Cache file: ${error}`);
         }
@@ -311,9 +345,9 @@ export class CacheOperation   {
     // 通过 ID 数组 删除task
     deleteTaskFromCacheByIDs(deletedTaskIds) {
         try {
-            const savedTasks = this.settings.todoistTasksData.tasks
+            const savedTasks = this.plugin.settings.todoistTasksData.tasks
             const newSavedTasks = savedTasks.filter((t) => !deletedTaskIds.includes(t.id))
-            this.settings.todoistTasksData.tasks = newSavedTasks
+            this.plugin.settings.todoistTasksData.tasks = newSavedTasks
         } catch (error) {
             console.error(`Error deleting task from Cache : ${error}`);
         }
@@ -323,7 +357,7 @@ export class CacheOperation   {
     //通过 name 查找 project id
     getProjectIdByNameFromCache(projectName:string) {
         try {
-        const savedProjects = this.settings.todoistTasksData.projects
+        const savedProjects = this.plugin.settings.todoistTasksData.projects
         const targetProject = savedProjects.find(obj => obj.name === projectName);
         const projectId = targetProject ? targetProject.id : null;
         return(projectId)
@@ -337,7 +371,7 @@ export class CacheOperation   {
      
     getProjectNameByIdFromCache(projectId:string) {
         try {
-        const savedProjects = this.settings.todoistTasksData.projects
+        const savedProjects = this.plugin.settings.todoistTasksData.projects
         const targetProject = savedProjects.find(obj => obj.id === projectId);
         const projectName = targetProject ? targetProject.name : null;
         return(projectName)
@@ -353,13 +387,13 @@ export class CacheOperation   {
     async saveProjectsToCache() {
         try{
                 //get projects
-            const projects = await this.todoistRestAPI.GetAllProjects()
+            const projects = await this.plugin.todoistRestAPI.GetAllProjects()
             if(!projects){
                 return false
             }
         
             //save to json
-            this.settings.todoistTasksData.projects = projects
+            this.plugin.settings.todoistTasksData.projects = projects
 
             return true
 
@@ -389,10 +423,10 @@ export class CacheOperation   {
             await this.saveTasksToCache(newTasks)
 
             //update filepath
-            const fileMetadatas = this.settings.fileMetadata
+            const fileMetadatas = this.plugin.settings.fileMetadata
             fileMetadatas[newpath] = fileMetadatas[oldpath]
             delete fileMetadatas[oldpath]
-            this.settings.fileMetadata = fileMetadatas
+            this.plugin.settings.fileMetadata = fileMetadatas
 
         }catch(error){
             console.log(`Error updating renamed file path to cache: ${error}`)

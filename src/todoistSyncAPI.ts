@@ -1,5 +1,5 @@
 import { App} from 'obsidian';
-import { UltimateTodoistSyncSettings } from './settings';
+import UltimateTodoistSyncForObsidian from "../main";
 
 
 type Event = {
@@ -21,17 +21,17 @@ type FilterOptions = {
 
 export class TodoistSyncAPI   {
 	app:App;
-    settings:UltimateTodoistSyncSettings;
+  plugin: UltimateTodoistSyncForObsidian;
 
-	constructor(app:App, settings:UltimateTodoistSyncSettings) {
+	constructor(app:App, plugin:UltimateTodoistSyncForObsidian) {
 		//super(app,settings);
 		this.app = app;
-        this.settings = settings;
+    this.plugin = plugin;
 	}
 
     //backup todoist
     async getAllResources() { 
-    const accessToken = this.settings.todoistAPIToken
+    const accessToken = this.plugin.settings.todoistAPIToken
     const url = 'https://api.todoist.com/sync/v9/sync';
     const options = {
       method: 'POST',
@@ -63,7 +63,7 @@ export class TodoistSyncAPI   {
 
     //backup todoist
     async getUserResource() { 
-      const accessToken = this.settings.todoistAPIToken
+      const accessToken = this.plugin.settings.todoistAPIToken
       const url = 'https://api.todoist.com/sync/v9/sync';
       const options = {
         method: 'POST',
@@ -98,7 +98,7 @@ export class TodoistSyncAPI   {
       //update user timezone
       async updateUserTimezone() { 
         const unixTimestampString: string = Math.floor(Date.now() / 1000).toString();
-        const accessToken = this.settings.todoistAPIToken
+        const accessToken = this.plugin.settings.todoistAPIToken
         const url = 'https://api.todoist.com/sync/v9/sync';
         const commands = [
           {
@@ -135,7 +135,7 @@ export class TodoistSyncAPI   {
     //get activity logs
     //result  {count:number,events:[]}
     async getAllActivityEvents() {
-    const accessToken = this.settings.todoistAPIToken
+    const accessToken = this.plugin.settings.todoistAPIToken
       const headers = new Headers({
         Authorization: `Bearer ${accessToken}`
       });
@@ -190,7 +190,7 @@ export class TodoistSyncAPI   {
     //get completed items activity
     //result  {count:number,events:[]}
     async getCompletedItemsActivity() {
-        const accessToken = this.settings.todoistAPIToken
+        const accessToken = this.plugin.settings.todoistAPIToken
         const url = 'https://api.todoist.com/sync/v9/activity/get';
         const options = {
             method: 'POST',
@@ -225,7 +225,7 @@ export class TodoistSyncAPI   {
     //get uncompleted items activity
     //result  {count:number,events:[]}
     async getUncompletedItemsActivity() {
-        const accessToken = this.settings.todoistAPIToken
+        const accessToken = this.plugin.settings.todoistAPIToken
         const url = 'https://api.todoist.com/sync/v9/activity/get';
         const options = {
         method: 'POST',
@@ -258,7 +258,7 @@ export class TodoistSyncAPI   {
   
     //get non-obsidian completed event
     async getNonObsidianCompletedItemsActivity() {
-        const accessToken = this.settings.todoistAPIToken
+        const accessToken = this.plugin.settings.todoistAPIToken
         const completedItemsActivity = await this.getCompletedItemsActivity()
         const completedItemsActivityEvents = completedItemsActivity.events
         //client中不包含obsidian 的activity
@@ -280,7 +280,7 @@ export class TodoistSyncAPI   {
     //get updated items activity
     //result  {count:number,events:[]}
     async  getUpdatedItemsActivity() {
-        const accessToken = this.settings.todoistAPIToken
+        const accessToken = this.plugin.settings.todoistAPIToken
         const url = 'https://api.todoist.com/sync/v9/activity/get';
         const options = {
         method: 'POST',
@@ -327,7 +327,7 @@ export class TodoistSyncAPI   {
         //get completed items activity
     //result  {count:number,events:[]}
     async getProjectsActivity() {
-      const accessToken = this.settings.todoistAPIToken
+      const accessToken = this.plugin.settings.todoistAPIToken
       const url = 'https://api.todoist.com/sync/v9/activity/get';
       const options = {
           method: 'POST',

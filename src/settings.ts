@@ -1,5 +1,5 @@
 import { App, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
-
+import UltimateTodoistSyncForObsidian from "../main";
 
 interface MyProject {
 	id: string;
@@ -42,9 +42,9 @@ export const DEFAULT_SETTINGS: UltimateTodoistSyncSettings = {
 
 
 export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
+	plugin: UltimateTodoistSyncForObsidian;
 
-	constructor(app: App, plugin: Plugin) {
+	constructor(app: App, plugin: UltimateTodoistSyncForObsidian) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}

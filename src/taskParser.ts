@@ -1,6 +1,5 @@
 import { App} from 'obsidian';
-import { UltimateTodoistSyncSettings } from './settings';
-import { CacheOperation } from "./cacheOperation";
+import UltimateTodoistSyncForObsidian from "../main";
 
 
 
@@ -78,14 +77,12 @@ const REGEX = {
 
 export class TaskParser   {
 	app:App;
-    settings:UltimateTodoistSyncSettings;
-    cacheOperation:CacheOperation;
+    plugin: UltimateTodoistSyncForObsidian;
 
-	constructor(app:App, settings:UltimateTodoistSyncSettings,cacheOperation:CacheOperation) {
+	constructor(app:App, plugin:UltimateTodoistSyncForObsidian) {
 		//super(app,settings);
 		this.app = app;
-        this.settings = settings;
-        this.cacheOperation = cacheOperation;
+        this.plugin = plugin
 	}
 
 
@@ -106,7 +103,7 @@ export class TaskParser   {
         //console.log(textWithoutIndentation)
         //console.log(`这是子任务`)
         //读取filepath
-        //const fileContent = await this.fileOperation.readContentFromFilePath(filepath)
+        //const fileContent = await this.plugin.fileOperation.readContentFromFilePath(filepath)
         //遍历 line
         const lines = fileContent.split('\n')
         //console.log(lines)
@@ -129,7 +126,7 @@ export class TaskParser   {
                     parentId = this.getTodoistIdFromLineText(line)
                     hasParent = true
                     //console.log(`parent id is ${parentId}`)
-                    parentTaskObject = this.cacheOperation.loadTaskFromCacheyID(parentId)
+                    parentTaskObject = this.plugin.cacheOperation.loadTaskFromCacheyID(parentId)
                     break
                 }
                 else{
@@ -146,16 +143,16 @@ export class TaskParser   {
         //console.log(`labels is ${labels}`)
 
         //dataview format metadata
-        //const projectName = this.getProjectNameFromLineText(textWithoutIndentation) ?? this.settings.defaultProjectName
-        //const projectId = await this.cacheOperation.getProjectIdByNameFromCache(projectName)
+        //const projectName = this.getProjectNameFromLineText(textWithoutIndentation) ?? this.plugin.settings.defaultProjectName
+        //const projectId = await this.plugin.cacheOperation.getProjectIdByNameFromCache(projectName)
         //use tag as project name
 
-        let projectId = this.cacheOperation.getDefaultProjectIdForFilepath(filepath as string)
-        let projectName = this.cacheOperation.getProjectNameByIdFromCache(projectId)
+        let projectId = this.plugin.cacheOperation.getDefaultProjectIdForFilepath(filepath as string)
+        let projectName = this.plugin.cacheOperation.getProjectNameByIdFromCache(projectId)
 
         if(hasParent){
             projectId = parentTaskObject.projectId
-            projectName =this.cacheOperation.getProjectNameByIdFromCache(projectId)
+            projectName =this.plugin.cacheOperation.getProjectNameByIdFromCache(projectId)
         }
         if(!hasParent){
                     //匹配 tag 和 peoject
@@ -164,7 +161,7 @@ export class TaskParser   {
                 //console.log(label)
                 let labelName = label.replace(/#/g, "");
                 //console.log(labelName)
-                let hasProjectId = this.cacheOperation.getProjectIdByNameFromCache(labelName)
+                let hasProjectId = this.plugin.cacheOperation.getProjectIdByNameFromCache(labelName)
                 if(!hasProjectId){
                     continue
                 }

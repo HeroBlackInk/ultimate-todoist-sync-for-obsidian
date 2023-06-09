@@ -294,10 +294,10 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 	async initializePlugin(){
 		
 		//initialize todoist restapi 
-		this.todoistRestAPI = new TodoistRestAPI(this.app,this.settings)
+		this.todoistRestAPI = new TodoistRestAPI(this.app, this)
 
 		//initialize data read and write object
-		this.cacheOperation = new CacheOperation(this.app,this.settings,this.todoistRestAPI)
+		this.cacheOperation = new CacheOperation(this.app, this)
 		const ini = await this.cacheOperation.saveProjectsToCache()
 
 
@@ -319,16 +319,16 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 			//创建备份文件夹备份todoist 数据
 			try{
 				//第一次启动插件，备份todoist 数据
-				this.taskParser = new TaskParser(this.app,this.settings,this.cacheOperation)
+				this.taskParser = new TaskParser(this.app, this)
 
 				//initialize file operation
-				this.fileOperation = new FileOperation(this.app,this.settings,this.todoistRestAPI,this.taskParser,this.cacheOperation)
+				this.fileOperation = new FileOperation(this.app,this)
 		
 				//initialize todoisy sync api
-				this.todoistSyncAPI = new TodoistSyncAPI(this.app,this.settings)
+				this.todoistSyncAPI = new TodoistSyncAPI(this.app,this)
 		
 				//initialize todoist sync module
-				this.todoistSync = new TodoistSync(this.app,this,this.settings,this.todoistRestAPI,this.todoistSyncAPI,this.taskParser,this.cacheOperation,this.fileOperation)
+				this.todoistSync = new TodoistSync(this.app,this)
 		
 				//每次启动前备份所有数据
 				this.todoistSync.backupTodoistAllResources()
@@ -368,20 +368,20 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 	async initializeModuleClass(){
 
 		//initialize todoist restapi 
-		this.todoistRestAPI = new TodoistRestAPI(this.app,this.settings)
+		this.todoistRestAPI = new TodoistRestAPI(this.app,this)
 
 		//initialize data read and write object
-		this.cacheOperation = new CacheOperation(this.app,this.settings,this.todoistRestAPI)
-		this.taskParser = new TaskParser(this.app,this.settings,this.cacheOperation)
+		this.cacheOperation = new CacheOperation(this.app,this)
+		this.taskParser = new TaskParser(this.app,this)
 
 		//initialize file operation
-		this.fileOperation = new FileOperation(this.app,this.settings,this.todoistRestAPI,this.taskParser,this.cacheOperation)
+		this.fileOperation = new FileOperation(this.app,this)
 
 		//initialize todoisy sync api
-		this.todoistSyncAPI = new TodoistSyncAPI(this.app,this.settings)
+		this.todoistSyncAPI = new TodoistSyncAPI(this.app,this)
 
 		//initialize todoist sync module
-		this.todoistSync = new TodoistSync(this.app,this,this.settings,this.todoistRestAPI,this.todoistSyncAPI,this.taskParser,this.cacheOperation,this.fileOperation)
+		this.todoistSync = new TodoistSync(this.app,this)
 
 
 	}
