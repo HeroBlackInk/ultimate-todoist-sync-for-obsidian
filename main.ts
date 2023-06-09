@@ -125,7 +125,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 		});
 
 
-/* In the 1.0.37 version, editor-change no longer detects new tasks.
+
 		//hook editor-change 事件，如果当前line包含 #todoist,说明有new task
 		this.registerEvent(this.app.workspace.on('editor-change',async (editor,view:MarkdownView)=>{
 			try{
@@ -135,6 +135,9 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 	
 				this.lineNumberCheck()
 				if(!(this.checkModuleClass())){
+					return
+				}
+				if(this.settings.enableFullVaultSync){
 					return
 				}
 				if (!await this.checkAndHandleSyncLock()) return;
@@ -148,7 +151,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 			}
 
 		}))
-*/
+
 
 
 /* 使用其他文件管理器移动，obsidian触发了删除事件，删除了所有的任务
