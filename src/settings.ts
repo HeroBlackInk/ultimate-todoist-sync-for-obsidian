@@ -19,6 +19,7 @@ export interface UltimateTodoistSyncSettings {
 	todoistTasksData:any;
 	fileMetadata:any;
 	enableFullVaultSync: boolean;
+	statistics: any;
 }
 
 
@@ -30,6 +31,7 @@ export const DEFAULT_SETTINGS: UltimateTodoistSyncSettings = {
 	todoistTasksData:{},
 	fileMetadata:{},
 	enableFullVaultSync:false,
+	statistics:{},
 	//mySetting: 'default',
 	//todoistTasksFilePath: 'todoistTasks.json'
 
@@ -88,7 +90,7 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 
 
 		new Setting(containerEl)
-		.setName('Automatic synchronization interval time')
+		.setName('Automatic Sync Interval Time')
 		.setDesc('Please specify the desired interval time, with seconds as the default unit. The default setting is 300 seconds, which corresponds to syncing once every 5 minutes. You can customize it, but it cannot be lower than 20 seconds.')
 		.addText((text) =>
 			text
@@ -147,7 +149,7 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 		*/
 
 		new Setting(containerEl)
-			.setName('Default project')
+			.setName('Default Project')
 			.setDesc('New tasks are automatically synced to the default project. You can modify the project here.')
 			.addDropdown(component => 
 				component
@@ -166,7 +168,7 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 
 		
 		new Setting(containerEl)
-			.setName('Full vault sync')
+			.setName('Full Vault Sync')
 			.setDesc('By default, only tasks marked with #todoist are synchronized. If this option is turned on, all tasks in the vault will be synchronized.')
 			.addToggle(component => 
 				component
@@ -208,7 +210,7 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 		.setName('Check Database')
-		.setDesc('Check for possible issues: file renaming not updated, or missed tasks not synchronized.')
+		.setDesc('Check for possible issues: sync error, file renaming not updated, or missed tasks not synchronized.')
 		.addButton(button => button
 			.setButtonText('Check Database')
 			.onClick(async () => {
@@ -217,6 +219,23 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 					new Notice(`Please set the todoist api first`)
 					return
 				}
+
+				// check default project task amounts
+				try{
+					const projectId = this.plugin.settings.defaultProjectId
+					let options = {}
+					options.projectId = projectId
+					const tasks = await this.plugin.todoistRestAPI.GetActiveTasks(options)
+					let length = tasks.length
+					if(length >= 300){
+						new Notice(`The number of tasks in the default project exceeds 300, reaching the upper limit. It is not possible to add more tasks. Please modify the default project.`)
+					}
+					console.log(tasks)
+
+				}catch(error){
+					console.error(`An error occurred while get tasks from todoist: ${error.message}`);
+				}
+
 				if (!await this.plugin.checkAndHandleSyncLock()) return;
 
 

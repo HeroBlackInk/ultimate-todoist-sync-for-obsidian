@@ -62,6 +62,17 @@ export class TodoistRestAPI  {
     }
 
 
+    //options:{ projectId?: string, section_id?: string, label?: string , filter?: string,lang?: string, ids?: Array<string>}
+    async GetActiveTasks(options:{ projectId?: string, section_id?: string, label?: string , filter?: string,lang?: string, ids?: Array<string>}) {
+      const api = await this.initializeAPI()
+      try {
+        const result = await api.getTasks(options);
+        return result;
+      } catch (error) {
+        throw new Error(`Error get active tasks: ${error.message}`);
+      }
+    }
+
 
     //Also note that to remove the due date of a task completely, you should set the due_string parameter to no date or no due date.
     //api 没有 update task project id 的函数
