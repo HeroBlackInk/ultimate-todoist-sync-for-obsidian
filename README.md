@@ -15,6 +15,7 @@ https://github.com/HeroBlackInk/ultimate-todoist-sync-for-obsidian/releases/tag/
 - Bug fix
     - Fixed the bug of time zone conversion.
     - Removed the "#" from the Todoist label.
+    - Update the obsidian link in Todoist after moving or renaming a file.
 
 
 

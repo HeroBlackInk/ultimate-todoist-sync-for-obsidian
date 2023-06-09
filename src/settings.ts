@@ -183,7 +183,7 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 		.setName('Manual Sync')
-		.setDesc('Click the sync button to trigger a sync.')
+		.setDesc('Manually perform a synchronization task.')
 		.addButton(button => button
 			.setButtonText('Sync')
 			.onClick(async () => {
@@ -245,7 +245,7 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 						});
 
 					  }
-					  
+
 					//check empty file metadata
 					
 					//check calendar format
@@ -253,15 +253,17 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 
 
 					//check omitted tasks
-					if(!this.plugin.settings.enableFullVaultSync){
-						return
-					}
+
 					const files = this.app.vault.getFiles()
 					files.forEach(async (v, i) => {
 						if(v.extension == "md"){
 							try{
 								//console.log(`Scanning file ${v.path}`)
-								await this.plugin.fileOperation.addTodoistTagToFile(v.path)
+								await this.plugin.fileOperation.addTodoistLinkToFile(v.path)
+								if(this.plugin.settings.enableFullVaultSync){
+									await this.plugin.fileOperation.addTodoistTagToFile(v.path)
+								}
+
 								
 							}catch(error){
 								console.error(`An error occurred while check new tasks in the file: ${v.path}, ${error.message}`);

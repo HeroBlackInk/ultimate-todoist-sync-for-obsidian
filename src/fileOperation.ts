@@ -159,6 +159,49 @@ export class FileOperation   {
         }
     }
 
+
+
+    //add todoist at the line
+    async addTodoistLinkToFile(filepath: string) {    
+        // 获取文件对象并更新内容
+        const file = this.app.vault.getAbstractFileByPath(filepath)
+        const content = await this.app.vault.read(file)
+    
+        const lines = content.split('\n')
+        let modified = false
+    
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i]
+            if (this.taskParser.hasTodoistId(line) && this.taskParser.hasTodoistTag(line)) {
+                if(this.taskParser.hasTodoistLink(line)){
+                    return
+                }
+                console.log(line)
+                //console.log('prepare to add todoist link')
+                const taskID = this.taskParser.getTodoistIdFromLineText(line)
+                const taskObject = this.cacheOperation.loadTaskFromCacheyID(taskID)
+                const todoistLink = taskObject.url
+                const link = `[link](${todoistLink})`
+                const newLine = this.taskParser.addTodoistLink(line,link)
+                console.log(newLine)
+                lines[i] = newLine
+                modified = true
+            }else{
+                continue
+            }
+        }
+        
+        if (modified) {
+            const newContent = lines.join('\n')
+            //console.log(newContent)
+            await this.app.vault.modify(file, newContent)
+
+
+
+        }
+    }
+
+
         //add #todoist at the end of task line, if full vault sync enabled
     async addTodoistTagToLine(filepath:string,lineText:string,lineNumber:number,fileContent:string) {    
         // 获取文件对象并更新内容
@@ -270,7 +313,7 @@ export class FileOperation   {
             }
             else if(newTaskDueDate === ""){
                 //remove 日期from text
-                const regexRemoveDate = /(🗓️|📅|📆|🗓)\d{4}-\d{2}-\d{2}/; //匹配日期🗓️2023-03-07"
+                const regexRemoveDate = /(🗓️|📅|📆|🗓)\s?\d{4}-\d{2}-\d{2}/; //匹配日期🗓️2023-03-07"
                 lines[i] = line.replace(regexRemoveDate,"")
                 modified = true
             }

@@ -53,17 +53,19 @@ const REGEX = {
     TODOIST_TAG: new RegExp(`^[\\s]*[-] \\[[x ]\\] [\\s\\S]*${keywords.TODOIST_TAG}[\\s\\S]*$`, "i"),
     TODOIST_ID: /\[todoist_id::\s*\d+\]/,
     TODOIST_ID_NUM:/\[todoist_id::\s*(.*?)\]/,
-    DUE_DATE_WITH_EMOJ: new RegExp(`(${keywords.DUE_DATE})\\d{4}-\\d{2}-\\d{2}`),
-    DUE_DATE : new RegExp(`(?:${keywords.DUE_DATE})(\\d{4}-\\d{2}-\\d{2})`),
+    TODOIST_LINK:/\[link\]\(.*?\)/,
+    DUE_DATE_WITH_EMOJ: new RegExp(`(${keywords.DUE_DATE})\\s?\\d{4}-\\d{2}-\\d{2}`),
+    DUE_DATE : new RegExp(`(?:${keywords.DUE_DATE})\\s?(\\d{4}-\\d{2}-\\d{2})`),
     PROJECT_NAME: /\[project::\s*(.*?)\]/,
     TASK_CONTENT: {
         REMOVE_PRIORITY: /\s!!([1-4])\s/,
         REMOVE_TAGS: /(^|\s)(#[a-zA-Z\d\u4e00-\u9fa5-]+)/g,
         REMOVE_SPACE: /^\s+|\s+$/g,
-        REMOVE_DATE: new RegExp(`(${keywords.DUE_DATE})\\d{4}-\\d{2}-\\d{2}`),
+        REMOVE_DATE: new RegExp(`(${keywords.DUE_DATE})\\s?\\d{4}-\\d{2}-\\d{2}`),
         REMOVE_INLINE_METADATA: /%%\[\w+::\s*\w+\]%%/,
         REMOVE_CHECKBOX:  /^(-|\*)\s+\[(x|X| )\]\s/,
-        REMOVE_CHECKBOX_WITH_INDENTATION: /^([ \t]*)?(-|\*)\s+\[(x|X| )\]\s/
+        REMOVE_CHECKBOX_WITH_INDENTATION: /^([ \t]*)?(-|\*)\s+\[(x|X| )\]\s/,
+        REMOVE_TODOIST_LINK: /\[link\]\(.*?\)/,
     },
     ALL_TAGS: /#[\w\u4e00-\u9fa5-]+/g,
     TASK_CHECKBOX_CHECKED: /- \[(x|X)\] /,
@@ -278,6 +280,7 @@ export class TaskParser   {
   
     getTaskContentFromLineText(lineText:string) {
         const TaskContent = lineText.replace(REGEX.TASK_CONTENT.REMOVE_INLINE_METADATA,"")
+                                    .replace(REGEX.TASK_CONTENT.REMOVE_TODOIST_LINK,"")
                                     .replace(REGEX.TASK_CONTENT.REMOVE_PRIORITY," ") //priority 前后必须都有空格，
                                     .replace(REGEX.TASK_CONTENT.REMOVE_TAGS,"")
                                     .replace(REGEX.TASK_CONTENT.REMOVE_DATE,"")
@@ -426,7 +429,7 @@ export class TaskParser   {
   //在linetext中插入日期
     insertDueDateBeforeTodoist(text, dueDate) {
         const regex = new RegExp(`(${keywords.TODOIST_TAG})`)
-        return text.replace(regex, `📅${dueDate} $1`);
+        return text.replace(regex, `📅 ${dueDate} $1`);
   }
 
     //extra date from obsidian event
@@ -533,5 +536,17 @@ export class TaskParser   {
         const url = encodeURI(`obsidian://open?vault=${this.app.vault.getName()}&file=${filepath}`)
         const obsidianUrl =`[${filepath}](${url})`;
         return(obsidianUrl)
+    }
+
+
+    addTodoistLink(linetext: string,todoistLink:string): string {
+        const regex = new RegExp(`${keywords.TODOIST_TAG}`, "g");
+        return linetext.replace(regex, todoistLink + ' ' + '$&');
+    }
+
+
+    //检查是否包含todoist link
+    hasTodoistLink(lineText:string){
+        return(REGEX.TODOIST_LINK.test(lineText))
     }
 }

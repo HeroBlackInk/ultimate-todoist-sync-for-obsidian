@@ -169,7 +169,9 @@ export class TodoistSync  {
                 this.plugin.saveSettings()
 
                 //todoist id 保存到 任务后面
-                const text = `${linetxt} %%[todoist_id:: ${todoist_id}]%%`;
+                const text_with_out_link = `${linetxt} %%[todoist_id:: ${todoist_id}]%%`;
+                const link = `[link](${newTask.url})`
+                const text = this.taskParser.addTodoistLink(text_with_out_link,link)
                 const from = { line: cursor.line, ch: 0 };
                 const to = { line: cursor.line, ch: linetxt.length };
                 view.app.workspace.activeEditor?.editor?.replaceRange(text, from, to)
@@ -292,7 +294,9 @@ export class TodoistSync  {
                 this.plugin.saveSettings()
     
                 //todoist id 保存到 任务后面
-                const text = `${line} %%[todoist_id:: ${todoist_id}]%%`;
+                const text_with_out_link = `${line} %%[todoist_id:: ${todoist_id}]%%`;
+                const link = `[link](${newTask.url})`
+                const text = this.taskParser.addTodoistLink(text_with_out_link,link)
                 lines[i] = text;
     
                 newFrontMatter.todoistCount = (newFrontMatter.todoistCount ?? 0) + 1;
@@ -341,7 +345,14 @@ export class TodoistSync  {
         //const lineText = await this.fileOperation.getLineTextFromFilePath(filepath,lineNumber)
 
         if(this.settings.enableFullVaultSync){
-            await this.fileOperation.addTodoistTagToLine(filepath,lineText,lineNumber,fileContent)
+            //await this.fileOperation.addTodoistTagToLine(filepath,lineText,lineNumber,fileContent)
+
+            //new empty metadata
+            const metadata = await this.cacheOperation.getFileMetadata(filepath)
+            if(!metadata){
+                await this.cacheOperation.newEmptyFileMetadata(filepath)
+            }
+            this.plugin.saveSettings()
         }
 
         //检查task
