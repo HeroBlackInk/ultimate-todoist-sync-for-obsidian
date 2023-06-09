@@ -350,6 +350,8 @@ export class TodoistSync  {
             const savedTask = await this.plugin.cacheOperation.loadTaskFromCacheyID(lineTask_todoist_id)  //dataview中 id为数字，todoist中id为字符串，需要转换
             if(!savedTask){
                 console.log(`本地缓存中没有task ${lineTask.todoist_id}`)
+                const url = this.plugin.taskParser.getObsidianUrlFromFilepath(filepath)
+                console.log(url)
                 return
             }
         //console.log(savedTask)

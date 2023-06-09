@@ -220,6 +220,12 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 					return
 				}
 
+
+				//check file metadata
+				console.log('checking file metadata')
+				await this.plugin.cacheOperation.checkFileMetadata()
+				this.plugin.saveSettings()
+				const metadatas = await this.plugin.cacheOperation.getFileMetadatas()
 				// check default project task amounts
 				try{
 					const projectId = this.plugin.settings.defaultProjectId
@@ -230,7 +236,7 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 					if(length >= 300){
 						new Notice(`The number of tasks in the default project exceeds 300, reaching the upper limit. It is not possible to add more tasks. Please modify the default project.`)
 					}
-					console.log(tasks)
+					//console.log(tasks)
 
 				}catch(error){
 					console.error(`An error occurred while get tasks from todoist: ${error.message}`);
@@ -240,28 +246,85 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 
 
 
+				console.log('checking deleted tasks')
+				//check empty task				
+				for (const key in metadatas) {
+					const value = metadatas[key];
+					//console.log(value)
+					for(const taskId of value.todoistTasks) {
+						
+						//console.log(`${taskId}`)
+						let taskObject
+
+						try{
+							taskObject = await this.plugin.cacheOperation.loadTaskFromCacheyID(taskId)
+						}catch(error){
+							console.error(`An error occurred while loading task cache: ${error.message}`);
+						}
+
+						if(!taskObject){
+							console.log(`The task data of the ${taskId} is empty.`)
+							//get from todoist 
+							try {
+								taskObject = await this.plugin.todoistRestAPI.getTaskById(taskId);
+							  } catch (error) {
+								if (error.message.includes('404')) {
+								  // 处理404错误
+								  console.log(`Task ${taskId} seems to not exist.`);
+								  await this.plugin.cacheOperation.deleteTaskIdFromMetadata(key,taskId)
+								  continue
+								} else {
+								  // 处理其他错误
+								  console.error(error);
+								  continue
+								}
+							  }
+
+						}									
+					};
+
+				  }
+				  this.plugin.saveSettings()
+
+
+				console.log('checking renamed files')
 				try{
 					//check renamed files
-					const metadatas = await this.plugin.cacheOperation.getFileMetadatas()
 					for (const key in metadatas) {
 						const value = metadatas[key];
+						//console.log(value)
 						const newDescription = this.plugin.taskParser.getObsidianUrlFromFilepath(key)
-						value.todoistTasks.forEach(async(taskId) => {
-							const taskObject = await this.plugin.cacheOperation.loadTaskFromCacheyID(taskId)
-							const oldDescription = taskObject.description
+						for(const taskId of value.todoistTasks) {
+							
+							//console.log(`${taskId}`)
+							let taskObject
+							try{
+								taskObject = await this.plugin.cacheOperation.loadTaskFromCacheyID(taskId)
+							}catch(error){
+								console.error(`An error occurred while loading task ${taskId} from cache: ${error.message}`);
+								console.log(taskObject)
+							}
+							if(!taskObject){
+								console.log(`Task ${taskId} seems to not exist.`)
+								continue
+							}
+							if(!taskObject?.description){
+								console.log(`The description of the task ${taskId} is empty.`)
+							}							
+							const oldDescription = taskObject?.description ?? '';
 							if(newDescription != oldDescription){
 								console.log('Preparing to update description.')
 								console.log(oldDescription)
 								console.log(newDescription)
 								try{
-									await this.plugin.todoistSync.updateTaskDescription(key)
+									//await this.plugin.todoistSync.updateTaskDescription(key)
 								}catch(error){
 									console.error(`An error occurred while updating task discription: ${error.message}`);
 								}
 
 							}
 			
-						});
+						};
 
 					  }
 
@@ -270,9 +333,9 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 					//check calendar format
 
 
-
+					
 					//check omitted tasks
-
+					console.log('checking unsynced tasks')
 					const files = this.app.vault.getFiles()
 					files.forEach(async (v, i) => {
 						if(v.extension == "md"){

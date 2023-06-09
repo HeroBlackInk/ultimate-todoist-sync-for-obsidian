@@ -141,7 +141,12 @@ export class TodoistRestAPI  {
         const task = await api.getTask(taskId);
         return task;
         } catch (error) {
-        throw new Error(`Error updating task: ${error.message}`);
+          if (error.response && error.response.status) {
+            const statusCode = error.response.status;
+            throw new Error(`Error retrieving task. Status code: ${statusCode}`);
+          } else {
+            throw new Error(`Error retrieving task: ${error.message}`);
+          }
         }
     }
 

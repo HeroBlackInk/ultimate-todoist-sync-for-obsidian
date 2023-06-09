@@ -419,18 +419,41 @@ export class FileOperation   {
     }
 
     //search filepath by taskid in vault
-    async searchFilepathsByTaskidInVault(tasiId:string){
-        let filepaths = []
+    async searchFilepathsByTaskidInVault(taskId:string){
+        console.log(`preprare to search task ${taskId}`)
         const files = await this.getAllFilesInTheVault()
-        files.forEach(async(file, index, array)=>{
-            const fileContent = await this.app.vault.read(file)
-            if(fileContent.includes(tasiId)){
-                filepath.push(file.path)
+        //console.log(files)
+        const tasks = files.map(async (file) => {
+            if (!this.isMarkdownFile(file.path)) {
+                return;
             }
-        })
-        return(filepaths)
+            const fileContent = await this.app.vault.cachedRead(file);
+            if (fileContent.includes(taskId)) {
+                return file.path;
+            }
+        });
+    
+        const results = await Promise.all(tasks);
+        const filePaths = results.filter((filePath) => filePath !== undefined);
+        return filePaths[0] || null;
+        //return filePaths || null
     }
 
+
+    isMarkdownFile(filename:string) {
+        // 获取文件名的扩展名
+        let extension = filename.split('.').pop();
+      
+        // 将扩展名转换为小写（Markdown文件的扩展名通常是.md）
+        extension = extension.toLowerCase();
+      
+        // 判断扩展名是否为.md
+        if (extension === 'md') {
+          return true;
+        } else {
+          return false;
+        }
+      }
 
 
 

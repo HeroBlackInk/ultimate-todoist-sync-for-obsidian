@@ -149,6 +149,9 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 
 		}))
 */
+
+
+/* 使用其他文件管理器移动，obsidian触发了删除事件，删除了所有的任务
 		//监听删除事件，当文件被删除后，读取frontMatter中的tasklist,批量删除
 		this.registerEvent(this.app.metadataCache.on('deleted', async(file,prevCache) => {
 			try{
@@ -180,6 +183,8 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 			
 			
 		}));
+*/
+
 
 		//监听 rename 事件,更新 task data 中的 path
 		this.registerEvent(this.app.vault.on('rename', async (file,oldpath) => {

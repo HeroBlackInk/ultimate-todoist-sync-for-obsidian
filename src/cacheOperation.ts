@@ -60,9 +60,25 @@ export class CacheOperation   {
         
     }
 
+    async deleteTaskIdFromMetadata(filepath:string,taskId:string){
+        console.log(filepath)
+        const metadata = await this.getFileMetadata(filepath)
+        console.log(metadata)
+        const newTodoistTasks = metadata.todoistTasks.filter(function(element){
+            return element !== taskId
+        })
+        const newTodoistCount = metadata.todoistCount - 1
+        let newMetadata = {}
+        newMetadata.todoistTasks = newTodoistTasks
+        newMetadata.todoistCount = newTodoistCount
+        console.log(`new metadata ${newMetadata}`)
+        
+
+    }
+
 
     //Check errors in filemata where the filepath is incorrect.
-    async checkFileMetada(){
+    async checkFileMetadata(){
         const metadatas =  await this.getFileMetadatas()
         for (const key in metadatas) {
             const value = metadatas[key];
@@ -76,10 +92,16 @@ export class CacheOperation   {
             let file = this.app.vault.getAbstractFileByPath(filepath)
             if(!file){
                 //search new filepath
-                console.log('file is not exist') 
+                console.log(`file ${filepath} is not exist`) 
                 const todoistId1 = value.todoistTasks[0]
+                console.log(todoistId1)
                 const searchResult = await this.plugin.fileOperation.searchFilepathsByTaskidInVault(todoistId1)
+                console.log(`new file path is`)
                 console.log(searchResult)
+
+                //update metadata
+                await this.updateRenamedFilePath(filepath,searchResult)
+                this.plugin.saveSettings()
 
             }
 
@@ -419,7 +441,7 @@ export class CacheOperation   {
                     return obj;
                 }
             })
-            console.log(newTasks)
+            //console.log(newTasks)
             await this.saveTasksToCache(newTasks)
 
             //update filepath
