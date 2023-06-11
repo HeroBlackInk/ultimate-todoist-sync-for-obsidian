@@ -76,20 +76,33 @@ export class CacheOperation   {
 
     }
 
+    //delete filepath from filemetadata
+    async deleteFilepathFromMetadata(filepath:string){
+        Reflect.deleteProperty(this.plugin.settings.fileMetadata, filepath);
+        this.plugin.saveSettings()
+        console.log(`${filepath} is deleted from file metadatas.`)
+    }
+
 
     //Check errors in filemata where the filepath is incorrect.
     async checkFileMetadata(){
         const metadatas =  await this.getFileMetadatas()
         for (const key in metadatas) {
+            let filepath = key
             const value = metadatas[key];
-            if(!value.todoistTasks){
+            let file = this.app.vault.getAbstractFileByPath(key)
+            if(!file && value.todoistTasks.length === 0){
+                console.log(`${key} is not existed and metadata is empty.`)
+                await this.deleteFilepathFromMetadata(key)
+                continue
+            }
+            if(value.todoistTasks.length === 0){
                 //todo 
                 //delelte empty metadata
-                return
+                continue
             }
-            let filepath = key
             //check if file exist
-            let file = this.app.vault.getAbstractFileByPath(filepath)
+            
             if(!file){
                 //search new filepath
                 console.log(`file ${filepath} is not exist`) 
