@@ -20,6 +20,7 @@ export interface UltimateTodoistSyncSettings {
 	fileMetadata:any;
 	enableFullVaultSync: boolean;
 	statistics: any;
+	debugMode:boolean;
 }
 
 
@@ -32,6 +33,7 @@ export const DEFAULT_SETTINGS: UltimateTodoistSyncSettings = {
 	fileMetadata:{},
 	enableFullVaultSync:false,
 	statistics:{},
+	debugMode:false,
 	//mySetting: 'default',
 	//todoistTasksFilePath: 'todoistTasks.json'
 
@@ -363,6 +365,19 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 
 			})
 		);
+
+		new Setting(containerEl)
+			.setName('Debug Mode')
+			.setDesc('After enabling this option, all log information will be output to the console, which can help check for errors.')
+			.addToggle(component => 
+				component
+						.setValue(this.plugin.settings.debugMode)
+						.onChange((value)=>{
+							this.plugin.settings.debugMode = value
+							this.plugin.saveSettings()						
+						})
+						
+				)
 
 		new Setting(containerEl)
 			.setName('Backup Todoist Data')

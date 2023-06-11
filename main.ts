@@ -417,7 +417,10 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 					//console.log(`filename is ${fileName}`)
 			if(this.lastLines.has(fileName as string) && line !== this.lastLines.get(fileName as string)){
 				const lastLine = this.lastLines.get(fileName as string)
-				//console.log('Line changed!', `current line is ${line}`, `last line is ${lastLine}`);
+				if(this.settings.debugMode){
+					console.log('Line changed!', `current line is ${line}`, `last line is ${lastLine}`);
+				}
+
 
 				// 执行你想要的操作
 				const lastLineText = view.editor.getLine(lastLine as number)
@@ -547,9 +550,15 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 			await new Promise(resolve => setTimeout(resolve, 5000));
 
 			const filesToSync = this.settings.fileMetadata;
-			//console.log(filesToSync)
+			if(this.settings.debugMode){
+				console.log(filesToSync)
+			}
+
 			for (let fileKey in filesToSync) {
-				//console.log(fileKey)
+				if(this.settings.debugMode){
+					console.log(fileKey)
+				}
+
 				if (!await this.checkAndHandleSyncLock()) return;
 				try {
 					await this.todoistSync.fullTextNewTaskCheck(fileKey);
