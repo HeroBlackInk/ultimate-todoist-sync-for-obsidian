@@ -441,15 +441,12 @@ export class TaskParser   {
           }
           let utcDateString = utcTimeString;
           let dateObj = new Date(utcDateString); // 将UTC格式字符串转换为Date对象
-          let localDateString = dateObj.toLocaleString(); // 将Date对象转换为本地时间字符串
-          let localDateObj = new Date(localDateString);
-          let year = localDateObj.getFullYear();
-          let month = (localDateObj.getMonth() + 1).toString().padStart(2, '0');
-          let date = localDateObj.getDate().toString().padStart(2, '0');
-          let hours = localDateObj.getHours().toString().padStart(2, '0');
-          let minutes = localDateObj.getMinutes().toString().padStart(2, '0');
-          let result = `${year}-${month}-${date}`;
-          return(result);
+          let year = dateObj.getFullYear();
+          let month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+          let date = dateObj.getDate().toString().padStart(2, '0');
+          let localDateString = `${year}-${month}-${date}`;
+          return localDateString;
+          return(localDateString);
         } catch (error) {
           console.error(`Error extracting date from string '${utcTimeString}': ${error}`);
           return null;

@@ -694,19 +694,19 @@ export class TodoistSync  {
             console.log(e)
             console.log(typeof e.extra_data.last_due_date === 'undefined')
             if(!(typeof e.extra_data.last_due_date === 'undefined')){
-                console.log(`prepare update dueDate`)
+                //console.log(`prepare update dueDate`)
                 await this.syncUpdatedTaskDueDateToObsidian(e)
 
             }
 
             if(!(typeof e.extra_data.last_content === 'undefined')){
-                console.log(`prepare update content`)
+                //console.log(`prepare update content`)
                 await this.syncUpdatedTaskContentToObsidian(e)
             }
 
             //await this.plugin.fileOperation.syncUpdatedTaskToTheFile(e)
             //还要修改cache中的数据
-            new Notice(`Task ${e.object_id} is updated.`)
+            //new Notice(`Task ${e.object_id} is updated.`)
             processedEvents.push(e)
         }
     
@@ -726,6 +726,7 @@ export class TodoistSync  {
         this.plugin.fileOperation.syncUpdatedTaskContentToTheFile(e)
         const content = e.extra_data.content
         this.plugin.cacheOperation.modifyTaskToCacheByID(e.object_id,{content})
+        new Notice(`The content of Task ${e.parent_item_id} has been modified.`)
 
     }
 
@@ -734,6 +735,7 @@ export class TodoistSync  {
         //修改cache的日期，要使用todoist的格式
         const due = await this.plugin.todoistRestAPI.getTaskDueById(e.object_id)
         this.plugin.cacheOperation.modifyTaskToCacheByID(e.object_id,{due})
+        new Notice(`The due date of Task ${e.parent_item_id} has been modified.`)
 
     }
 
