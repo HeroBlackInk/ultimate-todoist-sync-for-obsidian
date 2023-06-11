@@ -91,12 +91,12 @@ export class CacheOperation   {
             let filepath = key
             const value = metadatas[key];
             let file = this.app.vault.getAbstractFileByPath(key)
-            if(!file && value.todoistTasks.length === 0){
+            if(!file && (value.todoistTasks?.length === 0 || !value.todoistTasks)){
                 console.log(`${key} is not existed and metadata is empty.`)
                 await this.deleteFilepathFromMetadata(key)
                 continue
             }
-            if(value.todoistTasks.length === 0){
+            if(value.todoistTasks?.length === 0 || !value.todoistTasks){
                 //todo 
                 //delelte empty metadata
                 continue

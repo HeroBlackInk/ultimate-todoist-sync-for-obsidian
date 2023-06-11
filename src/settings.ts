@@ -222,6 +222,11 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 					return
 				}
 
+				//reinstall plugin
+				if(this.plugin.settings.fileMetadata = {}){
+					
+				}
+
 
 				//check file metadata
 				console.log('checking file metadata')
