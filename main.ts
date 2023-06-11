@@ -266,8 +266,11 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 			id: 'set-default-project-for-todoist-task-in-the-current-file',
 			name: 'Set default project for todoist task in the current file',
 			editorCallback: (editor: Editor, view: MarkdownView) => {
+				if(!view){
+					return
+				}
 				const filepath = view.file.path
-				new SetDefalutProjectInTheFilepathModal(this.app,this,this.cacheOperation,filepath)
+				new SetDefalutProjectInTheFilepathModal(this.app,this,filepath)
 				
 			}
 		});
