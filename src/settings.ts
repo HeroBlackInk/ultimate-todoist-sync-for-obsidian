@@ -29,7 +29,7 @@ export const DEFAULT_SETTINGS: UltimateTodoistSyncSettings = {
 	apiInitialized:false,
 	defaultProjectName:"Inbox",
 	automaticSynchronizationInterval: 300, //default aync interval 300s
-	todoistTasksData:{},
+	todoistTasksData:{"projects":[],"tasks":[],"events":[]},
 	fileMetadata:{},
 	enableFullVaultSync:false,
 	statistics:{},
@@ -223,9 +223,7 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 				}
 
 				//reinstall plugin
-				if(this.plugin.settings.fileMetadata = {}){
-					
-				}
+
 
 
 				//check file metadata

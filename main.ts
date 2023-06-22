@@ -22,19 +22,24 @@ import { SetDefalutProjectInTheFilepathModal } from 'src/modal';
 
 export default class UltimateTodoistSyncForObsidian extends Plugin {
 	settings: UltimateTodoistSyncSettings;
-	todoistRestAPI:TodoistRestAPI;
-	todoistSyncAPI:TodoistSyncAPI;
-	taskParser:TaskParser;
-	cacheOperation:CacheOperation;
-	fileOperation:FileOperation;
-	todoistSync:TodoistSync;
+    todoistRestAPI: TodoistRestAPI | undefined;
+    todoistSyncAPI: TodoistSyncAPI | undefined;
+    taskParser: TaskParser | undefined;
+    cacheOperation: CacheOperation | undefined;
+    fileOperation: FileOperation | undefined;
+    todoistSync: TodoistSync | undefined;
 	lastLines: Map<string,number>;
 	statusBar;
 	syncLock: Boolean;
 
 	async onload() {
 
-		await this.loadSettings();
+		const isSettingsLoaded = await this.loadSettings();
+
+		if(!isSettingsLoaded){
+			new Notice('Settings failed to load.Please reload the ultimate todoist sync plugin.');
+			return;
+		}
 		// This adds a settings tab so the user can configure various aspects of the plugin
 		this.addSettingTab(new UltimateTodoistSyncSettingTab(this.app, this));
 		if (!this.settings.todoistAPIToken) {
@@ -290,11 +295,28 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		try {
+			const data = await this.loadData();
+			this.settings = Object.assign({}, DEFAULT_SETTINGS, data);
+			return true; // 返回 true 表示设置加载成功
+		} catch (error) {
+			console.error('Failed to load data:', error);
+			return false; // 返回 false 表示设置加载失败
+		}
 	}
 
 	async saveSettings() {
-		this.saveData(this.settings);
+		try {
+			// 验证设置是否存在且不为空
+			if (this.settings && Object.keys(this.settings).length > 0) {
+				await this.saveData(this.settings);
+			} else {
+				console.error('Settings are empty or invalid, not saving to avoid data loss.');
+			}
+		} catch (error) {
+			// 打印或处理错误
+			console.error('Error saving settings:', error);
+		}
 	}
 
 	async modifyTodoistAPI(api:string){
@@ -309,20 +331,20 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 
 		//initialize data read and write object
 		this.cacheOperation = new CacheOperation(this.app, this)
-		const ini = await this.cacheOperation.saveProjectsToCache()
+		const isProjectsSaved = await this.cacheOperation.saveProjectsToCache()
 
 
 
-		if(!ini){
-			this.todoistRestAPI === undefined
-			this.todoistSyncAPI === undefined
-			this.taskParser === undefined
-			this.taskParser ===undefined
-			this.cacheOperation ===undefined
-			this.fileOperation ===undefined
-			this.todoistSync === undefined
+		if(!isProjectsSaved){
+			this.todoistRestAPI = undefined
+			this.todoistSyncAPI = undefined
+			this.taskParser = undefined
+			this.taskParser = undefined
+			this.cacheOperation = undefined
+			this.fileOperation = undefined
+			this.todoistSync = undefined
 			new Notice(`Ultimate Todoist Sync plugin initialization failed, please check the todoist api`)
-			return false		
+			return;		
 		}
 
 		if(!this.settings.initialized){
@@ -347,15 +369,12 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 			}catch(error){
 				console.log(`error creating user data folder: ${error}`)
 				new Notice(`error creating user data folder`)
-				return false
+				return;
 			}
 
 
 			//初始化settings
-			this.settings.todoistTasksData.tasks = []
-			this.settings.todoistTasksData.events = []
 			this.settings.initialized = true
-			this.settings.automaticSynchronizationInterval = 300
 			this.saveSettings()
 			new Notice(`Ultimate Todoist Sync initialization successful. Todoist data has been backed up.`)
 
