@@ -112,7 +112,7 @@ By using this plugin, you agree to be bound by all the terms of this disclaimer.
 
 ## Contributing
 
-Contributions are welcome! If you'd like to contribute to the plugin, please read our [contributing guidelines](CONTRIBUTING.md) and submit a pull request.
+Contributions are welcome! If you'd like to contribute to the plugin, please feel free to submit a pull request.
 
 
 ## License
