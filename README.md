@@ -1,6 +1,7 @@
 # Ultimate Todoist Sync for Obsidian
 
-It should be the best Obsidian plugin for synchronizing Todoist tasks so far.
+The Ultimate Todoist Sync plugin automatically creates tasks in Todoist and synchronizes task state between Obsidian and Todoist.
+
 
 ## Demo
 
@@ -10,10 +11,11 @@ It should be the best Obsidian plugin for synchronizing Todoist tasks so far.
 ### Settings page
 <img src="/attachment/settings.png" width="500">
 
+
 ## Features 
 
 ### 
-|                         | Sync from Obsidian to Todoist | Sync from Todoist to Obsidian | Description |
+| Feature                 | Sync from Obsidian to Todoist | Sync from Todoist to Obsidian | Description |
 |-------------------------|-------------------------------|-------------------------------|-------------|
 | Add task                | ✅                            | 🔜                           |             |
 | Delete task             | ✅                            | 🔜                           |             |
@@ -33,20 +35,38 @@ It should be the best Obsidian plugin for synchronizing Todoist tasks so far.
 | Task notes              | 🔜                            | ✅                           |   Currently, task notes/comments only support one-way synchronization from Todoist to Obsidian.          |
 
 
-
-
-
-
 ## Installation
+
+### From within Obsidian
+
+From Obsidian v1.3.5+, you can activate this plugin within Obsidian by doing the following:
+
+1. Open Obsidian's `Settings` window
+2. Select the `Community plugins` tab on the left
+3. Make sure `Restricted mode` is **off**
+4. Click `Browse` next to `Community Plugins`
+5. Search for and click on `Ultimate Todoist Sync`
+6. Click `Install`
+7. Once installed, close the `Community Plugins` window
+8. Under `Installed Plugins`, activate the `Ultimate Todoist Sync` plugin
+
+You can update the plugin following the same procedure, clicking `Update` instead of `Install`
+
+### Manually
+
+If you would rather install the plugin manually, you can do the following:
 
 1. Download the latest release of the plugin from the [Releases](https://github.com/HeroBlackInk/ultimate-todoist-sync-for-obsidian/releases) page.
 2. Extract the downloaded zip file and copy the entire folder to your Obsidian plugins directory.
 3. Enable the plugin in the Obsidian settings.
 
+
 ## Configuration
 
-1. In the Obsidian settings, click on the "Plugins" tab and then click the gear icon next to the "Ultimate Todoist Sync for Obsidian" plugin.
-2. Enter the Todoist API..
+1. Open Obsidian's `Settings` window
+2. Select the `Community plugins` tab on the left
+3. Under `Installed plugins`, click the gear icon next to the `Ultimate Todoist Sync` plugin
+4. Enter your Todoist API token
 
 
 ## Settings
@@ -57,11 +77,10 @@ New tasks will be added to the default project, and you can change the default p
 3. Full vault sync
 By enabling this option, the plugin will automatically add `#todoist` to all tasks, which will modify all files in the vault.
 
+
 ## Usage
 
-
 ### Task format
-
 
 | Syntax | Description | Example |
 | --- | --- | --- |
@@ -82,7 +101,6 @@ You can see the current file's default project in the status bar at the bottom r
 <img src="/attachment/statusBar.png" width="500">
 
 
-
 ## Disclaimer
 
 This plugin is for learning purposes only. The author makes no representations or warranties of any kind, express or implied, about the accuracy, completeness, or usefulness of this plugin and shall not be liable for any losses or damages resulting from the use of this plugin.
@@ -91,9 +109,11 @@ The author shall not be responsible for any loss or damage, including but not li
 
 By using this plugin, you agree to be bound by all the terms of this disclaimer. If you have any questions, please contact the author.
 
+
 ## Contributing
 
 Contributions are welcome! If you'd like to contribute to the plugin, please read our [contributing guidelines](CONTRIBUTING.md) and submit a pull request.
+
 
 ## License
 
