@@ -766,6 +766,25 @@ export class TodoistSync  {
         }
     }
 
+    async syncNewTasksToObsidian(unSynchronizedEvents){
+        console.log("starting synchronize tasks from todoist to obsidian")
+        try {
+            const processedEvents = []
+            for (const e of unSynchronizedEvents) {
+                console.log(e)
+                await this.plugin.fileOperation?.syncNewTaskToTheFile(e)
+                new Notice(`Task ${e.object_id} is added.`)
+                processedEvents.push(e)
+            }
+
+            await this.plugin.cacheOperation.appendEventsToCache(processedEvents)
+            this.plugin.saveSettings()
+        } catch (error) {
+            console.error('同步任务状态时出错：', error)
+        }
+        console.log("synchronize tasks from todoist to obsidian finished")
+    }
+
 
     async syncTodoistToObsidian(){
         try{
@@ -796,6 +815,7 @@ export class TodoistSync  {
 
             //Items updated (only changes to content, description, due_date and responsible_uid)
             const unsynchronized_item_updated_events = this.plugin.todoistSyncAPI.filterActivityEvents(result2, { event_type: 'updated', object_type: 'item' })
+            const unsynchronized_item_added_events = this.plugin.todoistSyncAPI.filterActivityEvents(result2, { event_type: 'added', object_type: 'item' })
 
             const unsynchronized_notes_added_events = this.plugin.todoistSyncAPI.filterActivityEvents(result3, { event_type: 'added', object_type: 'note' })
             const unsynchronized_project_events = this.plugin.todoistSyncAPI.filterActivityEvents(result1, { object_type: 'project' })
@@ -808,6 +828,7 @@ export class TodoistSync  {
             await this.syncCompletedTaskStatusToObsidian(unsynchronized_item_completed_events)
             await this.syncUncompletedTaskStatusToObsidian(unsynchronized_item_uncompleted_events)
             await this.syncUpdatedTaskToObsidian(unsynchronized_item_updated_events)
+            await this.syncNewTasksToObsidian(unsynchronized_item_added_events)
             await this.syncAddedTaskNoteToObsidian(unsynchronized_notes_added_events)
             if(unsynchronized_project_events.length){
                 console.log('New project event')
