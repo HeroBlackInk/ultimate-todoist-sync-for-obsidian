@@ -178,25 +178,21 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 		);
 		*/
 
-		new Setting(containerEl)
-			.setName('Default Project')
-			.setDesc('New tasks are automatically synced to the default project. You can modify the project here.')
-			.addDropdown(component => 
-				component
-						.addOption(this.plugin.settings.defaultProjectId,this.plugin.settings.defaultProjectName)
-						.addOptions(myProjectsOptions)
-						.onChange((value)=>{
-							this.plugin.settings.defaultProjectId = value
-							this.plugin.settings.defaultProjectName = this.plugin.cacheOperation.getProjectNameByIdFromCache(value)
-							this.plugin.saveSettings()
-							
-							
-						})
-						
-				)
-
+        new Setting(containerEl)
+            .setName('Default Project')
+            .setDesc('New tasks are automatically synced to the default project. You can modify the project here.')
+            .addDropdown(component =>
+                component
                     .addOptions(myProjectsOptions)
                     .setValue(this.plugin.settings.defaultProjectId)
+                    .onChange((value) => {
+                        this.plugin.settings.defaultProjectId = value
+                        this.plugin.settings.defaultProjectName = this.plugin.cacheOperation.getProjectNameByIdFromCache(value)
+                        this.plugin.saveSettings()
+
+
+                    })
+            )
 
 		
 		new Setting(containerEl)
