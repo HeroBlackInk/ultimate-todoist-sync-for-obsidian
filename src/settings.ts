@@ -62,7 +62,7 @@ export const DEFAULT_SETTINGS: UltimateTodoistSyncSettings = {
     pullTemplateUseFolder: "",
     pullTemplateUsePath: "",
     pullTemplateUseForProjects: pullTaskNotesMode.taskNote,
-    pullTemplateTaskNotesFormat: "YYYY-MM-DD",
+    pullTemplateTaskNotesFormat: "{{date|YYYY-MM-DD}}_{{title}}",
     pullDailyNoteAppendMode: true,
     pullDailyNoteInsertAfterText: ""
 }
@@ -512,7 +512,7 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 						href: "https://momentjs.com/docs/#/displaying/format/",
 						text: "moment.js",
 					}),
-					' is used to format the date.'
+					' is used to format the date. Available variables are: {{date}},{{date|format}},{{title}},{{TITLE}}'
 				)
                 new Setting(containerEl)
                     .setName('Task notes format')

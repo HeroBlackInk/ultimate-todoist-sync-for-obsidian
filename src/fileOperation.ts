@@ -421,12 +421,34 @@ export class FileOperation   {
                 }
             } else {
                 // Create a new file from template
-                let tmpFile = moment().format(this.plugin.settings.pullTemplateTaskNotesFormat) + ".md"
+                let taskTitle = taskObject.content.replace(/[\[\]/\\?%*:|"<>.]/g, '-')
+                let tmpFile = this.plugin.settings.pullTemplateTaskNotesFormat
+                    .replace("{{title}}", taskTitle)
+                    .replace("{{TITLE}}",taskTitle.toUpperCase())
+                const dateFormat = this.plugin.settings.pullTemplateTaskNotesFormat.match(/\{\{date\|([\[\]\s\w.:-]*)}}/)
+                console.log(dateFormat)
+                if (dateFormat != null && dateFormat.length > 0) {
+                    // remove the date format from the given filename
+                    tmpFile = tmpFile.replace("|" + dateFormat[1], "")
+                    tmpFile = tmpFile.replace("{{date}}", moment().format(dateFormat[1].trim()))
+                }
+                if(!tmpFile.endsWith(".md")) {
+                    tmpFile += ".md"
+                }
+
                 if (useThisFolder != "") {
                     tmpFile = useThisFolder + "/" + tmpFile
                 }
-                const file = await this.app.vault.create(tmpFile, template)
-                filepath = file.path
+                console.log(`Creating new file from template: ${tmpFile}`)
+
+                try {
+                    const file = await this.app.vault.create(tmpFile, template)
+                    filepath = file.path
+                } catch (e) {
+                    console.log(`Error creating new file from template: ${e}`)
+                    await this.app.vault.read(<TFile>this.app.vault.getAbstractFileByPath(tmpFile))
+                    filepath = tmpFile
+                }
             }
         }
 
@@ -439,8 +461,6 @@ export class FileOperation   {
 
         const lines = content.split('\n')
         let modified = false
-
-        const taskObject = await this.plugin.todoistRestAPI.getTaskById(taskId);
 
         const fromTaskObjectToTask = (taskObject) => {
             let text_with_out_link = `- [ ] ${taskObject.content}`
