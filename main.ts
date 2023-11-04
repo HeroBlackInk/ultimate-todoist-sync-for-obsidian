@@ -489,7 +489,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 			if (target.checked) {
 				this.todoistSync.closeTask(taskId);
 			} else {
-				this.todoistSync.repoenTask(taskId);
+				this.todoistSync.reopenTask(taskId);
 			}
 		} else {
 			//console.log('未找到 todoist_id');

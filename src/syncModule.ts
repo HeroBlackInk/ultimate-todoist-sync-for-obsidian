@@ -563,7 +563,7 @@ export class TodoistSync  {
     }
 
     //open task
-    async repoenTask(taskId:string) : Promise<void>{
+    async reopenTask(taskId:string) : Promise<void>{
         try {
             await this.plugin.todoistRestAPI.OpenTask(taskId)
             await this.plugin.fileOperation.uncompleteTaskInTheFile(taskId)
