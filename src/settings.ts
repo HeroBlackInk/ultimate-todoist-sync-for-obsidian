@@ -7,10 +7,10 @@ interface MyProject {
   }
 
 export enum pullTargetMode {
-    DailyNote="daily", Template="template"
+	DailyNote = "daily", Template = "template"
 }
 
-enum pullTaskNotesMode {
+export enum pullTaskNotesMode {
     projectNote, taskNote
 }
 
@@ -527,34 +527,33 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
                             })
                     })
             }
-        } else {
-            new Setting(containerEl)
-                .setName('Append Mode')
-                .setDesc('Append tasks to daily note at the bottom of the file.')
-                .addToggle(component => {
-                    component
-                        .setValue(this.plugin.settings.pullDailyNoteAppendMode)
-                        .onChange((value) => {
-                            this.plugin.settings.pullDailyNoteAppendMode = value
-                            this.plugin.saveSettings()
-                            this.display()
-                        })
-                })
-            if (!this.plugin.settings.pullDailyNoteAppendMode) {
-                new Setting(containerEl)
-                    .setName('Insert After')
-                    .setDesc('Insert tasks after given text in Daily Note. If not text can be found, it falls back to append mode.')
-                    .addText((text) => {
-                        text
-                            .setPlaceholder('Enter text')
-                            .setValue(this.plugin.settings.pullDailyNoteInsertAfterText)
-                            .onChange(async (value) => {
-                                this.plugin.settings.pullDailyNoteInsertAfterText = value;
-                                this.plugin.saveSettings()
-                            })
-                    })
-            }
         }
+		new Setting(containerEl)
+			.setName('Append Mode')
+			.setDesc('Append tasks at the bottom of the note.')
+			.addToggle(component => {
+				component
+					.setValue(this.plugin.settings.pullDailyNoteAppendMode)
+					.onChange((value) => {
+						this.plugin.settings.pullDailyNoteAppendMode = value
+						this.plugin.saveSettings()
+						this.display()
+					})
+			})
+		if (!this.plugin.settings.pullDailyNoteAppendMode) {
+			new Setting(containerEl)
+				.setName('Insert After')
+				.setDesc('Insert tasks after given text in note. If not text can be found, it falls back to append mode.')
+				.addText((text) => {
+					text
+						.setPlaceholder('Enter text')
+						.setValue(this.plugin.settings.pullDailyNoteInsertAfterText)
+						.onChange(async (value) => {
+							this.plugin.settings.pullDailyNoteInsertAfterText = value;
+							this.plugin.saveSettings()
+						})
+				})
+		}
     }
 }
 

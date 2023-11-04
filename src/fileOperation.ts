@@ -1,5 +1,6 @@
 
-import {pullTargetMode} from "./settings";
+import {pullTargetMode, pullTaskNotesMode} from "./settings";
+import moment from "moment";
 import {createDailyNote, getAllDailyNotes, getDailyNote} from "obsidian-daily-notes-interface";
 import UltimateTodoistSyncForObsidian from "../main";
 export class FileOperation   {
@@ -330,7 +331,12 @@ export class FileOperation   {
     async syncNewTaskToTheFile(evt:Object) {
         console.log(`sync new task to the file`, evt)
         const taskId = evt.object_id
-        const text = evt.extra_data.content
+        const taskObject = await this.plugin.todoistRestAPI.getTaskById(taskId);
+
+        const myProjectsOptions = this.plugin.settings.todoistTasksData?.projects?.reduce((obj, item) => {
+            obj[(item.id).toString()] = item.name;
+            return obj;
+        }, {});
 
         const currentTask = await this.plugin.cacheOperation.loadTaskFromCacheyID(taskId)
         let filepath = ""
@@ -349,9 +355,52 @@ export class FileOperation   {
             filepath = file.path
             console.log(`Daily note used: ${filepath}`)
         } else if (this.plugin.settings.pullTargetMode == pullTargetMode.Template) {
-            // TODO Implement template mode
-            console.error("Not implemented yet")
+            let templatePath = this.plugin.settings.pullTemplateUsePath
+            if(templatePath.startsWith("/")){
+                templatePath = templatePath.slice(1,templatePath.length)
+            }
+            if (!templatePath.endsWith(".md")) {
+                templatePath += ".md"
+            }
+            const template = await this.app.vault.read(<TFile>this.app.vault.getAbstractFileByPath(templatePath))
+            let useThisFolder = this.plugin.settings.pullTemplateUseFolder
+            if(useThisFolder.startsWith("/")){
+                useThisFolder = useThisFolder.slice(1,useThisFolder.length)
+            }
+            if(useThisFolder.endsWith("/")){
+                useThisFolder = useThisFolder.slice(0,useThisFolder.length-1)
+            }
+            if(this.plugin.settings.pullTemplateUseForProjects == pullTaskNotesMode.projectNote) {
+                // Create a file for project from template
+                let projectTitle = myProjectsOptions[taskObject.projectId]
+                if(projectTitle == undefined){
+                    projectTitle = "Unknown"
+                }
+                let path =  projectTitle + ".md"
+                if (useThisFolder != "") {
+                    path = useThisFolder + "/" + path
+                }
+                try {
+                    const file = await this.app.vault.create(path, template)
+                    filepath = file.path
+                } catch (e) {
+                    console.log(`Error creating projects note: ${e}`)
+                    filepath = path
+                }
+            } else {
+                // Create a new file from template
+                let tmpFile = moment().format(this.plugin.settings.pullTemplateTaskNotesFormat) + ".md"
+                if (useThisFolder != "") {
+                    tmpFile = useThisFolder + "/" + tmpFile
+                }
+                const file = await this.app.vault.create(tmpFile, template)
+                filepath = file.path
+            }
         }
+
+        taskObject.path = filepath
+        new Notice(`new task ${taskObject.content} id is ${taskObject.id}`)
+        this.plugin.cacheOperation.appendTaskToCache(taskObject)
 
         const file = this.app.vault.getAbstractFileByPath(filepath)
         const content = await this.app.vault.read(file)
@@ -366,10 +415,11 @@ export class FileOperation   {
             if (taskObject.due != undefined) {
                 text_with_out_link += ` 📅${taskObject.due.date}`
             }
-            text_with_out_link += ` %%[todoist_id:: ${taskId}]%% #todoist`;
+            text_with_out_link += " #todoist"
 
             const link = `[link](${taskObject.url})`
-            const newLine = this.plugin.taskParser.addTodoistLink(text_with_out_link,link)
+            let newLine = this.plugin.taskParser.addTodoistLink(text_with_out_link,link)
+            newLine += ` %%[todoist_id:: ${taskId}]%%`;
             return newLine
         }
 
@@ -393,7 +443,8 @@ export class FileOperation   {
 
 
         // append to the end of file
-        if(this.plugin.settings.pullTargetMode == pullTargetMode.DailyNote && this.plugin.settings.pullDailyNoteAppendMode) {
+        // handles also the case, if the given text cannot be found and the task will not be thrown away
+        if(this.plugin.settings.pullDailyNoteAppendMode || !modified){
             const newLine = fromTaskObjectToTask(taskObject)
             lines.push(newLine);
             if(taskObject.description != undefined && taskObject.description != "") {
@@ -409,6 +460,10 @@ export class FileOperation   {
             await this.app.vault.modify(file, newContent)
         }
 
+        const metadata = await this.plugin.cacheOperation.getFileMetadata(filepath)
+        if(!metadata){
+            await this.plugin.cacheOperation.newEmptyFileMetadata(filepath)
+        }
     }
 
 
