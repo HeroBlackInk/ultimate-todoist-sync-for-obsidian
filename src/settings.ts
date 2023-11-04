@@ -438,9 +438,21 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
                         this.display()
                     })
             })
-        new Setting(containerEl)
+
+        const desc = document.createDocumentFragment();
+		desc.append('If daily Note is selected, all new tasks will be created in a daily note. This needs the ',
+			desc.createEl("a", {
+				href: "https://help.obsidian.md/Plugins/Daily+notes",
+				text: "daily notes core plugin",
+			}),
+			desc.createEl("br"),
+			'In template note, it uses a template to store the tasks.'
+		)
+
+
+		new Setting(containerEl)
             .setName('Select Mode')
-            .setDesc('If daily Note is selected, all new tasks will be created in a daily note. In template note, it uses a template to store the tasks.')
+            .setDesc(desc)
             .addDropdown(component => {
                 component
                     .addOption(pullTargetMode.DailyNote.valueOf(), "Daily note")
@@ -494,9 +506,17 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
                         })
                 })
             if (this.plugin.settings.pullTemplateUseForProjects != pullTaskNotesMode.projectNote) {
+				const desc = document.createDocumentFragment();
+				desc.append('Use the given format to create new notes for tasks. ',
+					desc.createEl("a", {
+						href: "https://momentjs.com/docs/#/displaying/format/",
+						text: "moment.js",
+					}),
+					' is used to format the date.'
+				)
                 new Setting(containerEl)
                     .setName('Task notes format')
-                    .setDesc('Use the given format to create new notes for tasks. <a href="https://momentjs.com/docs/#/displaying/format/" target="_blank">Moment.js</a> is used to format the date.')
+					.setDesc(desc)
                     .addText((text) => {
                         text
                             .setPlaceholder(this.plugin.settings.pullTemplateTaskNotesFormat)
