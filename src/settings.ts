@@ -6,8 +6,12 @@ interface MyProject {
 	name: string;
   }
 
-enum pullTargetMode {
-	DailyNote, Template
+export enum pullTargetMode {
+    DailyNote="daily", Template="template"
+}
+
+enum pullTaskNotesMode {
+    projectNote, taskNote
 }
 
 export interface UltimateTodoistSyncSettings {
@@ -31,28 +35,36 @@ export interface UltimateTodoistSyncSettings {
 	pullTemplateUsePath: string;
 	pullDailyNoteAppendMode: boolean;
 	pullDailyNoteInsertAfterText: string;
+    pullTemplateUseForProjects: pullTaskNotesMode;
+    pullTemplateTaskNotesFormat: string;
+    pullDailyNoteAppendMode: boolean;
+    pullDailyNoteInsertAfterText: string;
 }
 
 
 export const DEFAULT_SETTINGS: UltimateTodoistSyncSettings = {
-	initialized: false,
-	apiInitialized:false,
-	defaultProjectName:"Inbox",
-	automaticSynchronizationInterval: 300, //default aync interval 300s
-	todoistTasksData:{"projects":[],"tasks":[],"events":[]},
-	fileMetadata:{},
-	enableFullVaultSync:false,
-	statistics:{},
-	debugMode:false,
-	//mySetting: 'default',
-	//todoistTasksFilePath: 'todoistTasks.json'
-	pullFromProject: "Inbox",
-	pullFromProjectId: "",
-	pullTargetMode: pullTargetMode.DailyNote,
-	pullTemplateUseFolder: "",
-	pullTemplateUsePath: "",
-	pullDailyNoteAppendMode: true,
-	pullDailyNoteInsertAfterText: ""
+    defaultProjectId: "",
+    todoistAPIToken: "",
+    initialized: false,
+    apiInitialized: false,
+    defaultProjectName: "Inbox",
+    automaticSynchronizationInterval: 300, //default aync interval 300s
+    todoistTasksData: {"projects": [], "tasks": [], "events": []},
+    fileMetadata: {},
+    enableFullVaultSync: false,
+    statistics: {},
+    debugMode: false,
+    //mySetting: 'default',
+    //todoistTasksFilePath: 'todoistTasks.json'
+    pullFromProject: "Inbox",
+    pullFromProjectId: "",
+    pullTargetMode: pullTargetMode.DailyNote,
+    pullTemplateUseFolder: "",
+    pullTemplateUsePath: "",
+    pullTemplateUseForProjects: false,
+    pullTemplateTaskNotesFormat: "YYYY-MM-DD",
+    pullDailyNoteAppendMode: true,
+    pullDailyNoteInsertAfterText: ""
 }
 
 
@@ -413,91 +425,118 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 				})
 			);
 
-		containerEl.createEl('h2', {text: 'Pull from Todoist Settings'});
-		new Setting(containerEl)
-			.setName("Pull from project")
-			.setDesc("Pull tasks only from the given project.")
-			.addDropdown(component => {
-				component
-					.addOptions(myProjectsOptions)
-					.setValue(this.plugin.settings.pullFromProjectId)
-					.onChange((value) => {
-						this.plugin.settings.pullFromProjectId = value
-						this.plugin.settings.pullFromProject = this.plugin.cacheOperation.getProjectNameByIdFromCache(value)
-						this.plugin.saveSettings()
-						this.display()
-					})
-			})
-		new Setting(containerEl)
-			.setName('Use Daily Note')
-			.setDesc('Pull tasks to daily note.')
-			.addDropdown(component => {
-				component
-					.addOption('false', 'No')
-					.addOption('true', 'Yes')
-					.setValue(this.plugin.settings.pullTargetMode == pullTargetMode.DailyNote ? 'true' : 'false')
-					.onChange((value) => {
-						this.plugin.settings.pullTargetMode = value == 'true' ? pullTargetMode.DailyNote : pullTargetMode.Template
-						this.plugin.saveSettings()
-						this.display()
-					})
+        containerEl.createEl('h2', {text: 'Pull from Todoist Settings'});
+        new Setting(containerEl)
+            .setName("Pull from project")
+            .setDesc("Pull tasks only from the given project.")
+            .addDropdown(component => {
+                component
+                    .addOptions(myProjectsOptions)
+                    .setValue(this.plugin.settings.pullFromProjectId)
+                    .onChange((value) => {
+                        this.plugin.settings.pullFromProjectId = value
+                        this.plugin.settings.pullFromProject = this.plugin.cacheOperation.getProjectNameByIdFromCache(value)
+                        this.plugin.saveSettings()
+                        this.display()
+                    })
+            })
+        new Setting(containerEl)
+            .setName('Select Mode')
+            .setDesc('If daily Note is selected, all new tasks will be created in a daily note. In template note, it uses a template to store the tasks.')
+            .addDropdown(component => {
+                component
+                    .addOption(pullTargetMode.DailyNote.valueOf(), "Daily note")
+                    .addOption(pullTargetMode.Template.valueOf(), 'Template Note')
+                    .setValue(this.plugin.settings.pullTargetMode.valueOf())
+                    .onChange((value) => {
+                        this.plugin.settings.pullTargetMode = value == 'daily' ? pullTargetMode.DailyNote : pullTargetMode.Template
+                        this.plugin.saveSettings()
+                        this.display()
+                    })
 
-			})
+            })
 
-		if (this.plugin.settings.pullTargetMode == pullTargetMode.Template) {
-			new Setting(containerEl)
-				.setName('Path to folder')
-				.setDesc('Create new note in the given folder.')
-				.addText((text) =>
-					text
-						.setPlaceholder('Enter folder path')
-						.setValue(this.plugin.settings.pullTemplateUseFolder)
-						.onChange(async (value) => {
-							this.plugin.settings.pullTemplateUseFolder = value;
-							this.plugin.saveSettings()
-						})
-				)
+        if (this.plugin.settings.pullTargetMode == pullTargetMode.Template) {
+            new Setting(containerEl)
+                .setName('Path to folder')
+                .setDesc('Create new note in the given folder.')
+                .addText((text) =>
+                    text
+                        .setPlaceholder('Enter folder path')
+                        .setValue(this.plugin.settings.pullTemplateUseFolder)
+                        .onChange(async (value) => {
+                            this.plugin.settings.pullTemplateUseFolder = value;
+                            this.plugin.saveSettings()
+                        })
+                )
 
-			new Setting(containerEl)
-				.setName('Path to template')
-				.setDesc('Use the given path as template to create new note.')
-				.addText((text) => {
-					text
-						.setPlaceholder('Enter path')
-						.setValue(this.plugin.settings.pullTemplateUsePath)
-						.onChange(async (value) => {
-							this.plugin.settings.pullTemplateUsePath = value;
-							this.plugin.saveSettings()
-						})
-				})
-		} else {
-			new Setting(containerEl)
-				.setName('Append Mode')
-				.setDesc('Append tasks to daily note at the bottom of the file.')
-				.addToggle(component => {
-					component
-						.setValue(this.plugin.settings.pullDailyNoteAppendMode)
-						.onChange((value) => {
-							this.plugin.settings.pullDailyNoteAppendMode = value
-							this.plugin.saveSettings()
-							this.display()
-						})
-				})
-			if (!this.plugin.settings.pullDailyNoteAppendMode) {
-				new Setting(containerEl)
-					.setName('Insert After')
-					.setDesc('Insert tasks after given text in Daily Note. If not text can be found, it falls back to append mode.')
-					.addText((text) => {
-						text
-							.setPlaceholder('Enter text')
-							.setValue(this.plugin.settings.pullDailyNoteInsertAfterText)
-							.onChange(async (value) => {
-								this.plugin.settings.pullDailyNoteInsertAfterText = value;
-								this.plugin.saveSettings()
-							})
-					})
-			}
-		}
-	}
+            new Setting(containerEl)
+                .setName('Path to template')
+                .setDesc('Use the given path as template to create new note.')
+                .addText((text) => {
+                    text
+                        .setPlaceholder('Enter path')
+                        .setValue(this.plugin.settings.pullTemplateUsePath)
+                        .onChange(async (value) => {
+                            this.plugin.settings.pullTemplateUsePath = value;
+                            this.plugin.saveSettings()
+                        })
+                })
+
+            new Setting(containerEl)
+                .setName("Create one note for each project")
+                .setDesc("So all tasks from the same project will be in the same note, when created in Todoist. The note will be named the same as the projectname. \nOtherwise each task gets its own note.\n(Disabled, because note per task is not yet implemented.)")
+                .addToggle(component => {
+                    component
+                        .setValue(this.plugin.settings.pullTemplateUseForProjects == pullTaskNotesMode.projectNote)
+                        .onChange((value) => {
+                            this.plugin.settings.pullTemplateUseForProjects = value ? pullTaskNotesMode.projectNote : pullTaskNotesMode.taskNote
+                            this.plugin.saveSettings()
+                            this.display()
+                        })
+                })
+            if (this.plugin.settings.pullTemplateUseForProjects != pullTaskNotesMode.projectNote) {
+                new Setting(containerEl)
+                    .setName('Task notes format')
+                    .setDesc('Use the given format to create new notes for tasks. <a href="https://momentjs.com/docs/#/displaying/format/" target="_blank">Moment.js</a> is used to format the date.')
+                    .addText((text) => {
+                        text
+                            .setPlaceholder(this.plugin.settings.pullTemplateTaskNotesFormat)
+                            .setValue(this.plugin.settings.pullTemplateTaskNotesFormat)
+                            .onChange(async (value) => {
+                                this.plugin.settings.pullTemplateTaskNotesFormat = value;
+                                this.plugin.saveSettings()
+                            })
+                    })
+            }
+        } else {
+            new Setting(containerEl)
+                .setName('Append Mode')
+                .setDesc('Append tasks to daily note at the bottom of the file.')
+                .addToggle(component => {
+                    component
+                        .setValue(this.plugin.settings.pullDailyNoteAppendMode)
+                        .onChange((value) => {
+                            this.plugin.settings.pullDailyNoteAppendMode = value
+                            this.plugin.saveSettings()
+                            this.display()
+                        })
+                })
+            if (!this.plugin.settings.pullDailyNoteAppendMode) {
+                new Setting(containerEl)
+                    .setName('Insert After')
+                    .setDesc('Insert tasks after given text in Daily Note. If not text can be found, it falls back to append mode.')
+                    .addText((text) => {
+                        text
+                            .setPlaceholder('Enter text')
+                            .setValue(this.plugin.settings.pullDailyNoteInsertAfterText)
+                            .onChange(async (value) => {
+                                this.plugin.settings.pullDailyNoteInsertAfterText = value;
+                                this.plugin.saveSettings()
+                            })
+                    })
+            }
+        }
+    }
 }
 
