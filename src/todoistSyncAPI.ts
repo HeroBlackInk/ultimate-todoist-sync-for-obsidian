@@ -165,12 +165,9 @@ export class TodoistSyncAPI   {
         //console.log(allActivity)
         const allActivityEvents = allActivity.events
         //client中不包含obsidian 的activity
-        const filteredArray = allActivityEvents.filter(obj => !obj.extra_data.client?.includes("obsidian")); 
+        const filteredArray = allActivityEvents.filter(obj => !obj.extra_data.client?.includes("obsidian") && this.plugin.settings.pullFromProjectId.includes(obj.parent_project_id) );
         //console.log(filteredArray)
         return(filteredArray)
-			const filteredArray = allActivityEvents.filter((obj: Event) => !obj.extra_data.client?.includes("obsidian") && obj.parent_project_id == this.plugin.settings.pullFromProjectId);
-			const filteredArray = allActivityEvents.filter((obj: Event) => !obj.extra_data.client?.includes("obsidian") && obj.parent_project_id == this.plugin.settings.pullFromProjectId);
-			return (filteredArray)
 
       }catch(err){
         console.error('An error occurred:', err);
