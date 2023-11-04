@@ -6,6 +6,9 @@ interface MyProject {
 	name: string;
   }
 
+enum pullTargetMode {
+	DailyNote, Template
+}
 
 export interface UltimateTodoistSyncSettings {
     initialized:boolean;
@@ -20,7 +23,14 @@ export interface UltimateTodoistSyncSettings {
 	fileMetadata:any;
 	enableFullVaultSync: boolean;
 	statistics: any;
-	debugMode:boolean;
+	debugMode: boolean;
+	pullFromProject: string;
+	pullFromProjectId: string;
+	pullTargetMode: pullTargetMode;
+	pullTemplateUseFolder: string;
+	pullTemplateUsePath: string;
+	pullDailyNoteAppendMode: boolean;
+	pullDailyNoteInsertAfterText: string;
 }
 
 
@@ -36,7 +46,13 @@ export const DEFAULT_SETTINGS: UltimateTodoistSyncSettings = {
 	debugMode:false,
 	//mySetting: 'default',
 	//todoistTasksFilePath: 'todoistTasks.json'
-
+	pullFromProject: "Inbox",
+	pullFromProjectId: "",
+	pullTargetMode: pullTargetMode.DailyNote,
+	pullTemplateUseFolder: "",
+	pullTemplateUsePath: "",
+	pullDailyNoteAppendMode: true,
+	pullDailyNoteInsertAfterText: ""
 }
 
 
@@ -396,6 +412,92 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 					this.plugin.todoistSync.backupTodoistAllResources()
 				})
 			);
+
+		containerEl.createEl('h2', {text: 'Pull from Todoist Settings'});
+		new Setting(containerEl)
+			.setName("Pull from project")
+			.setDesc("Pull tasks only from the given project.")
+			.addDropdown(component => {
+				component
+					.addOptions(myProjectsOptions)
+					.setValue(this.plugin.settings.pullFromProjectId)
+					.onChange((value) => {
+						this.plugin.settings.pullFromProjectId = value
+						this.plugin.settings.pullFromProject = this.plugin.cacheOperation.getProjectNameByIdFromCache(value)
+						this.plugin.saveSettings()
+						this.display()
+					})
+			})
+		new Setting(containerEl)
+			.setName('Use Daily Note')
+			.setDesc('Pull tasks to daily note.')
+			.addDropdown(component => {
+				component
+					.addOption('false', 'No')
+					.addOption('true', 'Yes')
+					.setValue(this.plugin.settings.pullTargetMode == pullTargetMode.DailyNote ? 'true' : 'false')
+					.onChange((value) => {
+						this.plugin.settings.pullTargetMode = value == 'true' ? pullTargetMode.DailyNote : pullTargetMode.Template
+						this.plugin.saveSettings()
+						this.display()
+					})
+
+			})
+
+		if (this.plugin.settings.pullTargetMode == pullTargetMode.Template) {
+			new Setting(containerEl)
+				.setName('Path to folder')
+				.setDesc('Create new note in the given folder.')
+				.addText((text) =>
+					text
+						.setPlaceholder('Enter folder path')
+						.setValue(this.plugin.settings.pullTemplateUseFolder)
+						.onChange(async (value) => {
+							this.plugin.settings.pullTemplateUseFolder = value;
+							this.plugin.saveSettings()
+						})
+				)
+
+			new Setting(containerEl)
+				.setName('Path to template')
+				.setDesc('Use the given path as template to create new note.')
+				.addText((text) => {
+					text
+						.setPlaceholder('Enter path')
+						.setValue(this.plugin.settings.pullTemplateUsePath)
+						.onChange(async (value) => {
+							this.plugin.settings.pullTemplateUsePath = value;
+							this.plugin.saveSettings()
+						})
+				})
+		} else {
+			new Setting(containerEl)
+				.setName('Append Mode')
+				.setDesc('Append tasks to daily note at the bottom of the file.')
+				.addToggle(component => {
+					component
+						.setValue(this.plugin.settings.pullDailyNoteAppendMode)
+						.onChange((value) => {
+							this.plugin.settings.pullDailyNoteAppendMode = value
+							this.plugin.saveSettings()
+							this.display()
+						})
+				})
+			if (!this.plugin.settings.pullDailyNoteAppendMode) {
+				new Setting(containerEl)
+					.setName('Insert After')
+					.setDesc('Insert tasks after given text in Daily Note. If not text can be found, it falls back to append mode.')
+					.addText((text) => {
+						text
+							.setPlaceholder('Enter text')
+							.setValue(this.plugin.settings.pullDailyNoteInsertAfterText)
+							.onChange(async (value) => {
+								this.plugin.settings.pullDailyNoteInsertAfterText = value;
+								this.plugin.saveSettings()
+							})
+					})
+			}
+		}
 	}
 }
 
