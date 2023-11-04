@@ -61,7 +61,7 @@ export const DEFAULT_SETTINGS: UltimateTodoistSyncSettings = {
     pullTargetMode: pullTargetMode.DailyNote,
     pullTemplateUseFolder: "",
     pullTemplateUsePath: "",
-    pullTemplateUseForProjects: false,
+    pullTemplateUseForProjects: pullTaskNotesMode.taskNote,
     pullTemplateTaskNotesFormat: "YYYY-MM-DD",
     pullDailyNoteAppendMode: true,
     pullDailyNoteInsertAfterText: ""

@@ -3,6 +3,7 @@ import {pullTargetMode, pullTaskNotesMode} from "./settings";
 import moment from "moment";
 import {createDailyNote, getAllDailyNotes, getDailyNote} from "obsidian-daily-notes-interface";
 import UltimateTodoistSyncForObsidian from "../main";
+import {App, Notice, TAbstractFile, TFile} from "obsidian";
 export class FileOperation   {
 	app:App;
     plugin: UltimateTodoistSyncForObsidian;
@@ -55,7 +56,23 @@ export class FileOperation   {
      // 完成一个任务，将其标记为已完成
     async completeTaskInTheFile(taskId: string) {
         // 获取任务文件路径
-        const currentTask = await this.plugin.cacheOperation.loadTaskFromCacheyID(taskId)
+        console.log("taskid", taskId)
+        let currentTask = await this.plugin.cacheOperation.loadTaskFromCacheyID(taskId)
+        if (currentTask == undefined) {
+            const filepath = await this.searchFilepathsByTaskidInVault(taskId)
+            if (filepath == null) {
+                console.log(`Task ${taskId} not found in vault`)
+                return
+            }
+            const metadata = await this.plugin.cacheOperation.getFileMetadata(filepath)
+            if(!metadata){
+                await this.plugin.cacheOperation.newEmptyFileMetadata(filepath)
+            }
+            const taskObject = await this.plugin.todoistRestAPI.getTaskById(taskId);
+            taskObject.path = filepath
+            this.plugin.cacheOperation.appendTaskToCache(taskObject)
+            currentTask = taskObject
+        }
         const filepath = currentTask.path
     
         // 获取文件对象并更新内容
@@ -83,9 +100,24 @@ export class FileOperation   {
     // uncheck 已完成的任务，
     async uncompleteTaskInTheFile(taskId: string) {
         // 获取任务文件路径
-        const currentTask = await this.plugin.cacheOperation.loadTaskFromCacheyID(taskId)
+        let currentTask = await this.plugin.cacheOperation.loadTaskFromCacheyID(taskId)
+        if (currentTask == undefined) {
+            const filepath = await this.searchFilepathsByTaskidInVault(taskId)
+            if (filepath == null) {
+                console.log(`Task ${taskId} not found in vault`)
+                return
+            }
+            const metadata = await this.plugin.cacheOperation.getFileMetadata(filepath)
+            if(!metadata){
+                await this.plugin.cacheOperation.newEmptyFileMetadata(filepath)
+            }
+            const taskObject = await this.plugin.todoistRestAPI.getTaskById(taskId);
+            taskObject.path = filepath
+            this.plugin.cacheOperation.appendTaskToCache(taskObject)
+            currentTask = taskObject
+        }
         const filepath = currentTask.path
-    
+
         // 获取文件对象并更新内容
         const file = this.app.vault.getAbstractFileByPath(filepath)
         const content = await this.app.vault.read(file)
@@ -427,7 +459,7 @@ export class FileOperation   {
             const line = lines[i]
 
             // append the tasks after a given place
-            if(this.plugin.settings.pullTargetMode == pullTargetMode.DailyNote && !this.plugin.settings.pullDailyNoteAppendMode && line.includes(this.plugin.settings.pullDailyNoteInsertAfterText)){
+            if(!this.plugin.settings.pullDailyNoteAppendMode && line.includes(this.plugin.settings.pullDailyNoteInsertAfterText)){
                 const newLine = fromTaskObjectToTask(taskObject)
                 lines.splice(i + 1, 0, newLine);
 
