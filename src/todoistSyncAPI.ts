@@ -168,6 +168,7 @@ export class TodoistSyncAPI   {
         const filteredArray = allActivityEvents.filter(obj => !obj.extra_data.client?.includes("obsidian")); 
         //console.log(filteredArray)
         return(filteredArray)
+			const filteredArray = allActivityEvents.filter((obj: Event) => !obj.extra_data.client?.includes("obsidian") && obj.parent_project_id == this.plugin.settings.pullFromProjectId);
 
       }catch(err){
         console.error('An error occurred:', err);
