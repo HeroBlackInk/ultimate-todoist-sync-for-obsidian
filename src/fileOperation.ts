@@ -426,7 +426,6 @@ export class FileOperation   {
                     .replace("{{title}}", taskTitle)
                     .replace("{{TITLE}}",taskTitle.toUpperCase())
                 const dateFormat = this.plugin.settings.pullTemplateTaskNotesFormat.match(/\{\{date\|([\[\]\s\w.:-]*)}}/)
-                console.log(dateFormat)
                 if (dateFormat != null && dateFormat.length > 0) {
                     // remove the date format from the given filename
                     tmpFile = tmpFile.replace("|" + dateFormat[1], "")
@@ -439,7 +438,6 @@ export class FileOperation   {
                 if (useThisFolder != "") {
                     tmpFile = useThisFolder + "/" + tmpFile
                 }
-                console.log(`Creating new file from template: ${tmpFile}`)
 
                 try {
                     const file = await this.app.vault.create(tmpFile, template)
