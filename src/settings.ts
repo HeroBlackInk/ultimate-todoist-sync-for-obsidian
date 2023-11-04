@@ -195,6 +195,8 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 						
 				)
 
+                    .addOptions(myProjectsOptions)
+                    .setValue(this.plugin.settings.defaultProjectId)
 
 		
 		new Setting(containerEl)
