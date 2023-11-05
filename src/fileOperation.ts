@@ -470,10 +470,10 @@ export class FileOperation   {
             if (taskObject.due != undefined) {
                 text_with_out_link += ` 📅${taskObject.due.date}`
             }
-            for(let i = 0; i < taskObject.labels.length; i++){
-                text_with_out_link += ` #${taskObject.labels[i]}`
-            }
             text_with_out_link += " #todoist"
+			for(let i = 0; i < taskObject.labels.length; i++){
+				text_with_out_link += ` #${taskObject.labels[i]}`
+			}
 
             const link = `[link](${taskObject.url})`
             let newLine = this.plugin.taskParser.addTodoistLink(text_with_out_link,link)
