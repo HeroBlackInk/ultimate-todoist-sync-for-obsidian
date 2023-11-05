@@ -833,6 +833,9 @@ export class TodoistSync  {
             await this.syncNewTasksToObsidian(unsynchronized_item_added_events)
             await this.syncAddedTaskNoteToObsidian(unsynchronized_notes_added_events)
 
+			// sync updated labels to obsidian
+			await this.syncUpdatedTaskToObsidian(await this.getTasksFromTodoistWithUpdatedLabels())
+
             if(unsynchronized_project_events.length){
                 console.log('New project event')
                 await this.plugin.cacheOperation.saveProjectsToCache()
@@ -845,6 +848,24 @@ export class TodoistSync  {
         }
 
     }
+
+	async getTasksFromTodoistWithUpdatedLabels(){
+		const all_tasks_in_todoist = await this.plugin.todoistSyncAPI?.getAllTasks()
+		const all_tasks_in_obsidian = await this.plugin.cacheOperation?.loadTasksFromCache()
+		let tasks_with_updated_labels = []
+
+		all_tasks_in_obsidian.forEach((obs_task) => {
+			const todoist_task = all_tasks_in_todoist.find((t) => t.id === obs_task.id)
+			if (todoist_task) {
+				const labelsModified = this.plugin.taskParser?.taskTagCompare(obs_task, todoist_task)
+				if(labelsModified) {
+					tasks_with_updated_labels.push(todoist_task)
+				}
+			}
+		})
+
+		return tasks_with_updated_labels
+	}
 
 
 

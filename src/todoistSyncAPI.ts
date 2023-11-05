@@ -93,6 +93,14 @@ export class TodoistSyncAPI   {
       }
       }
 
+	  async getAllTasks() {
+		// FIXME: This triggers a full sync which is heavy. A different approach for truckload of tasks should be taken
+		  // The other solution could be through webhooks, which is a complete rewrite.
+		const all_resources = await this.getAllResources();
+		const all_tasks = all_resources.items;
+		return all_tasks;
+	  }
+
 
 
       //update user timezone
