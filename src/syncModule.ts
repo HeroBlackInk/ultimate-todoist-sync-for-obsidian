@@ -789,6 +789,7 @@ export class TodoistSync  {
     async syncTodoistToObsidian(){
         try{
             const all_activity_events = await this.plugin.todoistSyncAPI.getNonObsidianAllActivityEvents()
+			console.log("all activity events",all_activity_events)
 
             // remove synchonized events
             const savedEvents = await this.plugin.cacheOperation.loadEventsFromCache()
@@ -823,17 +824,6 @@ export class TodoistSync  {
 
 			// sync updated labels to obsidian
 			const tasks_with_changed_labels = await this.getTasksFromTodoistWithUpdatedLabels()
-			const tasks_with_changed_labels_as_event = tasks_with_changed_labels.map((task) => {
-				return {
-					object_id: task.id,
-					object_type: 'item',
-					event_type: 'updated',
-					extra_data: {
-						last_labels: task.labels,
-						content: task.content
-					}
-				}
-			})
 
 			console.log("completed tasks",unsynchronized_item_completed_events)
 			console.log("uncompleted tasks",unsynchronized_item_uncompleted_events)
@@ -841,12 +831,12 @@ export class TodoistSync  {
 			console.log("project events",unsynchronized_project_events)
 			console.log("new notes",unsynchronized_notes_added_events)
 			console.log("new tasks",unsynchronized_item_added_events)
-			console.log("updated tasks with changed labels", tasks_with_changed_labels_as_event)
+			console.log("generated events with updated labels",tasks_with_changed_labels)
 
 			await this.syncCompletedTaskStatusToObsidian(unsynchronized_item_completed_events)
 			await this.syncUncompletedTaskStatusToObsidian(unsynchronized_item_uncompleted_events)
 			await this.syncUpdatedTaskToObsidian(unsynchronized_item_updated_events)
-			await this.syncUpdatedTaskContentToObsidian(tasks_with_changed_labels_as_event)
+			await this.syncUpdatedTaskToObsidian(tasks_with_changed_labels)
 			await this.syncNewTasksToObsidian(unsynchronized_item_added_events)
 			await this.syncAddedTaskNoteToObsidian(unsynchronized_notes_added_events)
 
@@ -873,7 +863,20 @@ export class TodoistSync  {
 			if (todoist_task) {
 				const labelsModified = !this.plugin.taskParser?.taskTagCompare(obs_task, todoist_task)
 				if(labelsModified) {
-					tasks_with_updated_labels.push(todoist_task)
+					const event = {
+						object_id: obs_task.id,
+						parent_project_id: obs_task.project_id,
+						parent_item_id: null,
+						object_type: 'item',
+						event_type: 'updated',
+						extra_data: {
+							labels: todoist_task.labels,
+							last_labels: obs_task.labels,
+							content: todoist_task.content,
+							last_content: obs_task.content
+						}
+					}
+					tasks_with_updated_labels.push(event)
 				}
 			}
 		})

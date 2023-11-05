@@ -284,9 +284,24 @@ export class FileOperation   {
     async syncUpdatedTaskContentToTheFile(evt:Object) {
         const taskId = evt.object_id
         // 获取任务文件路径
-        const currentTask = await this.plugin.cacheOperation.loadTaskFromCacheyID(taskId)
-        const filepath = currentTask.path
-    
+        let currentTask = await this.plugin.cacheOperation.loadTaskFromCacheyID(taskId)
+		if (currentTask == undefined) {
+			const filepath = await this.searchFilepathsByTaskidInVault(taskId)
+			if (filepath == null) {
+				console.log(`Task ${taskId} not found in vault`)
+				return
+			}
+			const metadata = await this.plugin.cacheOperation.getFileMetadata(filepath)
+			if(!metadata){
+				await this.plugin.cacheOperation.newEmptyFileMetadata(filepath)
+			}
+			const taskObject = await this.plugin.todoistRestAPI.getTaskById(taskId);
+			taskObject.path = filepath
+			this.plugin.cacheOperation.appendTaskToCache(taskObject)
+			currentTask = taskObject
+		}
+		const filepath = currentTask.path
+
         // 获取文件对象并更新内容
         const file = this.app.vault.getAbstractFileByPath(filepath)
         const content = await this.app.vault.read(file)
@@ -303,7 +318,7 @@ export class FileOperation   {
 				let newline = line.replace(oldTaskContent, newTaskContent)
 
 				// remove tags if label missing
-				const oldTags = this.plugin.taskParser.getTagsFromLineText(line)
+				const oldTags = this.plugin.taskParser.getAllTagsFromLineText(line)
 				const newTags = evt.extra_data.labels
 				const removedTags = oldTags.filter(x => !newTags.includes(x))
 				removedTags.forEach(tag =>
@@ -632,7 +647,7 @@ export class FileOperation   {
 
     //search filepath by taskid in vault
     async searchFilepathsByTaskidInVault(taskId:string){
-        console.log(`preprare to search task ${taskId}`)
+        console.log(`prepare to search task ${taskId}`)
         const files = await this.getAllFilesInTheVault()
         //console.log(files)
         const tasks = files.map(async (file) => {
