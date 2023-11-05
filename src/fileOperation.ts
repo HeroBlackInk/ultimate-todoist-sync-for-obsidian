@@ -470,6 +470,9 @@ export class FileOperation   {
             if (taskObject.due != undefined) {
                 text_with_out_link += ` 📅${taskObject.due.date}`
             }
+            for(let i = 0; i < taskObject.labels.length; i++){
+                text_with_out_link += ` #${taskObject.labels[i].name}`
+            }
             text_with_out_link += " #todoist"
 
             const link = `[link](${taskObject.url})`
