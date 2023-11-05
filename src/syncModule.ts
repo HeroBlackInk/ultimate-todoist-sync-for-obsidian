@@ -826,6 +826,13 @@ export class TodoistSync  {
             console.log(unsynchronized_item_updated_events)
             console.log(unsynchronized_project_events)
             console.log(unsynchronized_notes_added_events)
+			console.log("completed tasks",unsynchronized_item_completed_events)
+			console.log("uncompleted tasks",unsynchronized_item_uncompleted_events)
+			console.log("updated tasks",unsynchronized_item_updated_events)
+			console.log("project events",unsynchronized_project_events)
+			console.log("new notes",unsynchronized_notes_added_events)
+			console.log("new tasks",unsynchronized_item_added_events)
+			console.log("updated tasks with changed labels", tasks_with_changed_labels_as_event)
 
             await this.syncCompletedTaskStatusToObsidian(unsynchronized_item_completed_events)
             await this.syncUncompletedTaskStatusToObsidian(unsynchronized_item_uncompleted_events)
