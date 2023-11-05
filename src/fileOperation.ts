@@ -295,17 +295,31 @@ export class FileOperation   {
         let modified = false
     
         for (let i = 0; i < lines.length; i++) {
-            const line = lines[i]
-            if (line.includes(taskId) && this.plugin.taskParser.hasTodoistTag(line)) {
-                const oldTaskContent = this.plugin.taskParser.getTaskContentFromLineText(line)
-                const newTaskContent = evt.extra_data.content
+			const line = lines[i]
+			if (line.includes(taskId) && this.plugin.taskParser.hasTodoistTag(line)) {
+				const oldTaskContent = this.plugin.taskParser.getTaskContentFromLineText(line)
+				const newTaskContent = evt.extra_data.content
 
-                lines[i] = line.replace(oldTaskContent, newTaskContent)
-                modified = true
-                break
-            }
-        }
-    
+				let newline = line.replace(oldTaskContent, newTaskContent)
+
+				// remove tags if label missing
+				const oldTags = this.plugin.taskParser.getTagsFromLineText(line)
+				const newTags = evt.extra_data.labels
+				const removedTags = oldTags.filter(x => !newTags.includes(x))
+				removedTags.forEach(tag =>
+					newline = newline.replace(` #${tag}`, ' ')
+				)
+
+				// append labels as tags
+				const addTags = newTags.filter(x => !oldTags.includes(x))
+				addTags.forEach(tag => newline += ` #${tag}`)
+
+				lines[i] = newline
+				modified = true
+				break
+			}
+		}
+
         if (modified) {
         const newContent = lines.join('\n')
         //console.log(newContent)
