@@ -1,7 +1,12 @@
 
 import {pullTargetMode, pullTaskNotesMode} from "./settings";
 import moment from "moment";
-import {createDailyNote, getAllDailyNotes, getDailyNote} from "obsidian-daily-notes-interface";
+import {
+    appHasDailyNotesPluginLoaded,
+    createDailyNote,
+    getAllDailyNotes,
+    getDailyNote
+} from "obsidian-daily-notes-interface";
 import UltimateTodoistSyncForObsidian from "../main";
 import {App, Notice, TAbstractFile, TFile} from "obsidian";
 export class FileOperation   {
@@ -375,13 +380,13 @@ export class FileOperation   {
         if (currentTask != undefined) {
             filepath = currentTask.path
         } else if (this.plugin.settings.pullTargetMode == pullTargetMode.DailyNote) {
+            if(!appHasDailyNotesPluginLoaded()){
+                console.log("Daily notes core plugin is not loaded. So we cannot create daily note. Please install daily notes core plugin. Interrupt now.")
+            }
             const date = moment();
-            let file;
-            try {
-                const dailies = getAllDailyNotes()
-                file = getDailyNote(date, dailies)
-            } catch (e) {
-                console.error(`Error getting daily note: ${e}`)
+            const dailies = getAllDailyNotes()
+            let file = getDailyNote(date, dailies)
+            if (file == null) {
                 file = await createDailyNote(date)
             }
             filepath = file.path
