@@ -317,18 +317,19 @@ export class FileOperation   {
 
 				let newline = line.replace(oldTaskContent, newTaskContent)
 
-				// remove tags if label missing
 				const oldTags = this.plugin.taskParser.getAllTagsFromLineText(line)
 				const newTags = evt.extra_data.labels
-				const removedTags = oldTags.filter(x => !newTags.includes(x))
-				removedTags.forEach(tag =>
-					newline = newline.replace(` #${tag}`, ' ')
-				)
+				if(oldTags != undefined && newTags != undefined) {
+					// remove tags if label missing
+					const removedTags = oldTags.filter(x => !newTags.includes(x))
+					removedTags.forEach(tag =>
+						newline = newlinereplace(` #${tag} `, ' ')
+					)
 
-				// append labels as tags
-				const addTags = newTags.filter(x => !oldTags.includes(x))
-				addTags.forEach(tag => newline += ` #${tag}`)
-
+					// append labels as tags
+					const addTags = newTags.filter(x => !oldTags.includes(x))
+					addTags.forEach(tag => newline += ` #${tag}`)
+				}
 				lines[i] = newline
 				modified = true
 				break
