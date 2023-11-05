@@ -165,7 +165,7 @@ export class TodoistSyncAPI   {
         //console.log(allActivity)
         const allActivityEvents = allActivity.events
         //client中不包含obsidian 的activity
-        const filteredArray = allActivityEvents.filter(obj => !obj.extra_data.client?.includes("obsidian")
+        const filteredArray = allActivityEvents.filter(obj => !obj.extra_data.client?.includes("obsidian"))
         //console.log(filteredArray)
         return(filteredArray)
 
