@@ -789,6 +789,7 @@ export class TodoistSync  {
     async syncTodoistToObsidian(){
         try{
             const all_activity_events = await this.plugin.todoistSyncAPI.getNonObsidianAllActivityEvents()
+            console.log("all activity events", all_activity_events)
 
             // remove synchonized events
             const savedEvents = await this.plugin.cacheOperation.loadEventsFromCache()
