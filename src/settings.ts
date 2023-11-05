@@ -58,7 +58,7 @@ export const DEFAULT_SETTINGS: UltimateTodoistSyncSettings = {
     debugMode: false,
     //mySetting: 'default',
     //todoistTasksFilePath: 'todoistTasks.json'
-	removeTagsWithText: True,
+	removeTagsWithText: true,
     pullFromProject: "Inbox",
     pullFromProjectId: "",
     pullTargetMode: pullTargetMode.Template,

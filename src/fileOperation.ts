@@ -471,7 +471,7 @@ export class FileOperation   {
                 text_with_out_link += ` 📅${taskObject.due.date}`
             }
             for(let i = 0; i < taskObject.labels.length; i++){
-                text_with_out_link += ` #${taskObject.labels[i].name}`
+                text_with_out_link += ` #${taskObject.labels[i]}`
             }
             text_with_out_link += " #todoist"
 
