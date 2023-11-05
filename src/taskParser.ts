@@ -276,11 +276,17 @@ export class TaskParser   {
   
   
     getTaskContentFromLineText(lineText:string) {
-        const TaskContent = lineText.replace(REGEX.TASK_CONTENT.REMOVE_INLINE_METADATA,"")
+        let TaskContent = lineText.replace(REGEX.TASK_CONTENT.REMOVE_INLINE_METADATA,"")
                                     .replace(REGEX.TASK_CONTENT.REMOVE_TODOIST_LINK,"")
                                     .replace(REGEX.TASK_CONTENT.REMOVE_PRIORITY," ") //priority 前后必须都有空格，
-                                    .replace(REGEX.TASK_CONTENT.REMOVE_TAGS,"")
-                                    .replace(REGEX.TASK_CONTENT.REMOVE_DATE,"")
+
+		// remove tags with text only if enabled in settings
+		if (this.plugin.settings.removeTagsWithText) {
+			TaskContent = TaskContent.replace(REGEX.TASK_CONTENT.REMOVE_TAGS,"")
+		} else {
+			TaskContent = TaskContent.replace(" #"," ")
+		}
+		TaskContent = TaskContent.replace(REGEX.TASK_CONTENT.REMOVE_DATE,"")
                                     .replace(REGEX.TASK_CONTENT.REMOVE_CHECKBOX,"")
                                     .replace(REGEX.TASK_CONTENT.REMOVE_CHECKBOX_WITH_INDENTATION,"")
                                     .replace(REGEX.TASK_CONTENT.REMOVE_SPACE,"")
