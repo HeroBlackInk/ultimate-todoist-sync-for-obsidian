@@ -799,21 +799,23 @@ export class TodoistSync  {
             const savedTasks = await this.plugin.cacheOperation.loadTasksFromCache()
             // 找出 task id 存在于 Obsidian 中的 task activity
             const result2 = result1.filter(
-            (objA) => !savedTasks.some((objB) => objB.id === objA.object_id)
+            (objA) => savedTasks.some((objB) => objB.id === objA.object_id)
             )
             // 找出 task id 存在于 Obsidian 中的 note activity
             const result3 = result1.filter(
-                (objA) => !savedTasks.some((objB) => objB.id === objA.parent_item_id)
+                (objA) => savedTasks.some((objB) => objB.id === objA.parent_item_id)
                 )
 
-            console.log(result1)
+             const result4 = result1.filter(
+            (objA) => !savedTasks.some((objB) => objB.id === objA.object_id)
+            )
 
             const unsynchronized_item_completed_events = this.plugin.todoistSyncAPI.filterActivityEvents(result2, { event_type: 'completed', object_type: 'item' })
             const unsynchronized_item_uncompleted_events = this.plugin.todoistSyncAPI.filterActivityEvents(result2, { event_type: 'uncompleted', object_type: 'item' })
 
             //Items updated (only changes to content, description, due_date and responsible_uid)
             const unsynchronized_item_updated_events = this.plugin.todoistSyncAPI.filterActivityEvents(result2, { event_type: 'updated', object_type: 'item' })
-            const unsynchronized_item_added_events = this.plugin.todoistSyncAPI.filterActivityEvents(result2, { event_type: 'added', object_type: 'item' })
+            const unsynchronized_item_added_events = this.plugin.todoistSyncAPI.filterActivityEvents(result4, { event_type: 'added', object_type: 'item' })
 
             const unsynchronized_notes_added_events = this.plugin.todoistSyncAPI.filterActivityEvents(result3, { event_type: 'added', object_type: 'note' })
             const unsynchronized_project_events = this.plugin.todoistSyncAPI.filterActivityEvents(result1, { object_type: 'project' })
