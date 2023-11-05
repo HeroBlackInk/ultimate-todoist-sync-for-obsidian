@@ -210,9 +210,19 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 							new Notice("Full vault sync is enabled.")							
 						})
 						
-				)						
+				)
 
-
+		new Setting(containerEl)
+			.setName('Remove tags with text')
+			.setDesc('If enabled, this opton will remove tags with text from the task description in todoist. Otherwise it only removes the hashtag sign. Very helpful, if you use tags in your text.')
+			.addToggle(component =>
+				component
+					.setValue(this.plugin.settings.removeTagsWithText)
+					.onChange((value) => {
+						this.plugin.settings.removeTagsWithText = value
+						this.plugin.saveSettings()
+					})
+			)
 
 		new Setting(containerEl)
 		.setName('Manual Sync')
@@ -411,17 +421,6 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 						
 				)
 
-		new Setting(containerEl)
-			.setName('Remove tags with text')
-			.setDesc('If enabled, this opton will remove tags with text from the task description in todoist. Otherwise it only removes the hashtag sign. Very helpful, if you use tags in your text.')
-			.addToggle(component =>
-				component
-					.setValue(this.plugin.settings.removeTagsWithText)
-					.onChange((value) => {
-						this.plugin.settings.removeTagsWithText = value
-						this.plugin.saveSettings()
-					})
-			)
 
 		new Setting(containerEl)
 			.setName('Backup Todoist Data')

@@ -279,6 +279,7 @@ export class TaskParser   {
         let TaskContent = lineText.replace(REGEX.TASK_CONTENT.REMOVE_INLINE_METADATA,"")
                                     .replace(REGEX.TASK_CONTENT.REMOVE_TODOIST_LINK,"")
                                     .replace(REGEX.TASK_CONTENT.REMOVE_PRIORITY," ") //priority 前后必须都有空格，
+									.replace(" #todoist"," ")
 
 		// remove tags with text only if enabled in settings
 		if (this.plugin.settings.removeTagsWithText) {
