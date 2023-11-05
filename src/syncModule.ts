@@ -806,8 +806,9 @@ export class TodoistSync  {
                 (objA) => savedTasks.some((objB) => objB.id === objA.parent_item_id)
                 )
 
-             const result4 = result1.filter(
-            (objA) => !savedTasks.some((objB) => objB.id === objA.object_id)
+			// usage for new tasks
+            const result4 = result1.filter(
+            	(objA) => !savedTasks.some((objB) => objB.id === objA.object_id)
             )
 
             const unsynchronized_item_completed_events = this.plugin.todoistSyncAPI.filterActivityEvents(result2, { event_type: 'completed', object_type: 'item' })
