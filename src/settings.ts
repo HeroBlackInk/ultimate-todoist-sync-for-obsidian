@@ -1,5 +1,6 @@
 import { App, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
 import UltimateTodoistSyncForObsidian from "../main";
+import {appHasDailyNotesPluginLoaded} from "obsidian-daily-notes-interface";
 
 interface MyProject {
 	id: string;
@@ -60,7 +61,7 @@ export const DEFAULT_SETTINGS: UltimateTodoistSyncSettings = {
 	removeTagsWithText: True,
     pullFromProject: "Inbox",
     pullFromProjectId: "",
-    pullTargetMode: pullTargetMode.DailyNote,
+    pullTargetMode: pullTargetMode.Template,
     pullTemplateUseFolder: "",
     pullTemplateUsePath: "",
     pullTemplateUseForProjects: pullTaskNotesMode.taskNote,
@@ -454,7 +455,7 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
             })
 
         const desc = document.createDocumentFragment();
-		desc.append('If daily Note is selected, all new tasks will be created in a daily note. This needs the ',
+		desc.append('If daily Note core plugin is enabled and is selected, all new tasks will be created in a daily note. This needs the ',
 			desc.createEl("a", {
 				href: "https://help.obsidian.md/Plugins/Daily+notes",
 				text: "daily notes core plugin",
@@ -468,8 +469,11 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
             .setName('Select Mode')
             .setDesc(desc)
             .addDropdown(component => {
+				if(appHasDailyNotesPluginLoaded()){
+					component
+						.addOption(pullTargetMode.DailyNote.valueOf(), "Daily note")
+				}
                 component
-                    .addOption(pullTargetMode.DailyNote.valueOf(), "Daily note")
                     .addOption(pullTargetMode.Template.valueOf(), 'Template Note')
                     .setValue(this.plugin.settings.pullTargetMode.valueOf())
                     .onChange((value) => {
