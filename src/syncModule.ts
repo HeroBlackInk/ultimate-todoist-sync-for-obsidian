@@ -726,12 +726,27 @@ export class TodoistSync  {
         let filepath = await this.plugin.fileOperation.syncUpdatedTaskContentToTheFile(e)
         const content = e.extra_data.content
         this.plugin.cacheOperation.modifyTaskToCacheByID(e.object_id,{content})
-        const description = this.plugin.taskParser.getObsidianUrlFromFilepath(filepath) + " \n" + e.description
+
+        let description = undefined;
+        if(e.extra_data != undefined && e.extra_data.description != undefined){
+            description = e.extra_data.description
+        }
+
+        const url = this.plugin.taskParser.getObsidianUrlFromFilepath(filepath)
+        if(description != undefined) {
+            if (!description.includes(url)){
+                description = url + "\n" + description
+            }
+        } else {
+            description = url
+        }
+
+        console.log("desc", description)
 
         let updatedContent = {}
         updatedContent.description = description
 
-        const updatedTask = await this.plugin.todoistRestAPI.UpdateTask(taskId,updatedContent)
+        const updatedTask = await this.plugin.todoistRestAPI.UpdateTask(e.object_id,updatedContent)
         updatedTask.path = filepath
         this.plugin.cacheOperation.updateTaskToCacheByID(updatedTask);
         new Notice(`The content of Task ${e.parent_item_id} has been modified.`)
