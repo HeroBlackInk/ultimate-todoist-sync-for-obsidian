@@ -279,14 +279,16 @@ export class TaskParser   {
         let TaskContent = lineText.replace(REGEX.TASK_CONTENT.REMOVE_INLINE_METADATA,"")
                                     .replace(REGEX.TASK_CONTENT.REMOVE_TODOIST_LINK,"")
                                     .replace(REGEX.TASK_CONTENT.REMOVE_PRIORITY," ") //priority 前后必须都有空格，
-									.replace(" #todoist"," ")
 
 		// remove tags with text only if enabled in settings
 		if (this.plugin.settings.removeTagsWithText) {
 			TaskContent = TaskContent.replace(REGEX.TASK_CONTENT.REMOVE_TAGS,"")
 		} else {
-			TaskContent = TaskContent.replace(" #"," ")
-		}
+            this.plugin.settings.removeHashTagsExceptions.forEach((exceptTag) => {
+                TaskContent = TaskContent.replaceAll(" #" + exceptTag, " ")
+            })
+            TaskContent = TaskContent.replaceAll(" #", " ")
+        }
 		TaskContent = TaskContent.replace(REGEX.TASK_CONTENT.REMOVE_DATE,"")
                                     .replace(REGEX.TASK_CONTENT.REMOVE_CHECKBOX,"")
                                     .replace(REGEX.TASK_CONTENT.REMOVE_CHECKBOX_WITH_INDENTATION,"")

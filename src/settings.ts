@@ -30,6 +30,7 @@ export interface UltimateTodoistSyncSettings {
 	statistics: any;
 	debugMode: boolean;
 	removeTagsWithText: boolean;
+	removeHashTagsExceptions: string[];
 	syncTagsFromTodoist: boolean;
 	pullFromProject: string;
 	pullFromProjectId: string;
@@ -60,6 +61,7 @@ export const DEFAULT_SETTINGS: UltimateTodoistSyncSettings = {
     //mySetting: 'default',
     //todoistTasksFilePath: 'todoistTasks.json'
 	removeTagsWithText: true,
+	removeHashTagsExceptions: ["todoist"],
 	syncTagsFromTodoist: false,
     pullFromProject: "Inbox",
     pullFromProjectId: "",
@@ -223,8 +225,23 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 					.onChange((value) => {
 						this.plugin.settings.removeTagsWithText = value
 						this.plugin.saveSettings()
+						this.display()
 					})
 			)
+
+		if(!this.plugin.settings.removeTagsWithText) {
+			new Setting(containerEl)
+				.setName('Exceptions')
+				.setDesc('Enter tags, which should always be removed, separated by comma. Leave the hashtag # sign. Default is, that todoist will be removed. If you remove this, it will not be removed anymore.')
+				.addText((text) =>
+					text
+						.setValue(this.plugin.settings.removeHashTagsExceptions.join(','))
+						.onChange(async (value) => {
+							this.plugin.settings.removeHashTagsExceptions = value.split(',').map(v => v.trim());
+							this.plugin.saveSettings()
+						})
+				)
+		}
 
 		new Setting(containerEl)
 			.setName('Sync tags from Todoist')
