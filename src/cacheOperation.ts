@@ -284,6 +284,7 @@ export class CacheOperation   {
 
 
 
+    // FIXME: Make it clear, what is the difference between this and updateTaskToCacheByID
     modifyTaskToCacheByID(taskId: string, { content, due }: { content?: string, due?: Due }): void {
         try {
           const savedTasks = this.plugin.settings.todoistTasksData.tasks;
