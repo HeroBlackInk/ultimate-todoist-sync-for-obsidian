@@ -22,15 +22,32 @@ type FilterOptions = {
 export class TodoistSyncAPI   {
 	app:App;
   plugin: UltimateTodoistSyncForObsidian;
+  sync_token: string;
+  resources: object|undefined;
 
 	constructor(app:App, plugin:UltimateTodoistSyncForObsidian) {
 		//super(app,settings);
 		this.app = app;
-    this.plugin = plugin;
+        this.plugin = plugin;
+        this.sync_token = "*";
+        this.resources = undefined;
 	}
 
-    //backup todoist
-    async getAllResources() { 
+    // Get resources from last sync call
+    getResources() {
+        return this.resources;
+    }
+
+    // Get updated resources from todoist since last call
+    async getUpdatedResources() {
+        return this.getAllResources(true)
+    }
+
+    // Get all resources from todoist
+    // If updateResources is true, it will use the last sync_token to fetch only the changes
+    // If updateResources is false, it will fetch all resources. This is a heavy operation and should be avoided
+    // For backward compatibility, updateResources is false by default
+    async getAllResources(updateResources = false) {
     const accessToken = this.plugin.settings.todoistAPIToken
     const url = 'https://api.todoist.com/sync/v9/sync';
     const options = {
@@ -40,7 +57,7 @@ export class TodoistSyncAPI   {
         'Content-Type': 'application/x-www-form-urlencoded'
       },
       body: new URLSearchParams({
-        sync_token: "*",
+        sync_token: (updateResources) ? this.sync_token : "*",
         resource_types: '["all"]'
       })
     };
@@ -53,6 +70,8 @@ export class TodoistSyncAPI   {
       }
   
       const data = await response.json();
+      this.sync_token = data.sync_token;
+      this.resources = data;
   
       return data;
     } catch (error) {
@@ -62,6 +81,7 @@ export class TodoistSyncAPI   {
     }
 
     //backup todoist
+    //FIXME: What does this do?
     async getUserResource() { 
       const accessToken = this.plugin.settings.todoistAPIToken
       const url = 'https://api.todoist.com/sync/v9/sync';
@@ -94,9 +114,7 @@ export class TodoistSyncAPI   {
       }
 
 	  async getAllTasks() {
-		// FIXME: This triggers a full sync which is heavy. A different approach for truckload of tasks should be taken
-		  // The other solution could be through webhooks, which is a complete rewrite.
-		const all_resources = await this.getAllResources();
+		const all_resources = await this.getUpdatedResources();
 		const all_tasks = all_resources.items;
 		return all_tasks;
 	  }
