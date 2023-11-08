@@ -281,7 +281,8 @@ export class FileOperation   {
     }
 
     // sync updated task content  to file
-    async syncUpdatedTaskContentToTheFile(evt:Object) {
+    // Returns the filepath of the updated file
+    async syncUpdatedTaskContentToTheFile(evt:Object): Promise<string> {
         const taskId = evt.object_id
         // 获取任务文件路径
         let currentTask = await this.plugin.cacheOperation.loadTaskFromCacheyID(taskId)
@@ -343,6 +344,7 @@ export class FileOperation   {
         //console.log(newContent)
         await this.app.vault.modify(file, newContent)
         }
+        return filepath
         
     }
 
