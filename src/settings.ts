@@ -457,6 +457,7 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
             .setDesc("Pull tasks only from the given project.")
             .addDropdown(component => {
                 component
+					.addOption("-1","All projects")
                     .addOptions(myProjectsOptions)
                     .setValue(this.plugin.settings.pullFromProjectId)
                     .onChange((value) => {

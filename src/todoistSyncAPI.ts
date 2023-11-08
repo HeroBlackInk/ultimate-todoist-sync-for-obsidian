@@ -34,7 +34,7 @@ export class TodoistSyncAPI   {
 	}
 
     // Get resources from last sync call
-    getResources() {
+    getCachedResources() {
         return this.resources;
     }
 
@@ -72,7 +72,7 @@ export class TodoistSyncAPI   {
       const data = await response.json();
       this.sync_token = data.sync_token;
       this.resources = data;
-  
+
       return data;
     } catch (error) {
       console.error(error);
@@ -115,8 +115,11 @@ export class TodoistSyncAPI   {
 
 	  async getAllTasks() {
 		const all_resources = await this.getUpdatedResources();
-		const all_tasks = all_resources.items;
-		return all_tasks;
+        if(this.plugin.settings.pullFromProjectId == "-1") {
+            return all_resources.items;
+        }
+		const all_tasks_filtered = all_resources.items.filter((item: any) => item.project_id == this.plugin.settings.pullFromProjectId);
+		return all_tasks_filtered;
 	  }
 
 
@@ -178,7 +181,7 @@ export class TodoistSyncAPI   {
         }
     
         const data = await response.json();
-    
+
         return data;
       } catch (error) {
         throw error;
