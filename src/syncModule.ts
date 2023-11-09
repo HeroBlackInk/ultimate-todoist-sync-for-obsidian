@@ -794,13 +794,32 @@ export class TodoistSync  {
         try {
             const processedEvents = []
             for (const e of unSynchronizedEvents) {
-                if(e.parent_project_id != this.plugin.settings.pullFromProjectId){
-                    continue
-                }
+                // this is needed, because otherwise the task will not be registered by plugin and cannot figure out, if the project_id has changed
+                if(e.parent_project_id === this.plugin.settings.pullFromProjectId){
+                    console.log(e)
+                    const filepath = await this.plugin.fileOperation?.syncNewTaskToTheFile(e)
+                    new Notice(`Task ${e.object_id} is added.`)
 
-                console.log(e)
-                await this.plugin.fileOperation?.syncNewTaskToTheFile(e)
-                new Notice(`Task ${e.object_id} is added.`)
+                    let description = undefined;
+                    if(!(e.extra_data === undefined) && !(e.extra_data.description === undefined)){
+                        description = e.extra_data.description
+                    }
+
+                    const url = this.plugin.taskParser.getObsidianUrlFromFilepath(filepath)
+                    if(description != undefined) {
+                        if (!description.includes(url)){
+                            description = url + "\n" + description
+                        }
+                    } else {
+                        description = url
+                    }
+
+                    let updatedContent = {
+                        description: description
+                    }
+
+                    await this.plugin.todoistRestAPI.UpdateTask(e.object_id,updatedContent)
+                }
                 processedEvents.push(e)
             }
 
