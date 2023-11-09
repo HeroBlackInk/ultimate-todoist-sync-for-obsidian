@@ -692,14 +692,13 @@ export class TodoistSync  {
         for (const e of unSynchronizedEvents) {   //如果要修改代码，让completeTaskInTheFile(e.object_id)按照顺序依次执行，可以将Promise.allSettled()方法改为使用for...of循环来处理未同步的事件。具体步骤如下：
             //console.log(`正在 sync ${e.object_id} 的变化到本地`)
             console.log(e)
-            console.log(typeof e.extra_data.last_due_date === 'undefined')
             if(!(typeof e.extra_data.last_due_date === 'undefined')){
                 //console.log(`prepare update dueDate`)
                 await this.syncUpdatedTaskDueDateToObsidian(e)
 
             }
 
-            if(!(typeof e.extra_data.last_content === 'undefined')){
+            if(!(e.extra_data.last_content === undefined)){
                 //console.log(`prepare update content`)
                 await this.syncUpdatedTaskContentToObsidian(e)
             }
@@ -741,10 +740,9 @@ export class TodoistSync  {
             description = url
         }
 
-        console.log("desc", description)
-
-        let updatedContent = {}
-        updatedContent.description = description
+        let updatedContent = {
+            description: description
+        }
 
         const updatedTask = await this.plugin.todoistRestAPI.UpdateTask(e.object_id,updatedContent)
         updatedTask.path = filepath
@@ -910,11 +908,11 @@ export class TodoistSync  {
 			const todoist_task = all_tasks_in_todoist.find((t) => t.id === obs_task.id)
 			if (todoist_task != undefined) {
 				const labelsModified = !this.plugin.taskParser?.taskTagCompare(obs_task, todoist_task)
-                const projectModifed = !(obs_task.projectId === todoist_task.projectId)
+                const projectModifed = !(obs_task.projectId === todoist_task.project_id)
 				if(labelsModified || projectModifed) {
 					const event = {
 						object_id: obs_task.id,
-						parent_project_id: obs_task.project_id,
+						parent_project_id: obs_task.projectId,
 						parent_item_id: null,
 						object_type: 'item',
 						event_type: 'updated',

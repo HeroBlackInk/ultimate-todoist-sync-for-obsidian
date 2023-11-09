@@ -556,6 +556,8 @@ export class FileOperation   {
         if(!metadata){
             await this.plugin.cacheOperation.newEmptyFileMetadata(filepath)
         }
+
+        return filepath
     }
 
 

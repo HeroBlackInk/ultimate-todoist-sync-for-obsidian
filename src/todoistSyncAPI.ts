@@ -118,11 +118,7 @@ export class TodoistSyncAPI   {
      // If updated is false, it will return all tasks. This is a heavy operation and should be avoided
 	  async getAllTasks(updated= true) {
 		const all_resources = await this.getAllResources(updated);
-        if(this.plugin.settings.pullFromProjectId == "-1") {
-            return all_resources.items;
-        }
-		const all_tasks_filtered = all_resources.items.filter((item: any) => item.project_id == this.plugin.settings.pullFromProjectId);
-		return all_tasks_filtered;
+        return all_resources.items;
 	  }
 
 
