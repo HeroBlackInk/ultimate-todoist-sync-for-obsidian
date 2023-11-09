@@ -857,12 +857,10 @@ export class TodoistSync  {
 			await this.syncUncompletedTaskStatusToObsidian(unsynchronized_item_uncompleted_events)
 			await this.syncUpdatedTaskToObsidian(unsynchronized_item_updated_events)
 
-			if(this.plugin.settings.syncTagsFromTodoist){
-				// sync updated labels to obsidian
-				const tasks_with_changed_labels = await this.getTasksFromTodoistWithUpdatedLabels()
-				console.log("generated events with updated labels",tasks_with_changed_labels)
-				await this.syncUpdatedTaskToObsidian(tasks_with_changed_labels)
-			}
+            const tasks_with_changed_attrs = await this.getTasksFromTodoistWithUpdatedAttrs()
+            // sync updated labels to obsidian
+            console.log("generated events with updated labels",tasks_with_changed_attrs)
+            await this.syncUpdatedTaskToObsidian(tasks_with_changed_attrs)
 
 			await this.syncNewTasksToObsidian(unsynchronized_item_added_events)
 			await this.syncAddedTaskNoteToObsidian(unsynchronized_notes_added_events)
@@ -880,16 +878,17 @@ export class TodoistSync  {
 
     }
 
-	async getTasksFromTodoistWithUpdatedLabels(){
-		const all_tasks_in_todoist = await this.plugin.todoistSyncAPI?.getAllTasks()
+	async getTasksFromTodoistWithUpdatedAttrs(){
+		const all_tasks_in_todoist = await this.plugin.todoistSyncAPI?.getAllTasks(false)
 		const all_tasks_in_obsidian = await this.plugin.cacheOperation?.loadTasksFromCache()
-		let tasks_with_updated_labels = []
+		let tasks_with_updated_attrs = []
 
 		all_tasks_in_obsidian.forEach((obs_task) => {
 			const todoist_task = all_tasks_in_todoist.find((t) => t.id === obs_task.id)
-			if (todoist_task) {
+			if (todoist_task != undefined) {
 				const labelsModified = !this.plugin.taskParser?.taskTagCompare(obs_task, todoist_task)
-				if(labelsModified) {
+                const projectModifed = !(obs_task.projectId === todoist_task.projectId)
+				if(labelsModified || projectModifed) {
 					const event = {
 						object_id: obs_task.id,
 						parent_project_id: obs_task.project_id,
@@ -903,12 +902,12 @@ export class TodoistSync  {
 							last_content: obs_task.content
 						}
 					}
-					tasks_with_updated_labels.push(event)
+					tasks_with_updated_attrs.push(event)
 				}
 			}
 		})
 
-		return tasks_with_updated_labels
+		return tasks_with_updated_attrs
 	}
 
 

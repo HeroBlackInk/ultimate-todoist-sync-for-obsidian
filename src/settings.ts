@@ -31,7 +31,6 @@ export interface UltimateTodoistSyncSettings {
 	debugMode: boolean;
 	removeTagsWithText: boolean;
 	removeHashTagsExceptions: string[];
-	syncTagsFromTodoist: boolean;
 	pullFromProject: string;
 	pullFromProjectId: string;
 	pullTargetMode: pullTargetMode;
@@ -62,7 +61,6 @@ export const DEFAULT_SETTINGS: UltimateTodoistSyncSettings = {
     //todoistTasksFilePath: 'todoistTasks.json'
 	removeTagsWithText: true,
 	removeHashTagsExceptions: ["todoist"],
-	syncTagsFromTodoist: false,
     pullFromProject: "Inbox",
     pullFromProjectId: "",
     pullTargetMode: pullTargetMode.Template,
@@ -242,18 +240,6 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 						})
 				)
 		}
-
-		new Setting(containerEl)
-			.setName('Sync tags from Todoist')
-			.setDesc('BETA: If enabled, this option will sync tags from todoist to obsidian. Otherwise it ignores them as before. Because this can lead to undefined behaviour when the same task was changed in todoist and obsidian, you should not use it if you want to use both tools at the same time.')
-			.addToggle(component =>
-				component
-					.setValue(this.plugin.settings.syncTagsFromTodoist)
-					.onChange((value) => {
-						this.plugin.settings.syncTagsFromTodoist = value
-						this.plugin.saveSettings()
-					})
-			)
 
 		new Setting(containerEl)
 		.setName('Manual Sync')
