@@ -728,7 +728,7 @@ export class TodoistSync  {
         this.plugin.cacheOperation.modifyTaskToCacheByID(e.object_id,{content})
 
         let description = undefined;
-        if(e.extra_data != undefined && e.extra_data.description != undefined){
+        if(!(e.extra_data === undefined) && !(e.extra_data.description === undefined)){
             description = e.extra_data.description
         }
 
@@ -794,6 +794,10 @@ export class TodoistSync  {
         try {
             const processedEvents = []
             for (const e of unSynchronizedEvents) {
+                if(e.parent_project_id != this.plugin.settings.pullFromProjectId){
+                    continue
+                }
+
                 console.log(e)
                 await this.plugin.fileOperation?.syncNewTaskToTheFile(e)
                 new Notice(`Task ${e.object_id} is added.`)
