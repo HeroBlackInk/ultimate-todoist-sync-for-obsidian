@@ -280,11 +280,20 @@ export class CacheOperation   {
         }
     }
 
+    // Clear all tasks in cache
+    clearTasks(){
+        this.plugin.settings.todoistTasksData.tasks = []
+    }
+
     //due 的结构  {date: "2025-02-25",isRecurring: false,lang: "en",string: "2025-02-25"}
 
 
 
-    modifyTaskToCacheByID(taskId: string, { content, due }: { content?: string, due?: Due }): void {
+    // FIXME: Make it clear, what is the difference between this and updateTaskToCacheByID
+    // Upon review, the primary intent here appears to be minimizing API calls.
+    // When editing a task in Obsidian, the Todoist API responds with a complete task object. In such cases, I employ updateTaskToCacheByID to directly replace the entire object in the cache.
+    // Conversely, when a task modification event is received from the Todoist client, the event's structure differs, lacking a complete task object. To retrieve a full task object, a REST API call would be necessary. To avoid excessive API usage, I opt for modifyTaskToCacheByID. This method extracts only the altered portions from the event object and updates them in the cache.
+modifyTaskToCacheByID(taskId: string, { content, due }: { content?: string, due?: Due }): void {
         try {
           const savedTasks = this.plugin.settings.todoistTasksData.tasks;
           const taskIndex = savedTasks.findIndex((task) => task.id === taskId);

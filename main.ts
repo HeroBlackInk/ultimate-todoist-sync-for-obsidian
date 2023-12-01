@@ -260,12 +260,19 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 
 		this.registerInterval(window.setInterval(async () => await this.scheduledSynchronization(), this.settings.automaticSynchronizationInterval * 1000));
 
+		// set default  project for todoist task in the current file
 		this.app.workspace.on('active-leaf-change',(leaf)=>{
 			this.setStatusBarText()
 		})
 
+		this.addCommand({
+			id: "ultimate-todoist-sync:trigger-sync",
+			name: "Trigger synchronization",
+			callback: () => {
+				this.scheduledSynchronization()
+			},
+		});
 
-		// set default  project for todoist task in the current file
 		// This adds an editor command that can perform some operation on the current editor instance
 		this.addCommand({
 			id: 'set-default-project-for-todoist-task-in-the-current-file',
@@ -489,7 +496,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 			if (target.checked) {
 				this.todoistSync.closeTask(taskId);
 			} else {
-				this.todoistSync.repoenTask(taskId);
+				this.todoistSync.reopenTask(taskId);
 			}
 		} else {
 			//console.log('未找到 todoist_id');

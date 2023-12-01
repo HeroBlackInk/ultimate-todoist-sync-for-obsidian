@@ -22,15 +22,32 @@ type FilterOptions = {
 export class TodoistSyncAPI   {
 	app:App;
   plugin: UltimateTodoistSyncForObsidian;
+  sync_token: string;
+  resources: object|undefined;
 
 	constructor(app:App, plugin:UltimateTodoistSyncForObsidian) {
 		//super(app,settings);
 		this.app = app;
-    this.plugin = plugin;
+        this.plugin = plugin;
+        this.sync_token = "*";
+        this.resources = undefined;
 	}
 
-    //backup todoist
-    async getAllResources() { 
+    // Get resources from last sync call
+    getCachedResources() {
+        return this.resources;
+    }
+
+    // Get updated resources from todoist since last call
+    async getUpdatedResources() {
+        return this.getAllResources(true)
+    }
+
+    // Get all resources from todoist
+    // If updateResources is true, it will use the last sync_token to fetch only the changes
+    // If updateResources is false, it will fetch all resources. This is a heavy operation and should be avoided
+    // For backward compatibility, updateResources is false by default
+    async getAllResources(updateResources = false) {
     const accessToken = this.plugin.settings.todoistAPIToken
     const url = 'https://api.todoist.com/sync/v9/sync';
     const options = {
@@ -40,7 +57,7 @@ export class TodoistSyncAPI   {
         'Content-Type': 'application/x-www-form-urlencoded'
       },
       body: new URLSearchParams({
-        sync_token: "*",
+        sync_token: (updateResources) ? this.sync_token : "*",
         resource_types: '["all"]'
       })
     };
@@ -53,7 +70,9 @@ export class TodoistSyncAPI   {
       }
   
       const data = await response.json();
-  
+      this.sync_token = data.sync_token;
+      this.resources = data;
+
       return data;
     } catch (error) {
       console.error(error);
@@ -62,6 +81,7 @@ export class TodoistSyncAPI   {
     }
 
     //backup todoist
+    //FIXME: What does this do?
     async getUserResource() { 
       const accessToken = this.plugin.settings.todoistAPIToken
       const url = 'https://api.todoist.com/sync/v9/sync';
@@ -92,6 +112,14 @@ export class TodoistSyncAPI   {
         throw new Error('Failed to fetch user resources due to network error');
       }
       }
+
+      // Returns all tasks from todoist.
+      // If updated is true, it will only return tasks that have been updated since the last sync
+     // If updated is false, it will return all tasks. This is a heavy operation and should be avoided
+	  async getAllTasks(updated= true) {
+		const all_resources = await this.getAllResources(updated);
+        return all_resources.items;
+	  }
 
 
 
@@ -152,7 +180,7 @@ export class TodoistSyncAPI   {
         }
     
         const data = await response.json();
-    
+
         return data;
       } catch (error) {
         throw error;
@@ -165,7 +193,7 @@ export class TodoistSyncAPI   {
         //console.log(allActivity)
         const allActivityEvents = allActivity.events
         //client中不包含obsidian 的activity
-        const filteredArray = allActivityEvents.filter(obj => !obj.extra_data.client?.includes("obsidian")); 
+        const filteredArray = allActivityEvents.filter(obj => !obj.extra_data.client?.includes("obsidian"))
         //console.log(filteredArray)
         return(filteredArray)
 
