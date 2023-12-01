@@ -42,14 +42,15 @@ export class TodoistRestAPI  {
         const api = await this.initializeAPI()
         try {
           if(dueDate){
-            dueDatetime = localDateStringToUTCDatetimeString(dueDatetime)
-            dueDate = null
+            dueDatetime = localDateStringToUTCDatetimeString(dueDate) || undefined
+            dueDate = undefined
           }  
           const newTask = await api.addTask({
             projectId,
             content,
             parentId,
             dueDate,
+            dueDatetime,
             labels,
             description,
             priority
