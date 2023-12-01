@@ -543,6 +543,9 @@ export class TaskParser   {
 
 
     addTodoistLink(linetext: string,todoistLink:string): string {
+		if(!this.plugin.settings.enableLinksToTodoistTasks){
+			return linetext
+		}
         const regex = new RegExp(`${keywords.TODOIST_TAG}`, "g");
         return linetext.replace(regex, todoistLink + ' ' + '$&');
     }

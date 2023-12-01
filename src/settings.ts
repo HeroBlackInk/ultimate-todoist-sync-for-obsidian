@@ -24,6 +24,7 @@ export interface UltimateTodoistSyncSettings {
 	defaultProjectName: string;
 	defaultProjectId:string;
 	automaticSynchronizationInterval:Number;
+	enableLinksToTodoistTasks: boolean;
 	todoistTasksData:any;
 	fileMetadata:any;
 	enableFullVaultSync: boolean;
@@ -54,6 +55,7 @@ export const DEFAULT_SETTINGS: UltimateTodoistSyncSettings = {
     automaticSynchronizationInterval: 300, //default aync interval 300s
     todoistTasksData: {"projects": [], "tasks": [], "events": []},
     fileMetadata: {},
+	enableLinksToTodoistTasks: true,
     enableFullVaultSync: false,
     statistics: {},
     debugMode: false,
@@ -199,7 +201,19 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
                     })
             )
 
-		
+
+		new Setting(containerEl)
+			.setName('Insert links to Todoist tasks')
+			.setDesc('If enabled, this option will insert links to Todoist tasks in the Obsidian note after creating them. Otherwise, it will not insert links.')
+			.addToggle(component =>
+				component
+					.setValue(this.plugin.settings.enableLinksToTodoistTasks)
+					.onChange((value) => {
+						this.plugin.settings.enableLinksToTodoistTasks = value
+						this.plugin.saveSettings()
+					})
+			)
+
 		new Setting(containerEl)
 			.setName('Full Vault Sync')
 			.setDesc('By default, only tasks marked with #todoist are synchronized. If this option is turned on, all tasks in the vault will be synchronized.')
@@ -216,7 +230,7 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('Remove tags with text')
-			.setDesc('If enabled, this opton will remove tags with text from the task description in todoist. Otherwise it only removes the hashtag sign. Very helpful, if you use tags in your text.')
+			.setDesc('If enabled, this option will remove tags from text in todoist`s task description. Otherwise it only removes the hashtag sign and leaves the tags text in place. Very helpful, if you use tags in your textflow.')
 			.addToggle(component =>
 				component
 					.setValue(this.plugin.settings.removeTagsWithText)
@@ -229,8 +243,8 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 
 		if(!this.plugin.settings.removeTagsWithText) {
 			new Setting(containerEl)
-				.setName('Exceptions')
-				.setDesc('Enter tags, which should always be removed, separated by comma. Leave the hashtag # sign. Default is, that todoist will be removed. If you remove this, it will not be removed anymore.')
+				.setName('Tag exceptions')
+				.setDesc('Enter tags, which should always removed in text while sync. Separated by comma. Leave the hashtag # sign out. On default, it removes `todoist` from the labels list. If you remove this, it will not be removed anymore in todoist.')
 				.addText((text) =>
 					text
 						.setValue(this.plugin.settings.removeHashTagsExceptions.join(','))
@@ -406,7 +420,7 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 								if(this.plugin.settings.enableFullVaultSync){
 									await this.plugin.fileOperation.addTodoistTagToFile(v.path)
 								}
-
+A
 								
 							}catch(error){
 								console.error(`An error occurred while check new tasks in the file: ${v.path}, ${error.message}`);
@@ -415,6 +429,17 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 
 						}
 					});
+
+					// check for tasks with empty id or sth in cache
+					console.log('checking invalid tasks in cache')
+					const tasks = this.plugin.cacheOperation?.loadTasksFromCache()
+					this.plugin.cacheOperation?.clearTakss()
+					tasks?.forEach((task) => {
+						if(task.id !== undefined){
+							this.plugin.cacheOperation?.appendTaskToCache(task)
+						}
+					})
+
 					this.plugin.syncLock = false
 					new Notice(`All files have been scanned.`)
 				}catch(error){
@@ -454,7 +479,7 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 				})
 			);
 
-        containerEl.createEl('h2', {text: 'Pull from Todoist Settings'});
+        containerEl.createEl('h2', {text: 'Synchronisation tasks from Todoist to Obsidian'});
         new Setting(containerEl)
             .setName("Pull from project")
             .setDesc("Pull tasks only from the given project.")
