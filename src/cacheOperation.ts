@@ -280,6 +280,11 @@ export class CacheOperation   {
         }
     }
 
+    // Clear all tasks in cache
+    clearTasks(){
+        this.plugin.settings.todoistTasksData.tasks = []
+    }
+
     //due 的结构  {date: "2025-02-25",isRecurring: false,lang: "en",string: "2025-02-25"}
 
 

@@ -82,6 +82,10 @@ export class FileOperation   {
     
         // 获取文件对象并更新内容
         const file = this.app.vault.getAbstractFileByPath(filepath)
+        if(file == null) {
+            console.log("Error with filepath: " + filepath)
+            return
+        }
         const content = await this.app.vault.read(file)
     
         const lines = content.split('\n')
@@ -290,7 +294,7 @@ export class FileOperation   {
 			const filepath = await this.searchFilepathsByTaskidInVault(taskId)
 			if (filepath == null) {
 				console.log(`Task ${taskId} not found in vault`)
-				return
+				return ""
 			}
 			const metadata = await this.plugin.cacheOperation.getFileMetadata(filepath)
 			if(!metadata){
@@ -305,6 +309,10 @@ export class FileOperation   {
 
         // 获取文件对象并更新内容
         const file = this.app.vault.getAbstractFileByPath(filepath)
+        if (file == null) {
+            console.log("Error with filepath: " + filepath)
+            return filepath
+        }
         const content = await this.app.vault.read(file)
     
         const lines = content.split('\n')
@@ -321,16 +329,22 @@ export class FileOperation   {
 				if(this.plugin.settings.syncTagsFromTodoist){
 					const oldTags = this.plugin.taskParser.getAllTagsFromLineText(line)
 					const newTags = evt.extra_data.labels
+
 					if(oldTags != undefined && newTags != undefined) {
 						// remove tags if label missing
 						const removedTags = oldTags.filter(x => !newTags.includes(x))
 						removedTags.forEach(tag =>
-							newline = newlinereplace(` #${tag} `, ' ')
+							newline = newline.replace(` #${tag} `, ' ')
 						)
 
 						// append labels as tags
 						const addTags = newTags.filter(x => !oldTags.includes(x))
-						addTags.forEach(tag => newline += ` #${tag}`)
+						addTags.forEach(tag => {
+							let position = newline.search(/\s#todoist\s/)
+							if(position > -1) {
+								newline = newline.slice(0, position) + ` #${tag}` + newline.slice(position)
+							}
+						})
 					}
 				}
 				lines[i] = newline
@@ -369,8 +383,6 @@ export class FileOperation   {
             const newTaskDueDate = this.plugin.taskParser.ISOStringToLocalDateString(evt.extra_data.due_date) || ""
             
             //console.log(`${taskId} duedate is updated`)
-            console.log(oldTaskDueDate)
-            console.log(newTaskDueDate)
             if(oldTaskDueDate === ""){
                 //console.log(this.plugin.taskParser.insertDueDateBeforeTodoist(line,newTaskDueDate))
                 lines[i] = this.plugin.taskParser.insertDueDateBeforeTodoist(line,newTaskDueDate)
@@ -379,7 +391,7 @@ export class FileOperation   {
             }
             else if(newTaskDueDate === ""){
                 //remove 日期from text
-                const regexRemoveDate = /(🗓️|📅|📆|🗓)\s?\d{4}-\d{2}-\d{2}/; //匹配日期🗓️2023-03-07"
+                const regexRemoveDate = /(🗓️|📅|📆|🗓)\s?\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?/; //匹配日期🗓️2023-03-07T:08:00"
                 lines[i] = line.replace(regexRemoveDate,"")
                 modified = true
             }

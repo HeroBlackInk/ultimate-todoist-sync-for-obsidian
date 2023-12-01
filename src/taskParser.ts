@@ -53,14 +53,14 @@ const REGEX = {
     TODOIST_ID: /\[todoist_id::\s*\d+\]/,
     TODOIST_ID_NUM:/\[todoist_id::\s*(.*?)\]/,
     TODOIST_LINK:/\[link\]\(.*?\)/,
-    DUE_DATE_WITH_EMOJ: new RegExp(`(${keywords.DUE_DATE})\\s?\\d{4}-\\d{2}-\\d{2}`),
-    DUE_DATE : new RegExp(`(?:${keywords.DUE_DATE})\\s?(\\d{4}-\\d{2}-\\d{2})`),
+    DUE_DATE_WITH_EMOJ: new RegExp(`(${keywords.DUE_DATE})\\s?\\d{4}-\\d{2}-\\d{2}(T\\d{2}:\\d{2})*`),
+    DUE_DATE : new RegExp(`(?:${keywords.DUE_DATE})\\s?(\\d{4}-\\d{2}-\\d{2})(T\\d{2}:\\d{2})*`),
     PROJECT_NAME: /\[project::\s*(.*?)\]/,
     TASK_CONTENT: {
         REMOVE_PRIORITY: /\s!!([1-4])\s/,
         REMOVE_TAGS: /(^|\s)(#[a-zA-Z\d\u4e00-\u9fa5-]+)/g,
         REMOVE_SPACE: /^\s+|\s+$/g,
-        REMOVE_DATE: new RegExp(`(${keywords.DUE_DATE})\\s?\\d{4}-\\d{2}-\\d{2}`),
+        REMOVE_DATE: new RegExp(`(${keywords.DUE_DATE})\\s?\\d{4}-\\d{2}-\\d{2}(T\\d{2}:\\d{2})*`),
         REMOVE_INLINE_METADATA: /%%\[\w+::\s*\w+\]%%/,
         REMOVE_CHECKBOX:  /^(-|\*)\s+\[(x|X| )\]\s/,
         REMOVE_CHECKBOX_WITH_INDENTATION: /^([ \t]*)?(-|\*)\s+\[(x|X| )\]\s/,
@@ -72,7 +72,7 @@ const REGEX = {
     TAB_INDENTATION: /^(\t+)/,
     TASK_PRIORITY: /\s!!([1-4])\s/,
     BLANK_LINE: /^\s*$/,
-    TODOIST_EVENT_DATE: /(\d{4})-(\d{2})-(\d{2})/
+    TODOIST_EVENT_DATE: /(\d{4})-(\d{2})-(\d{2})(T(\d{2}):(\d{2}))?/
 };
 
 export class TaskParser   {
@@ -225,8 +225,14 @@ export class TaskParser   {
   
   
     getDueDateFromLineText(text: string) {
-        const result = REGEX.DUE_DATE.exec(text);
-        return result ? result[1] : null;
+        const date = REGEX.DUE_DATE.exec(text);
+        let result = (date ? date[1] : '');
+
+		// check for time
+		if(date && date[2] !== undefined){
+			result = result + date[2]
+		}
+        return date ? result : null;
     }
 
   
@@ -347,7 +353,7 @@ export class TaskParser   {
     //task status compare
     taskStatusCompare(lineTask:Object,todoistTask:Object) {
         //status 是否修改
-        const statusModified = (lineTask.isCompleted === todoistTask.isCompleted)
+        const statusModified = (lineTask.isCompleted === todoistTask.isCompleted) || (lineTask.isCompleted === false && todoistTask.isCompleted !== null)
         //console.log(lineTask)
         //console.log(todoistTask)
         return(statusModified)
@@ -358,16 +364,12 @@ export class TaskParser   {
     async  compareTaskDueDate(lineTask: object, todoistTask: object): boolean {
         const lineTaskDue = lineTask.dueDate
         const todoistTaskDue = todoistTask.due ?? "";
-        //console.log(dataviewTaskDue)
-        //console.log(todoistTaskDue)
         if (lineTaskDue === "" && todoistTaskDue === "") {
         //console.log('没有due date')
         return true;
         }
     
         if ((lineTaskDue || todoistTaskDue) === "") {
-        console.log(lineTaskDue);
-        console.log(todoistTaskDue)
         //console.log('due date 发生了变化')
         return false;
         }
@@ -454,7 +456,9 @@ export class TaskParser   {
           let month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
           let date = dateObj.getDate().toString().padStart(2, '0');
           let localDateString = `${year}-${month}-${date}`;
-          return localDateString;
+          const hour = dateObj.getHours().toString().padStart(2, '0');
+          const minute = dateObj.getMinutes().toString().padStart(2, '0');
+          localDateString = `${localDateString}T${hour}:${minute}`;
           return(localDateString);
         } catch (error) {
           console.error(`Error extracting date from string '${utcTimeString}': ${error}`);
@@ -495,7 +499,10 @@ export class TaskParser   {
           if(localDateString === null){
             return null
           }
-          localDateString = localDateString + "T08:00";
+
+			if(localDateString.match(/T\d{2}:\d{2}/) === null) {
+              localDateString = localDateString + "T08:00";
+          }
           let localDateObj = new Date(localDateString);
           let ISOString = localDateObj.toISOString()
           return(ISOString);
@@ -515,7 +522,11 @@ export class TaskParser   {
           if(localDateString === null){
             return null
           }
-          localDateString = localDateString + "T08:00";
+
+          if(localDateString.match(/T\d{2}:\d{2}/) === null) {
+              localDateString = localDateString + "T08:00";
+          }
+
           let localDateObj = new Date(localDateString);
           let ISOString = localDateObj.toISOString()
           let utcDateString = ISOString.slice(0,10)

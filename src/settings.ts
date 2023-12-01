@@ -43,6 +43,7 @@ export interface UltimateTodoistSyncSettings {
     pullTemplateTaskNotesFormat: string;
     pullDailyNoteAppendMode: boolean;
     pullDailyNoteInsertAfterText: string;
+	syncTagsFromTodoist: boolean;
 }
 
 
@@ -71,7 +72,8 @@ export const DEFAULT_SETTINGS: UltimateTodoistSyncSettings = {
     pullTemplateUseForProjects: pullTaskNotesMode.taskNote,
     pullTemplateTaskNotesFormat: "{{date|YYYY-MM-DD}}_{{title}}",
     pullDailyNoteAppendMode: true,
-    pullDailyNoteInsertAfterText: ""
+    pullDailyNoteInsertAfterText: "",
+	syncTagsFromTodoist: true
 }
 
 
@@ -204,7 +206,7 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('Insert links to Todoist tasks')
-			.setDesc('If enabled, this option will insert links to Todoist tasks in the Obsidian note after creating them. Otherwise, it will not insert links.')
+			.setDesc('If enabled, this option will insert links to Todoist tasks in the Obsidian note after creating them. Otherwise, it will not insert links. This will only apply to newly created tasks.')
 			.addToggle(component =>
 				component
 					.setValue(this.plugin.settings.enableLinksToTodoistTasks)
@@ -229,7 +231,7 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 				)
 
 		new Setting(containerEl)
-			.setName('Remove tags with text')
+			.setName('Remove tags within text')
 			.setDesc('If enabled, this option will remove tags from text in todoist`s task description. Otherwise it only removes the hashtag sign and leaves the tags text in place. Very helpful, if you use tags in your textflow.')
 			.addToggle(component =>
 				component
@@ -433,7 +435,7 @@ A
 					// check for tasks with empty id or sth in cache
 					console.log('checking invalid tasks in cache')
 					const tasks = this.plugin.cacheOperation?.loadTasksFromCache()
-					this.plugin.cacheOperation?.clearTakss()
+					this.plugin.cacheOperation?.clearTasks()
 					tasks?.forEach((task) => {
 						if(task.id !== undefined){
 							this.plugin.cacheOperation?.appendTaskToCache(task)
@@ -495,6 +497,18 @@ A
                         this.display()
                     })
             })
+
+		new Setting(containerEl)
+			.setName("Sync tags from todoist")
+			.setDesc("If enabled, this option will sync tags from todoist to obsidian. Otherwise, it will not sync tags.")
+			.addToggle(component => {
+				component
+					.setValue(this.plugin.settings.syncTagsFromTodoist)
+					.onChange((value) => {
+						this.plugin.settings.syncTagsFromTodoist = value
+						this.plugin.saveSettings()
+					})
+			})
 
         const desc = document.createDocumentFragment();
 		desc.append('If daily Note core plugin is enabled and is selected, all new tasks will be created in a daily note. This needs the ',
