@@ -90,17 +90,17 @@ export class TaskParser   {
   
     //convert line text to a task object
     async convertTextToTodoistTaskObject(lineText:string,filepath:string,lineNumber?:number,fileContent?:string) {
-        console.log(`linetext is:${lineText}`)
+        //console.log(`linetext is:${lineText}`)
     
         let hasParent = false
         let parentId = null
         let parentTaskObject = null
         // 检测 parentID
         let textWithoutIndentation = lineText
-        console.log(`tabs ${this.getTabIndentation(lineText)}`)
         if(this.getTabIndentation(lineText) > 0){
+        //console.log(`缩进为 ${this.getTabIndentation(lineText)}`)
         textWithoutIndentation = this.removeTaskIndentation(lineText)
-        console.log(textWithoutIndentation)
+        //console.log(textWithoutIndentation)
         //console.log(`这是子任务`)
         //读取filepath
         //const fileContent = await this.plugin.fileOperation.readContentFromFilePath(filepath)
@@ -397,7 +397,7 @@ export class TaskParser   {
     //console.log(getTabIndentation("\t\t- [x] This is a task with two tabs")); // 2
     //console.log(getTabIndentation("  - [x] This is a task without tabs")); // 0
     getTabIndentation(lineText:string){
-        const match = REGEX.TAB_INDENTATION.exec(lineText);
+        const match = REGEX.TAB_INDENTATION.exec(lineText)
         return match ? match[1].length : 0;
     }
 
