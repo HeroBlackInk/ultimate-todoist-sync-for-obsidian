@@ -11,7 +11,6 @@ function  localDateStringToUTCDatetimeString(localDateString:string) {
           if(localDateString === null){
             return null
           }
-          localDateString = localDateString + "T08:00";
           let localDateObj = new Date(localDateString);
           let ISOString = localDateObj.toISOString()
           return(ISOString);
