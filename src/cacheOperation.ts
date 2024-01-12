@@ -280,6 +280,29 @@ export class CacheOperation   {
         }
     }
 
+
+    updateMovedTaskToCacheByID(taskId: string, updatedContent: Object)
+    {
+        const savedTasks = this.plugin.settings.todoistTasksData.tasks;
+        const task = savedTasks.find(obj => obj.id === taskId);
+        //console.log('found existing task: ' + JSON.stringify(task, null, 4))
+        if(task)
+        {
+            if(updatedContent.sectionId !== undefined)
+            {
+                task.sectionId = updatedContent.sectionId
+            }
+            if(updatedContent.projectId !== undefined)
+            {
+                task.projectId = updatedContent.projectId
+            }
+            if(updatedContent.parentId !== undefined)
+            {
+                task.parentId = updatedContent.parentId
+            }
+            //console.log('modified task: ' + JSON.stringify(task, null, 4))
+        }
+    }
     //due 的结构  {date: "2025-02-25",isRecurring: false,lang: "en",string: "2025-02-25"}
 
 
@@ -402,6 +425,23 @@ export class CacheOperation   {
         }
     }
 
+    // section names can be non-unique across projects.
+    // this we need the project id for the lookup here.
+    getSectionIdByNameFromCache(projectId:string, sectionName:string) {
+        try {
+            //console.log('lookig for section: ' + sectionName + 'of project' + projectId)
+	        const savedSections = this.plugin.settings.todoistTasksData.sections
+	        //console.log('sections are: ' + JSON.stringify(savedSections))
+	        const targetSection = savedSections.find(obj => obj.name === sectionName && obj.projectId === projectId);
+	        //console.log('got target section: ' + targetSection)
+	        const sectionId = targetSection ? targetSection.id : null;
+        	return(sectionId)
+        } catch (error) {
+        	console.error(`Error finding section from Cache file: ${error}`);
+        	return(false)
+        }
+    }    
+
 
      
     getProjectNameByIdFromCache(projectId:string) {
@@ -415,6 +455,20 @@ export class CacheOperation   {
         return(false)
         }
     }
+
+
+    //reverse lookup of sections is unique.
+    getSectionNameByIdFromCache(sectionId:string) {
+        try {
+	        const savedSections = this.plugin.settings.todoistTasksData.sections
+	        const targetSection = savedSections.find(obj => obj.id === sectionId);
+	        const sectionName = targetSection ? targetSection.name : null;
+	        return(sectionName)
+        } catch (error) {
+		    console.error(`Error finding section from Cache file: ${error}`);
+		    return(false)
+		    }
+    }    
       
 
 
@@ -426,20 +480,54 @@ export class CacheOperation   {
             if(!projects){
                 return false
             }
-        
+            
+            // reset cached sections
+            this.plugin.settings.todoistTasksData.sections = [];
+
+            // we can flatten the list of sections here, as we just need the lookup
+            // from names to sections.
+            // Additionally, sections contain their parent projects as a property
+            for(const project of projects)
+            {
+                //console.log('saving project' + project.name)
+                this.saveSectionsToCache(project.id)
+            }
             //save to json
             this.plugin.settings.todoistTasksData.projects = projects
-
             return true
 
         }catch(error){
-            return false
             console.log(`error downloading projects: ${error}`)
+            return false
 
     }
     
     }
 
+        // save project sections to json file: This is required, as we need a lookup
+        // from section ids to section names. 
+        // The design of the plugin avoids live requests to the REST API.
+        async saveSectionsToCache(projectId: string) {
+            try{
+                    //get projects
+                const sections = await this.plugin.todoistRestAPI.GetAllSections(projectId)
+                if(!sections){
+                    return false
+                }
+            
+                //save to json
+                for(const section of sections){
+                    this.plugin.settings.todoistTasksData.sections.push(section)
+                }
+                
+                return true
+    
+            }catch(error){
+                console.log(`error downloading sections: ${error}`)
+                return false
+    
+            }
+        }
 
     async updateRenamedFilePath(oldpath:string,newpath:string){
         try{

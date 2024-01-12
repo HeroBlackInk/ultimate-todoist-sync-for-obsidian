@@ -149,6 +149,7 @@ export class TaskParser   {
 
         let projectId = this.plugin.cacheOperation.getDefaultProjectIdForFilepath(filepath as string)
         let projectName = this.plugin.cacheOperation.getProjectNameByIdFromCache(projectId)
+        let sectionId = null;
 
         if(hasParent){
             projectId = parentTaskObject.projectId
@@ -157,18 +158,39 @@ export class TaskParser   {
         if(!hasParent){
                     //匹配 tag 和 peoject
             for (const label of labels){
-        
+                //check for tags matching todoist projects
+
                 //console.log(label)
-                let labelName = label.replace(/#/g, "");
+                let labelName = label.replace(/#/g, "")
                 //console.log(labelName)
                 let hasProjectId = this.plugin.cacheOperation.getProjectIdByNameFromCache(labelName)
                 if(!hasProjectId){
                     continue
                 }
                 projectName = labelName
-                //console.log(`project is ${projectName} ${label}`)
+                console.log(`project is ${projectName} ${label}`)
                 projectId = hasProjectId
                 break
+            }
+
+            //its probably easier to first look for the projectID and THEN find the section.
+            for(const label of labels)
+            {
+                //check for tags matching todoist project sections
+                let sectionName = label
+
+                if(this.plugin.settings.sectionPrefix != "") {
+                    const needle = `/(${this.plugin.settings.sectionPrefix})/`
+                    let sectionRegEx = label.match(needle)
+                    if(sectionRegEx){
+
+                            sectionName = label.replace(needle, "")
+                    }
+                }
+                let hasSectionId = this.plugin.cacheOperation.getSectionIdByNameFromCache(projectId, sectionName)
+                if(hasSectionId){
+                    sectionId = hasSectionId
+                }
             }
         }
 
@@ -185,6 +207,7 @@ export class TaskParser   {
     
         const todoistTask = {
         projectId: projectId,
+        sectionId: sectionId || null,
         content: content || '',
         parentId: parentId || null,
         dueDate: dueDate || '',
@@ -379,7 +402,7 @@ export class TaskParser   {
     
   
     //task project id compare
-    async  taskProjectCompare(lineTask:Object,todoistTask:Object) {
+    taskProjectCompare(lineTask:Object,todoistTask:Object) {
         //project 是否修改
         //console.log(dataviewTaskProjectId)
         //console.log(todoistTask.projectId)
@@ -387,6 +410,13 @@ export class TaskParser   {
     }
   
   
+    taskSectionCompare(lineTask:Object,todoistTask:Object) {
+        //project 是否修改
+        //console.log("Comparing sections")
+        //console.log("new: " + lineTask.sectionId + " was: " + todoistTask.sectionId)
+        return(lineTask.sectionId === todoistTask.sectionId)
+    }
+
     //判断任务是否缩进
     isIndentedTask(text:string) {
         return(REGEX.TASK_INDENTATION.test(text));
