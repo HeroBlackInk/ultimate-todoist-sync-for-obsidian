@@ -469,7 +469,7 @@ export class TodoistSync  {
                 //console.log('Moving Task ' + lineTask.todoist_id?.toString())
                 //console.log('content is: ' + JSON.stringify(updatedContent, null, 4))
                 this.plugin.cacheOperation.updateMovedTaskToCacheByID(lineTask.todoist_id.toString(), updatedContent)
-                await this.plugin.todoistSyncAPI.moveTask(lineTask.todoist_id.toString(), updatedContent
+                await this.plugin.todoistSyncAPI.moveTask(lineTask.todoist_id.toString(), updatedContent)
             }
 
             if (statusModified) {
