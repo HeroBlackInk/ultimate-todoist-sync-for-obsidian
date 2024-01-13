@@ -1,6 +1,7 @@
-import { TodoistApi } from "@doist/todoist-api-typescript"
+import { TodoistApi, request } from "@doist/todoist-api-typescript"
 import { App} from 'obsidian';
 import UltimateTodoistSyncForObsidian from "../main";
+import { randomUUID } from "crypto";
     //convert date from obsidian event
     // 使用示例
     //const str = "2023-03-27";
@@ -38,7 +39,7 @@ export class TodoistRestAPI  {
         return(api)
     }
 
-    async AddTask({ projectId, content, parentId = null, dueDate, dueDatetime,labels, description,priority }: { projectId: string, content: string, parentId?: string , dueDate?: string,dueDatetime?: string, labels?: Array<string>, description?: string,priority?:number }) {
+    async AddTask({ projectId, sectionId = null, content, parentId = null, dueDate, dueDatetime,labels, description,priority }: { projectId: string, sectionId?: string, content: string, parentId?: string , dueDate?: string,dueDatetime?: string, labels?: Array<string>, description?: string,priority?:number }) {
         const api = await this.initializeAPI()
         try {
           if(dueDate){
@@ -47,6 +48,7 @@ export class TodoistRestAPI  {
           }  
           const newTask = await api.addTask({
             projectId,
+            sectionId,
             content,
             parentId,
             dueDate,
@@ -75,12 +77,12 @@ export class TodoistRestAPI  {
 
     //Also note that to remove the due date of a task completely, you should set the due_string parameter to no date or no due date.
     //api 没有 update task project id 的函数
-    async UpdateTask(taskId: string, updates: { content?: string, description?: string, labels?:Array<string>,dueDate?: string,dueDatetime?: string,dueString?:string,parentId?:string,priority?:number }) {
+    async UpdateTask(taskId: string, updates: { content?: string, description?: string, labels?:Array<string>, dueDate?: string,dueDatetime?: string,dueString?:string,priority?:number }) {
         const api = await this.initializeAPI()
         if (!taskId) {
         throw new Error('taskId is required');
         }
-        if (!updates.content && !updates.description &&!updates.dueDate && !updates.dueDatetime && !updates.dueString && !updates.labels &&!updates.parentId && !updates.priority) {
+        if (!updates.content && !updates.description &&!updates.dueDate && !updates.dueDatetime && !updates.dueString && !updates.labels && !updates.priority) {
         throw new Error('At least one update is required');
         }
         try {
@@ -90,15 +92,14 @@ export class TodoistRestAPI  {
             updates.dueDate = null
             console.log(updates.dueDatetime)
           }  
+        //console.log('Updating: ' + JSON.stringify(updates, null, 4))
         const updatedTask = await api.updateTask(taskId, updates);
         return updatedTask;
         } catch (error) {
-        throw new Error(`Error updating task: ${error.message}`);
+        //console.log(JSON.stringify(error, null, 4))
+        throw new Error(`API Error while updating task: ${error}`);
         }
     }
-
-
-
 
     //open a task
     async OpenTask(taskId:string) {
@@ -175,6 +176,19 @@ export class TodoistRestAPI  {
     
         } catch (error) {
             console.error('Error get all projects', error);
+            return false
+        }
+    }
+
+    //get all sections
+    async GetAllSections(projectId: string) {
+      const api = await this.initializeAPI()
+        try {
+          const result = await api.getSections(projectId);
+          return(result)
+          
+        } catch (error) {
+            console.error('Error getting all sections', error);
             return false
         }
     }

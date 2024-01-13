@@ -21,6 +21,7 @@ export interface UltimateTodoistSyncSettings {
 	enableFullVaultSync: boolean;
 	statistics: any;
 	debugMode:boolean;
+	sectionPrefix:string;
 }
 
 
@@ -29,11 +30,12 @@ export const DEFAULT_SETTINGS: UltimateTodoistSyncSettings = {
 	apiInitialized:false,
 	defaultProjectName:"Inbox",
 	automaticSynchronizationInterval: 300, //default aync interval 300s
-	todoistTasksData:{"projects":[],"tasks":[],"events":[]},
+	todoistTasksData:{"projects":[],"sections":[],"tasks":[],"events":[]},
 	fileMetadata:{},
 	enableFullVaultSync:false,
 	statistics:{},
 	debugMode:false,
+	sectionPrefix:"",
 	//mySetting: 'default',
 	//todoistTasksFilePath: 'todoistTasks.json'
 
@@ -167,7 +169,19 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 						
 				)
 
+		new Setting(containerEl)
+			.setName('Section Tag Prefix')
+			.setDesc('Provides the option to set a prefix for identifying tags that should move a task to a project section (e.g. "sec-"). Can be empty.')
+			.addText((text) =>
+				text
+					.setValue(this.plugin.settings.sectionPrefix)
+					.onChange(async (value) => {
+						this.plugin.settings.sectionPrefix = value;
+						this.plugin.settings.apiInitialized = false;
+					//
+				})
 
+		)
 		
 		new Setting(containerEl)
 			.setName('Full Vault Sync')

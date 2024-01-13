@@ -365,7 +365,9 @@ export class TodoistSync  {
             //tag or labels 是否修改
             const tagsModified = !this.plugin.taskParser.taskTagCompare(lineTask,savedTask)
             //project 是否修改
-            const projectModified = !(await this.plugin.taskParser.taskProjectCompare(lineTask,savedTask))
+            const projectModified = !await(this.plugin.taskParser.taskProjectCompare(lineTask,savedTask))
+            //section
+            const sectionModified = !await(this.plugin.taskParser.taskSectionCompare(lineTask, savedTask))
             //status 是否修改
             const statusModified = !this.plugin.taskParser.taskStatusCompare(lineTask,savedTask)
             //due date 是否修改
@@ -379,6 +381,7 @@ export class TodoistSync  {
             let contentChanged= false;
             let tagsChanged = false;
             let projectChanged = false;
+            let sectionChanged = false;
             let statusChanged = false;
             let dueDateChanged = false;
             let parentIdChanged = false;
@@ -413,16 +416,30 @@ export class TodoistSync  {
 
             //todoist Rest api 没有 move task to new project的功能
             if (projectModified) {
-                //console.log(`Project id modified for task ${lineTask_todoist_id}`)
-                //updatedContent.projectId = lineTask.projectId
-                //projectChanged = false;
+                console.log(`Project id modified for task ${lineTask_todoist_id}`)
+                updatedContent.projectId = lineTask.projectId
+                projectChanged = true;
             }
 
             //todoist Rest api 没有修改 parent id 的借口
             if (parentIdModified) {
-                //console.log(`Parnet id modified for task ${lineTask_todoist_id}`)
-                //updatedContent.parentId = lineTask.parentId
-                //parentIdChanged = false;
+                console.log(`Parent id modified for task ${lineTask_todoist_id}`)
+                updatedContent.parentId = lineTask.parentId
+                parentIdChanged = true;
+            }
+
+            if(sectionModified)
+            {
+                //console.log(`Section modified for task ${lineTask_todoist_id}. Changed to ${lineTask.sectionId}`)
+                updatedContent.sectionId = lineTask.sectionId
+                //if sectionId is updated, but empty, we move the task to "No Section".
+                //for this, we keep the section id empty, but provide the project id:
+                //see https://developer.todoist.com/sync/v9/#move-an-item
+                if(!lineTask.sectionId) {
+                    delete updatedContent.sectionId
+                    updatedContent.projectId = lineTask.projectId
+                }
+                sectionChanged = true;
             }
 
             if (priorityModified) {
@@ -432,13 +449,28 @@ export class TodoistSync  {
             }
 
 
-            if (contentChanged || tagsChanged ||dueDateChanged ||projectChanged || parentIdChanged || priorityChanged) {
+            if (contentChanged || tagsChanged ||dueDateChanged || priorityChanged) {
                 //console.log("task content was modified");
                 //console.log(updatedContent)
                 const updatedTask = await this.plugin.todoistRestAPI.UpdateTask(lineTask.todoist_id.toString(),updatedContent)
                 updatedTask.path = filepath
                 this.plugin.cacheOperation.updateTaskToCacheByID(updatedTask);
+
             } 
+
+            if(projectChanged || sectionChanged || parentIdChanged)
+            {
+                // update task in cache and move the task.
+                // according to https://github.com/Doist/todoist-api-python/issues/8 
+                // tasks cannot be moved by the REST API, at least for now.
+                // hence, moveTask triggers a POST request to the Sync API.
+
+                //console.log('ProjectId, ParentId and/or SectionId have been modified.')
+                //console.log('Moving Task ' + lineTask.todoist_id?.toString())
+                //console.log('content is: ' + JSON.stringify(updatedContent, null, 4))
+                this.plugin.cacheOperation.updateMovedTaskToCacheByID(lineTask.todoist_id.toString(), updatedContent)
+                await this.plugin.todoistSyncAPI.moveTask(lineTask.todoist_id.toString(), updatedContent)
+            }
 
             if (statusModified) {
                 console.log(`Status modified for task ${lineTask_todoist_id}`)
@@ -457,7 +489,7 @@ export class TodoistSync  {
 
 
             
-            if (contentChanged || statusChanged ||dueDateChanged ||tagsChanged || projectChanged || priorityChanged) {
+            if (contentChanged || statusChanged ||dueDateChanged ||tagsChanged || projectChanged || sectionChanged || priorityChanged) {
                 console.log(lineTask)
                 console.log(savedTask)
                 //`Task ${lastLineTaskTodoistId} was modified`
@@ -478,6 +510,9 @@ export class TodoistSync  {
                 }
                 if (projectChanged) {
                     message += " Project was changed.";
+                }
+                if (sectionChanged) {
+                    message += " Section was changed.";
                 }
                 if (priorityChanged) {
                     message += " Priority was changed.";

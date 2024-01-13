@@ -355,6 +355,91 @@ export class TodoistSyncAPI   {
           throw new Error('Failed to fetch projects activities due to network error');
       }
   }
+
+  async moveTask(taskId: string, updatedContent?: Object){
+    try{
+      
+      if(!taskId)
+      {
+        throw new Error('taskId is required to move tasks!');
+      }
+
+      if(!updatedContent.projectId && !updatedContent.sectionId && !updatedContent.parentId)
+      {
+        throw new Error('At least one of projectId, sectionId or parentId must be set when moving a task! projectId is ' + updatedContent.projectId + ', sectionId is: ' + updatedContent.sectionId + ', parentId is: ' + updatedContent.parentId)
+      }
+
+      const accessToken = this.plugin.settings.todoistAPIToken
+      const url = 'https://api.todoist.com/sync/v9/sync'
+      const unixTimestampString: string = Math.floor(Date.now() / 1000).toString();
+      
+      // a single call to the sync api that moves a task between a project AND a section and once failed at times.
+      // hence we queue the commands
+
+      let commands = [];
+
+      let commandMoveProject = null
+      if(updatedContent.projectId) {
+         commandMoveProject = 
+          {
+            'type': "item_move",
+            'uuid': crypto.randomUUID(),
+            'args': { 'id': taskId, 'project_id': updatedContent.projectId},
+          }
+        
+        commands.push(commandMoveProject)
+      }
+
+      let commandMoveParent = null
+      if(updatedContent.parentId) {
+        commandMoveParent = 
+          {
+            'type': "item_move",
+            'uuid': crypto.randomUUID(),
+            'args': { 'id': taskId, 'project_id': updatedContent.projectId},
+          }
+        
+        commands.push(commandMoveParent)
+      }
+
+      let commandMoveSection = null
+      if(updatedContent.sectionId) {
+        commandMoveSection = 
+          {
+            'type': "item_move",
+            'uuid': crypto.randomUUID(),
+            'args': { 'id': taskId, 'section_id': updatedContent.sectionId},
+          }
+        
+        commands.push(commandMoveSection)
+      }
+      
+
+
+
+      const options = {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams({ commands: JSON.stringify(commands) })
+      };
+      
+      //console.log("json section update string: " + JSON.stringify(commands, null, 4))
+      const response = await fetch(url, options)
+      await response.json();
+      //console.log("Moved task successfully!!: %o", response)
+      if(!response.ok){
+        throw new Error(`Moving item failed: Got HTTP status code: ${response.status} - ${response.statusText}`)
+      }
+      return response.ok
+              
+    }catch(error){
+      throw new Error('Error moving task: ' + error)
+    }
+  }
+
      
 }
 
