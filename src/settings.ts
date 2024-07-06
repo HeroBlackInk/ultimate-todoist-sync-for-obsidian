@@ -21,6 +21,7 @@ export interface UltimateTodoistSyncSettings {
 	enableFullVaultSync: boolean;
 	statistics: any;
 	debugMode:boolean;
+	useAppURI:boolean;
 }
 
 
@@ -34,6 +35,7 @@ export const DEFAULT_SETTINGS: UltimateTodoistSyncSettings = {
 	enableFullVaultSync:false,
 	statistics:{},
 	debugMode:false,
+	useAppURI:true,
 	//mySetting: 'default',
 	//todoistTasksFilePath: 'todoistTasks.json'
 
@@ -396,6 +398,19 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 					this.plugin.todoistSync.backupTodoistAllResources()
 				})
 			);
+
+		new Setting(containerEl)
+			.setName('Use Desktop URIs')
+			.setDesc('If enabled produces application URI links (todoist://...) instead of web urls (https://...), which open in the app instead of the browser')
+			.addToggle(component => 
+				component
+						.setValue(this.plugin.settings.useAppURI)
+						.onChange((value)=>{
+							this.plugin.settings.useAppURI = value
+							this.plugin.saveSettings()						
+						})
+						
+				)
 	}
 }
 
