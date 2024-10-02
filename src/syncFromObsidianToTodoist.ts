@@ -7,7 +7,7 @@ type FrontMatter = {
     todoistCount: number;
   };
 
-export class TodoistSync  {
+export class SyncFromObsidianToTodoist  {
 	app:App;
     plugin: UltimateTodoistSyncForObsidian;
 

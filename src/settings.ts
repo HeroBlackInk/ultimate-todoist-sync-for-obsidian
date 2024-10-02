@@ -297,8 +297,8 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 
 				//backup settings and todoist data first
 				try{
-					await this.plugin.todoistSync?.backupTodoistAllResources()
-					await this.plugin.todoistSync?.backupLocalSettings()
+					await this.plugin.syncFromObsidianToTodoist?.backupTodoistAllResources()
+					await this.plugin.syncFromObsidianToTodoist?.backupLocalSettings()
 				}catch{
 					new Notice('The database backup failed, and the database check task cannot be performed.')
    					throw new Error('Backup failed'); // 抛出异常，中止后续代码执行
@@ -645,8 +645,8 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 						new Notice(`Please set the todoist api first`)
 						return
 					}
-					this.plugin.todoistSync?.backupTodoistAllResources()
-					this.plugin.todoistSync?.backupLocalSettings()
+					this.plugin.syncFromObsidianToTodoist?.backupTodoistAllResources()
+					this.plugin.syncFromObsidianToTodoist?.backupLocalSettings()
 				})
 			);
 

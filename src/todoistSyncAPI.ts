@@ -30,6 +30,49 @@ type FilterOptions = {
   object_type?: string;
 };
 
+
+
+function handleResponseError(responseStatus) {
+  switch (responseStatus) {
+    case 20:
+      console.log("21 Project not found:	The project has been deleted or does not exist (the command should not be retried).");
+      break;
+    case 22:
+      console.error("22 Item not found:	The task has been deleted or does not exist (the command should not be retried).");
+      break;
+    case 411:
+      console.error("411 User deleted:	The user account has been deleted (the command should not be retried).");
+      break;
+    case 200:
+      console.log("200 OK: The request was processed successfully.");
+      break;
+    case 400:
+      console.error("400 Bad Request: The request was incorrect.");
+      break;
+    case 401:
+      console.error("401 Unauthorized: Authentication is required, and has failed, or has not yet been provided.");
+      break;
+    case 403:
+      console.error("403 Forbidden: The request was valid, but for something that is forbidden.");
+      break;
+    case 404:
+      console.error("404 Not Found: The requested resource could not be found.");
+      break;
+    case 429:
+      console.error("429 Too Many Requests: The user has sent too many requests in a given amount of time.");
+      break;
+    case 500:
+      console.error("500 Internal Server Error: The request failed due to a server error.");
+      break;
+    case 503:
+      console.error("503 Service Unavailable: The server is currently unable to handle the request.");
+      break;
+    default:
+      console.error(`${response.status} Unexpected Error: An unexpected error occurred.`);
+      break;
+  }
+}
+
 export class TodoistSyncAPI   {
 	app:App;
   plugin: UltimateTodoistSyncForObsidian;
@@ -78,7 +121,8 @@ export class TodoistSyncAPI   {
         const response = await fetch(url, options);
         const data = await response.json();
         if (!response.ok) {
-          throw new Error(`Failed to fetch all resources: ${response.status} ${response.statusText}`);
+          handleResponseError(response.status)
+          throw new Error(`Failed to sync all resources: ${response.status} ${response.statusText}`);
         }
     
         // 如果 this.resources 为空或未定义，直接赋值为 data
@@ -153,6 +197,7 @@ export class TodoistSyncAPI   {
           const response = await fetch(url, options);
       
           if (!response.ok) {
+            handleResponseError(response.status)
             throw new Error(`Failed to fetch all resources: ${response.status} ${response.statusText}`);
           }
       
@@ -181,6 +226,7 @@ export class TodoistSyncAPI   {
         });
     
         if (!response.ok) {
+          handleResponseError(response.status)
           throw new Error(`API returned error status: ${response.status}`);
         }
     
@@ -241,6 +287,7 @@ export class TodoistSyncAPI   {
             const response = await fetch(url, options);
         
             if (!response.ok) {
+            handleResponseError(response.status)
             throw new Error(`Failed to fetch completed items: ${response.status} ${response.statusText}`);
             }
         
@@ -276,6 +323,7 @@ export class TodoistSyncAPI   {
         const response = await fetch(url, options);
     
         if (!response.ok) {
+            handleResponseError(response.status)
             throw new Error(`Failed to fetch uncompleted items: ${response.status} ${response.statusText}`);
         }
     
@@ -331,6 +379,7 @@ export class TodoistSyncAPI   {
         const response = await fetch(url, options);
     
         if (!response.ok) {
+            handleResponseError(response.status)
             throw new Error(`Failed to fetch updated items: ${response.status} ${response.statusText}`);
         }
     
@@ -377,6 +426,7 @@ export class TodoistSyncAPI   {
           const response = await fetch(url, options);
       
           if (!response.ok) {
+          handleResponseError(response.status)
           throw new Error(`Failed to fetch  projects activities: ${response.status} ${response.statusText}`);
           }
       
@@ -449,6 +499,7 @@ export class TodoistSyncAPI   {
 
           // 检查请求是否成功
           if (!response.ok) {
+            handleResponseError(response.status)
             throw new Error(`API returned error status: ${response.status}`);
           }
 
@@ -529,6 +580,9 @@ export class TodoistSyncAPI   {
           });
       
           const data = await response.json();
+          if(!response.ok){
+            handleResponseError(response.status)
+          }
           //console.log(`Project Data: ${JSON.stringify(data)}`)
 
           // Check if 'items' exists in the response data
@@ -544,6 +598,7 @@ export class TodoistSyncAPI   {
       
         return allCompletedItemsWithaParent;
       }catch(error){
+        
         console.error("Error fetching completed tasks for project:", error);
         throw(error)
       }
