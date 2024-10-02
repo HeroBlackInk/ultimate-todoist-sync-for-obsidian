@@ -6,7 +6,7 @@ import UltimateTodoistSyncForObsidian from "../main";
 
 export class Utilities   {
 	app:App;
-  plugin: UltimateTodoistSyncForObsidian;
+    plugin: UltimateTodoistSyncForObsidian;
 
 	constructor(app:App) {
 		//super(app,settings);

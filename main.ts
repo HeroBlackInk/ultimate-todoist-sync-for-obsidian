@@ -15,7 +15,11 @@ import { FileOperation } from './src/fileOperation';
 
 //sync module
 import { SyncFromObsidianToTodoist } from './src/syncFromObsidianToTodoist';
+import { SyncFromTodoistToObsidian } from './src/syncFromTodoistToObsidian';
 
+
+//utilities module
+import { Utilities } from 'src/utilities';
 
 //import modal
 import { SetDefalutProjectInTheFilepathModal } from 'src/modal';
@@ -28,6 +32,8 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
     cacheOperation: CacheOperation | undefined;
     fileOperation: FileOperation | undefined;
     syncFromObsidianToTodoist: SyncFromObsidianToTodoist | undefined;
+	syncFromTodoistToObsiaian: SyncFromTodoistToObsidian | undefined;
+	utilities: Utilities | undefined;
 	lastLines: Map<string,number>;
 	statusBar;
 	syncLock: Boolean;
@@ -428,11 +434,16 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 			this.todoistSyncAPI.init()
 		}
 
-		// 如果 `todoistSync` 不存在，则新建对象
+		
 		if (!this.syncFromObsidianToTodoist) {
 			this.syncFromObsidianToTodoist = new SyncFromObsidianToTodoist(this.app, this);
 		}
 
+
+
+		if (!this.syncFromTodoistToObsiaian) {
+			this.syncFromTodoistToObsiaian = new SyncFromTodoistToObsidian(this.app, this);
+		}
 
 	}
 
@@ -574,9 +585,9 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 		try {
 			if (!await this.checkAndHandleSyncLock()) return;
 			try {
-				await this.syncFromObsidianToTodoist.syncTodoistToObsidian();
+				await this.syncFromTodoistToObsiaian.syncTodoistToObsidian();
 			} catch(error) {
-				console.error('An error occurred in syncTodoistToObsidian:', error);
+				console.error('An error occurred in syncfrom Todoist To Obsidian:', error);
 			}
 			this.syncLock = false;
 			try {

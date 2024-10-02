@@ -1,5 +1,7 @@
 import { App} from 'obsidian';
 import UltimateTodoistSyncForObsidian from "../main";
+import { error } from 'console';
+import { json } from 'stream/consumers';
 
 interface Due {
     date?: string;
@@ -249,30 +251,48 @@ export class CacheOperation   {
       
       
       
-    //读取指定id的任务
+    // 读取指定 id 的任务
     loadTaskFromCacheByID(taskId) {
         try {
+            // 检查缓存数据是否存在
+            const savedTasks = this.plugin.settings.todoistTasksData?.tasks;
+            if (!savedTasks) {
+                throw new Error("Task cache is not initialized or is corrupted.");
+            }
 
-            const savedTasks = this.plugin.settings.todoistTasksData.tasks
-            //console.log(savedTasks)
+            // 查找任务
             const savedTask = savedTasks.find((t) => t.id === taskId);
-            //console.log(savedTask)
-            return(savedTask)
+
+            // 返回找到的任务，如果没有找到则返回 null
+            return savedTask ?? null;  // savedTask 不存在时返回 null
         } catch (error) {
-            console.error(`Error finding task from Cache: ${error}`);
-            return [];
+            // 输出错误信息，并抛出自定义错误
+            console.error(`An error occurred while getting the task ${taskId} from the cache.`, error);
+            throw new Error(`An error occurred while getting the task ${taskId} from the cache.`);
         }
     }
+
+
+    getTaskFilepathFromCache(taskId){
+        const task = this.loadTaskFromCacheByID(taskId);
+        if (task && task.path) {
+            return task.path;
+        }
+        console.error(`An error occured while get task ${taskId} filepath from the cache`,error)
+        return null;
+    }
+
       
     //覆盖update指定id的task
     updateTaskToCacheByID(task) {
         try {
-        
-        
+            
+            console.warn(`Task ${task.id} in cache was updated}`)   
             //删除就的task
             this.deleteTaskFromCache(task.id)
             //添加新的task
             this.appendTaskToCache(task)
+
         
         } catch (error) {
             console.error(`Error updating task to Cache: ${error}`);
@@ -293,7 +313,10 @@ export class CacheOperation   {
     // Upon review, the primary intent here appears to be minimizing API calls.
     // When editing a task in Obsidian, the Todoist API responds with a complete task object. In such cases, I employ updateTaskToCacheByID to directly replace the entire object in the cache.
     // Conversely, when a task modification event is received from the Todoist client, the event's structure differs, lacking a complete task object. To retrieve a full task object, a REST API call would be necessary. To avoid excessive API usage, I opt for modifyTaskToCacheByID. This method extracts only the altered portions from the event object and updates them in the cache.
-modifyTaskToCacheByID(taskId: string, { content, due }: { content?: string, due?: Due }): void {
+     modifyTaskToCacheByID(taskId: string, { content, due }: { content?: string, due?: Due }): void {
+
+        
+
         try {
           const savedTasks = this.plugin.settings.todoistTasksData.tasks;
           const taskIndex = savedTasks.findIndex((task) => task.id === taskId);
@@ -303,6 +326,7 @@ modifyTaskToCacheByID(taskId: string, { content, due }: { content?: string, due?
             
             if (content !== undefined) {
               updatedTask.content = content;
+              console.warn(`Update task content in cache ${taskId}, content: ${content}`)
             }
       
             if (due !== undefined) {
@@ -311,6 +335,7 @@ modifyTaskToCacheByID(taskId: string, { content, due }: { content?: string, due?
               } else {
                 updatedTask.due = due;
               }
+              console.warn(`Update task due date in cache ${taskId}, due: ${due}`)
             }
       
             savedTasks[taskIndex] = updatedTask;
@@ -336,6 +361,7 @@ modifyTaskToCacheByID(taskId: string, { content, due }: { content?: string, due?
             if (savedTasks[i].id === taskId) {
                 // 修改对象的属性
                 savedTasks[i].isCompleted = false;
+                console.warn(`Task was unchecked in cache ${taskId}}`)
                 break; // 找到并修改了该项，跳出循环
             }
             }
@@ -359,6 +385,7 @@ modifyTaskToCacheByID(taskId: string, { content, due }: { content?: string, due?
             if (savedTasks[i].id === taskId) {
                 // 修改对象的属性
                 savedTasks[i].isCompleted = true;
+                console.warn(`Task was completed in cache ${taskId}}`)
                 break; // 找到并修改了该项，跳出循环
             }
             }
@@ -376,7 +403,8 @@ modifyTaskToCacheByID(taskId: string, { content, due }: { content?: string, due?
         try {
         const savedTasks = this.plugin.settings.todoistTasksData.tasks
         const newSavedTasks = savedTasks.filter((t) => t.id !== taskId);
-        this.plugin.settings.todoistTasksData.tasks = newSavedTasks                                         
+        this.plugin.settings.todoistTasksData.tasks = newSavedTasks
+        console.warn(`Task was removed from cache ${taskId}}`)                                         
         } catch (error) {
         console.error(`Error deleting task from Cache file: ${error}`);
         }
@@ -391,6 +419,7 @@ modifyTaskToCacheByID(taskId: string, { content, due }: { content?: string, due?
         try {
             const savedTasks = this.plugin.settings.todoistTasksData.tasks
             const newSavedTasks = savedTasks.filter((t) => !deletedTaskIds.includes(t.id))
+            console.warn(`Task array were removed from cache ${deletedTaskIds}}`)    
             this.plugin.settings.todoistTasksData.tasks = newSavedTasks
         } catch (error) {
             console.error(`Error deleting task from Cache : ${error}`);
@@ -438,12 +467,18 @@ modifyTaskToCacheByID(taskId: string, { content, due }: { content?: string, due?
         
             //save to json
             this.plugin.settings.todoistTasksData.projects = projects
-
+            console.warn(`Projects was saved to cache:`)
+            let project_list = []    
+            for (var project of projects){
+                project_list.push({ name: project.name, id: project.id });
+            }
+            console.warn(project_list)
             return true
 
         }catch(error){
-            return false
             console.log(`error downloading projects: ${error}`)
+            return false
+            
 
     }
     
@@ -465,12 +500,13 @@ modifyTaskToCacheByID(taskId: string, { content, due }: { content?: string, due?
             })
             //console.log(newTasks)
             await this.saveTasksToCache(newTasks)
-
+            
             //update filepath
             const fileMetadatas = this.plugin.settings.fileMetadata
             fileMetadatas[newpath] = fileMetadatas[oldpath]
             delete fileMetadatas[oldpath]
             this.plugin.settings.fileMetadata = fileMetadatas
+            console.warn(`Cache edited: renamed file. old file ${oldpath}, new file ${newpath}`)
 
         }catch(error){
             console.log(`Error updating renamed file path to cache: ${error}`)

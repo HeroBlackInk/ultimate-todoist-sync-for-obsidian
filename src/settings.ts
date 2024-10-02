@@ -44,6 +44,7 @@ export interface UltimateTodoistSyncSettings {
     pullDailyNoteAppendMode: boolean;
     pullDailyNoteInsertAfterText: string;
 	syncTagsFromTodoist: boolean;
+	
 }
 
 
@@ -446,7 +447,7 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 
 				console.log(`There are ${unmatched_todoist_tasks} unmatched todoist tasks in obsidian vaults.`)
 				console.log(`There are ${total_count_of_todoist_tasks} todoist tasks in obsidian vaults.`)
-
+				console.log(`There are ${this.plugin.settings.todoistTasksData.tasks.length} tasks in cache.`)
 
 				this.plugin.saveSettings()
 

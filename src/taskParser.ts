@@ -352,8 +352,12 @@ export class TaskParser   {
   
     //task status compare
     taskStatusCompare(lineTask:Object,todoistTask:Object) {
-        //status 是否修改
-        const statusModified = (lineTask.isCompleted === todoistTask.isCompleted) || (lineTask.isCompleted === false && todoistTask.isCompleted !== null)
+        //checked or completed?
+        //
+        const statusModified = (lineTask.isCompleted === todoistTask.checked) || (lineTask.isCompleted === false && todoistTask.checked !== null)
+
+
+         
         //console.log(lineTask)
         //console.log(todoistTask)
         return(statusModified)
@@ -361,30 +365,49 @@ export class TaskParser   {
   
   
     //task due date compare
-    async  compareTaskDueDate(lineTask: object, todoistTask: object): boolean {
-        const lineTaskDue = lineTask.dueDate
-        const todoistTaskDue = todoistTask.due ?? "";
-        if (lineTaskDue === "" && todoistTaskDue === "") {
-        //console.log('没有due date')
-        return true;
+    //linetask: pulled from file
+    //todoistTask: task get from cache
+    async compareTaskDueDate(lineTask: { dueDate: string | null }, todoistTask: { due: { date: string | null, timeZone: string | null } | null }): Promise<boolean> {
+        const lineTaskDue = lineTask.dueDate; // 获取 lineTask 的 dueDate
+        const lineTaskTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone; // 系统时区
+    
+        const todoistTaskDue = todoistTask.due ? todoistTask.due.date : null;
+        const todoistTaskTimeZone = todoistTask.due ? todoistTask.due.timeZone : null;
+    
+        // 1. 如果两个任务的 dueDate 都是 null，则认为相等
+        if (!lineTaskDue && !todoistTaskDue) {
+            return true;
         }
     
-        if ((lineTaskDue || todoistTaskDue) === "") {
-        //console.log('due date 发生了变化')
-        return false;
+        // 2. 如果 lineTask 的 dueDate 是 null，但 todoistTask 的 dueDate 不为 null，则认为不相等
+        if (!lineTaskDue) {
+            return false;
         }
-        
-        const oldDueDateUTCString = this.localDateStringToUTCDateString(lineTaskDue)
-        if (oldDueDateUTCString === todoistTaskDue.date) {
-        //console.log('due date 一致')
-        return true;
-        } else if (lineTaskDue.toString() === "Invalid Date" || todoistTaskDue.toString() === "Invalid Date") {
-        console.log('invalid date')
-        return false;
-        } else {
-        //console.log(lineTaskDue);
-        //console.log(todoistTaskDue.date)
-        return false;
+    
+        // 3. 如果 todoistTask 的 dueDate 是 null，但 lineTask 的 dueDate 不为 null，则认为不相等
+        if (!todoistTaskDue) {
+            return false;
+        }
+    
+        // 4. 如果两个日期都是 10 位的 YYYY-MM-DD 格式，则直接比较
+        if (lineTaskDue.length === 10 && todoistTaskDue.length === 10) {
+            return lineTaskDue === todoistTaskDue;
+        }
+    
+        // 5. 处理 todoistTaskDue 为 UTC 标准格式的情况，例如 'YYYY-MM-DDTHH:mm:ssZ'
+        try {
+            const lineTaskDate = new Date(lineTaskDue + 'T00:00:00'); // 将 lineTaskDue 转换为 Date 对象，假设时间为本地时区的零点
+            const todoistDate = new Date(todoistTaskDue); // 将 todoistTaskDue 转换为 Date 对象（自动处理 UTC 格式）
+    
+            // 比较两个日期是否在相同的日历天（注意，比较的是本地时区的日期部分）
+            return (
+                lineTaskDate.getFullYear() === todoistDate.getFullYear() &&
+                lineTaskDate.getMonth() === todoistDate.getMonth() &&
+                lineTaskDate.getDate() === todoistDate.getDate()
+            );
+        } catch (error) {
+            console.error(`Failed to compare due dates: lineTask=${JSON.stringify(lineTask)}, todoistTask=${JSON.stringify(todoistTask)}`, error);
+            return false;
         }
     }
     
@@ -440,31 +463,7 @@ export class TaskParser   {
         return text.replace(regex, `📅 ${dueDate} $1`);
   }
 
-    //extra date from obsidian event
-    // 使用示例
-    //const str = "2023-03-27T15:59:59.000000Z";
-    //const dateStr = ISOStringToLocalDateString(str);
-    //console.log(dateStr); // 输出 2023-03-27
-    ISOStringToLocalDateString(utcTimeString:string) {
-        try {
-          if(utcTimeString === null){
-            return null
-          }
-          let utcDateString = utcTimeString;
-          let dateObj = new Date(utcDateString); // 将UTC格式字符串转换为Date对象
-          let year = dateObj.getFullYear();
-          let month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
-          let date = dateObj.getDate().toString().padStart(2, '0');
-          let localDateString = `${year}-${month}-${date}`;
-          const hour = dateObj.getHours().toString().padStart(2, '0');
-          const minute = dateObj.getMinutes().toString().padStart(2, '0');
-          localDateString = `${localDateString}T${hour}:${minute}`;
-          return(localDateString);
-        } catch (error) {
-          console.error(`Error extracting date from string '${utcTimeString}': ${error}`);
-          return null;
-        }
-    }
+ 
 
 
     //extra date from obsidian event
@@ -501,7 +500,7 @@ export class TaskParser   {
           }
 
 			if(localDateString.match(/T\d{2}:\d{2}/) === null) {
-              localDateString = localDateString + "T08:00";
+              localDateString = localDateString + "T00:00";
           }
           let localDateObj = new Date(localDateString);
           let ISOString = localDateObj.toISOString()
@@ -536,6 +535,46 @@ export class TaskParser   {
           return null;
         }
     }
+
+
+    // 示例用法：
+    //const utcTimeStr = "2023-06-16T00:00:00Z";
+    //const localDate = convertUtcToLocalDate(utcTimeStr);
+    //console.log(localDate);  // 输出为本地日期，如 Asia/Shanghai 时区则为 2023-06-16
+    convertUtcToLocalDate(utcTimeStr) {
+        try {
+            // 将 UTC 时间字符串转换为 Date 对象，并验证格式是否正确
+            const utcTime = new Date(utcTimeStr);
+            
+            // 检查输入是否为有效的日期
+            if (isNaN(utcTime.getTime())) {
+                throw new Error("输入的 UTC 时间字符串格式不正确，应为 'YYYY-MM-DDTHH:MM:SSZ' 格式。");
+            }
+    
+            // 获取本地时间与 UTC 时间的时差（单位：分钟），注意这是相对于本地时区的分钟差
+            const localOffsetMinutes = new Date().getTimezoneOffset();
+            
+            // 将分钟差转换为毫秒，并计算本地时间
+            const localTime = new Date(utcTime.getTime() - localOffsetMinutes * 60 * 1000);
+    
+            // 格式化日期字符串为 YYYY-MM-DD
+            const year = localTime.getFullYear();
+            const month = String(localTime.getMonth() + 1).padStart(2, '0'); // 月份从 0 开始，因此要加 1
+            const day = String(localTime.getDate()).padStart(2, '0');
+    
+            // 拼接格式化后的日期字符串
+            const localDateStr = `${year}-${month}-${day}`;
+    
+            return localDateStr;
+        } catch (error) {
+            console.error("发生错误:", error.message);
+            return null;
+        }
+    }
+    
+
+    
+
     
     isMarkdownTask(str: string): boolean {
         const taskRegex = /^\s*-\s+\[([x ])\]/;
