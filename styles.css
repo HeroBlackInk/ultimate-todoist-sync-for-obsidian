@@ -1,8 +1,12 @@
-
-.cm-line:not(:hover):not(.cm-active) span.cm-comment {
-    display: none;
+/* 
+ * Hide the todoist_id start and end comment delimiters (%%) 
+ * except when we hover over the line or edit the task
+ */
+.cm-line:not(:hover):not(.cm-active) > .cm-comment.cm-comment-start:has(~ .dataview.inline-field > .dataview.inline-field-key[data-dv-key="todoist_id"]),
+.cm-line:not(:hover):not(.cm-active) > .cm-comment.cm-comment-start:has(~ .dataview.inline-field > .dataview.inline-field-key[data-dv-key="todoist_id"]) ~ .cm-comment.cm-comment-end
+{
+		display: none;
 }
-
 
 
 
