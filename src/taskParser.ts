@@ -1,4 +1,4 @@
-import { App} from 'obsidian';
+import { App } from 'obsidian';
 import UltimateTodoistSyncForObsidian from "../main";
 
 
@@ -46,6 +46,7 @@ interface todoistTaskObject {
 const keywords = {
     TODOIST_TAG: "#todoist",
     DUE_DATE: "🗓️|📅|📆|🗓",
+    DUE_TIME: "⏰"
 };
 
 const REGEX = {
@@ -55,12 +56,14 @@ const REGEX = {
     TODOIST_LINK:/\[link\]\(.*?\)/,
     DUE_DATE_WITH_EMOJ: new RegExp(`(${keywords.DUE_DATE})\\s?\\d{4}-\\d{2}-\\d{2}`),
     DUE_DATE : new RegExp(`(?:${keywords.DUE_DATE})\\s?(\\d{4}-\\d{2}-\\d{2})`),
+    DUE_TIME: new RegExp(`(?:${keywords.DUE_TIME})\\s?(\\d{2}:\\d{2})`),
     PROJECT_NAME: /\[project::\s*(.*?)\]/,
     TASK_CONTENT: {
         REMOVE_PRIORITY: /\s!!([1-4])\s/,
         REMOVE_TAGS: /(^|\s)(#[a-zA-Z\d\u4e00-\u9fa5-]+)/g,
         REMOVE_SPACE: /^\s+|\s+$/g,
         REMOVE_DATE: new RegExp(`(${keywords.DUE_DATE})\\s?\\d{4}-\\d{2}-\\d{2}`),
+        REMOVE_TIME: new RegExp(`(${keywords.DUE_TIME})\\s?\\d{2}:\\d{2}`),
         REMOVE_INLINE_METADATA: /%%\[\w+::\s*\w+\]%%/,
         REMOVE_CHECKBOX:  /^(-|\*)\s+\[(x|X| )\]\s/,
         REMOVE_CHECKBOX_WITH_INDENTATION: /^([ \t]*)?(-|\*)\s+\[(x|X| )\]\s/,
@@ -173,7 +176,11 @@ export class TaskParser   {
         }
 
 
-        const content = this.getTaskContentFromLineText(textWithoutIndentation)
+        let content = this.getTaskContentFromLineText(textWithoutIndentation)
+        if (content === "") {
+            // We use the obsidian's note as default task content
+            content = filepath.replace(/^.*[\\/]/, '').replace(".md","");
+        }
         const isCompleted = this.isTaskCheckboxChecked(textWithoutIndentation)
         let description = ""
         const todoist_id = this.getTodoistIdFromLineText(textWithoutIndentation)
@@ -225,10 +232,16 @@ export class TaskParser   {
   
   
     getDueDateFromLineText(text: string) {
-        const result = REGEX.DUE_DATE.exec(text);
-        return result ? result[1] : null;
+        const date = REGEX.DUE_DATE.exec(text);
+        if (date === null){
+            return null;
+        }
+        
+        const time = REGEX.DUE_TIME.exec(text);
+        return time
+            ? date[1] + "T" + time[1]
+            : date[1] + "T08:00";
     }
-
   
   
     getProjectNameFromLineText(text:string){
@@ -281,6 +294,7 @@ export class TaskParser   {
                                     .replace(REGEX.TASK_CONTENT.REMOVE_PRIORITY," ") //priority 前后必须都有空格，
                                     .replace(REGEX.TASK_CONTENT.REMOVE_TAGS,"")
                                     .replace(REGEX.TASK_CONTENT.REMOVE_DATE,"")
+                                    .replace(REGEX.TASK_CONTENT.REMOVE_TIME,"")
                                     .replace(REGEX.TASK_CONTENT.REMOVE_CHECKBOX,"")
                                     .replace(REGEX.TASK_CONTENT.REMOVE_CHECKBOX_WITH_INDENTATION,"")
                                     .replace(REGEX.TASK_CONTENT.REMOVE_SPACE,"")
@@ -486,7 +500,7 @@ export class TaskParser   {
           if(localDateString === null){
             return null
           }
-          localDateString = localDateString + "T08:00";
+          localDateString = localDateString;
           let localDateObj = new Date(localDateString);
           let ISOString = localDateObj.toISOString()
           return(ISOString);
@@ -506,7 +520,7 @@ export class TaskParser   {
           if(localDateString === null){
             return null
           }
-          localDateString = localDateString + "T08:00";
+          localDateString = localDateString;
           let localDateObj = new Date(localDateString);
           let ISOString = localDateObj.toISOString()
           let utcDateString = ISOString.slice(0,10)
