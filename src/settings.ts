@@ -73,7 +73,7 @@ export const DEFAULT_SETTINGS: UltimateTodoistSyncSettings = {
     pullTemplateTaskNotesFormat: "{{date|YYYY-MM-DD}}_{{title}}",
     pullDailyNoteAppendMode: true,
     pullDailyNoteInsertAfterText: "",
-	syncTagsFromTodoist: true
+	syncTagsFromTodoist: false
 }
 
 
@@ -117,7 +117,7 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 			.addExtraButton((button) => {
 				button.setIcon('send')
 					.onClick(async () => {
-							await this.plugin.modifyTodoistAPI(this.plugin.settings.todoistAPIToken)
+							await this.plugin.checkTodoistAPI()
 							this.display()
 							
 						})
@@ -291,19 +291,176 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 				// Add code here to handle exporting Todoist data
 				if(!this.plugin.settings.apiInitialized){
 					new Notice(`Please set the todoist api first`)
-					return
+					throw new Error('Please set the todoist api'); // 抛出异常，中止后续代码执行
 				}
 
-				//reinstall plugin
 
+				//backup settings and todoist data first
+				try{
+					await this.plugin.todoistSync?.backupTodoistAllResources()
+					await this.plugin.todoistSync?.backupLocalSettings()
+				}catch{
+					new Notice('The database backup failed, and the database check task cannot be performed.')
+   					throw new Error('Backup failed'); // 抛出异常，中止后续代码执行
+				}
+
+
+				//update todoist resources
+				try{
+					await this.plugin.todoistSyncAPI.syncAllResources()
+				}catch(error){
+					console.error(error);
+					new Notice('Failed to fetch all resources due to network error.')
+					throw new Error('Failed to fetch all resources due to network error');
+				}
+
+				//remove old settings
+				this.plugin.settings.todoistTasksData.tasks = []
+				this.plugin.settings.fileMetadata = {}
+				this.plugin.saveSettings()
+
+				//rebuild the data.json
+				//if plugin reinstalled, task metadata in data.json may be empty
+				// Search the entire directory.
+                // rebuild local task cache
+				console.log('Preparing to rebuild task cache')
+
+				const allResources =  this.plugin.todoistSyncAPI?.getAllResources()
+				console.log(allResources)
+
+
+				// in the uncompletedItems, id is the task_id, however, in the completed items, task_id is the id
+				const allUncompletedTasks = allResources.items
+				const uniqueUncompletedItems = new Set(allUncompletedTasks.map(item => item.id));
+				console.log("Number of unique uncompleted items:", uniqueUncompletedItems.size);
+
+
+
+
+				const allCompletedTasks2 = await this.plugin.todoistSyncAPI?.getAllCompletedTasks()
+				console.log(allCompletedTasks2)
+				let total_count_of_todoist_tasks = 0
+				let unmatched_todoist_tasks = 0
+				const files = this.app.vault.getFiles()
+				for (const v of files) {
+					if(v.extension == "md"){
+						let count_of_todoist_tasks_in_the_file = 0
+						try{
+							//console.log(`Scanning file ${v.path}`)
+							//find all the todoist id in current file
+							let file = this.app.vault.getAbstractFileByPath(v.path)
+							let filepath = v.path
+							let currentFileValue = await this.app.vault.read(file)
+							const content = currentFileValue
+	
+
+							//rebuild fileMetaData
+							let newFrontMatter = {}
+							//frontMatteer
+
+
+							
+							const lines = content.split('\n')
+
+							for (let i = 0; i < lines.length; i++) {
+								const line = lines[i]
+								if (this.plugin.taskParser?.hasTodoistId(line) && this.plugin.taskParser?.hasTodoistLink(line)) {
+
+									total_count_of_todoist_tasks  = total_count_of_todoist_tasks + 1
+									count_of_todoist_tasks_in_the_file = count_of_todoist_tasks_in_the_file +1
+
+									// get taskId from line
+									let taskId = await this.plugin.taskParser.getTodoistIdFromLineText(line)
+									console.log(`taskId: ${taskId}`)
+									if(!taskId){
+										continue
+									}
+
+									//get task from todoist resources
+									let taskObject = allUncompletedTasks.find(task => task["id"] === taskId) 
+													|| allCompletedTasks2.find(task => task["id"] === taskId) 
+													|| null;
+
+
+									//我在测试的时候，因为混用了我的todoist测试帐户 api 和 日常使用的帐户 api，导致 obsidian vault 中出现了不同todoist帐户的 task 链接
+
+									if(!taskObject){
+										let obsidianUrl = this.plugin.taskParser.getObsidianUrlFromFilepath(filepath)
+										console.error(`Task ${taskId} in the ${filepath}'s was not existed in current todoist account.\n ${line} \n ${obsidianUrl}`)
+										unmatched_todoist_tasks += 1
+										continue
+									}
+									//console.log(`tashObject ${taskObject}`)
+									
+
+
+									//save task to cache
+									let currentTaskFromCache = await this.plugin.cacheOperation?.loadTaskFromCacheByID(taskId)
+									if(currentTaskFromCache){
+										console.log(currentTaskFromCache)
+									}
+									
+
+
+										
+									
+
+									
+									taskObject.path = filepath
+									this.plugin.cacheOperation?.appendTaskToCache(taskObject)
+									console.log(`Task ${taskId} in the ${filepath}'s metadata was rebuilded`)
+
+
+									newFrontMatter.todoistCount = (newFrontMatter.todoistCount ?? 0) + 1;
+									
+									// 记录 taskID
+									newFrontMatter.todoistTasks = [...(newFrontMatter.todoistTasks || []), taskId];
+						
+									
+
+									await this.plugin.cacheOperation?.updateFileMetadata(filepath,newFrontMatter)
+								}
+
+
+									
+									
+							}
+							//checnk if todoist_link existed in cache
+							//if not save task to the cache
+							if(count_of_todoist_tasks_in_the_file > 0){
+								console.log(`There are ${count_of_todoist_tasks_in_the_file} todoist tasks in ${filepath}.`)
+							}
+							
+							
+						}catch(error){
+							let obsidianUrl = this.plugin.taskParser.getObsidianUrlFromFilepath(v.path)
+							console.error(`An error occurred while rebuild data.json file: ${v.path}, ${error.message}! \n ${obsidianUrl}`);
+							
+						}
+
+					}
+				}
+				new Notice(`There are ${unmatched_todoist_tasks} unmatched todoist tasks in obsidian vaults.`)
+				new Notice(`There are ${total_count_of_todoist_tasks} todoist tasks in obsidian vaults.`)
+
+
+				console.log(`There are ${unmatched_todoist_tasks} unmatched todoist tasks in obsidian vaults.`)
+				console.log(`There are ${total_count_of_todoist_tasks} todoist tasks in obsidian vaults.`)
+
+
+				this.plugin.saveSettings()
 
 
 				//check file metadata
+				
 				console.log('checking file metadata')
 				await this.plugin.cacheOperation.checkFileMetadata()
 				this.plugin.saveSettings()
 				const metadatas = await this.plugin.cacheOperation.getFileMetadatas()
+
+
 				// check default project task amounts
+				/*
 				try{
 					const projectId = this.plugin.settings.defaultProjectId
 					let options = {}
@@ -318,11 +475,12 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 				}catch(error){
 					console.error(`An error occurred while get tasks from todoist: ${error.message}`);
 				}
+				*/
 
 				if (!await this.plugin.checkAndHandleSyncLock()) return;
+				
 
-
-
+				/*
 				console.log('checking deleted tasks')
 				//check empty task				
 				for (const key in metadatas) {
@@ -334,7 +492,7 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 						let taskObject
 
 						try{
-							taskObject = await this.plugin.cacheOperation.loadTaskFromCacheyID(taskId)
+							taskObject = await this.plugin.cacheOperation.loadTaskFromCacheByID(taskId)
 						}catch(error){
 							console.error(`An error occurred while loading task cache: ${error.message}`);
 						}
@@ -361,11 +519,15 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 					};
 
 				  }
+
 				  this.plugin.saveSettings()
+				*/
 
-
+				
 				console.log('checking renamed files')
 				try{
+
+					/*
 					//check renamed files
 					for (const key in metadatas) {
 						const value = metadatas[key];
@@ -376,7 +538,7 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 							//console.log(`${taskId}`)
 							let taskObject
 							try{
-								taskObject = await this.plugin.cacheOperation.loadTaskFromCacheyID(taskId)
+								taskObject = await this.plugin.cacheOperation.loadTaskFromCacheByID(taskId)
 							}catch(error){
 								console.error(`An error occurred while loading task ${taskId} from cache: ${error.message}`);
 								console.log(taskObject)
@@ -403,8 +565,8 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 			
 						};
 
-					  }
-
+					}
+					
 					//check empty file metadata
 					
 					//check calendar format
@@ -418,11 +580,11 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 						if(v.extension == "md"){
 							try{
 								//console.log(`Scanning file ${v.path}`)
-								await this.plugin.fileOperation.addTodoistLinkToFile(v.path)
+								await this.plugin.fileOperation?.addTodoistLinkToFile(v.path)
 								if(this.plugin.settings.enableFullVaultSync){
-									await this.plugin.fileOperation.addTodoistTagToFile(v.path)
+									await this.plugin.fileOperation?.addTodoistTagToFile(v.path)
 								}
-A
+
 								
 							}catch(error){
 								console.error(`An error occurred while check new tasks in the file: ${v.path}, ${error.message}`);
@@ -432,7 +594,10 @@ A
 						}
 					});
 
+					*/
+
 					// check for tasks with empty id or sth in cache
+					/*
 					console.log('checking invalid tasks in cache')
 					const tasks = this.plugin.cacheOperation?.loadTasksFromCache()
 					this.plugin.cacheOperation?.clearTasks()
@@ -441,16 +606,19 @@ A
 							this.plugin.cacheOperation?.appendTaskToCache(task)
 						}
 					})
+					*/
 
 					this.plugin.syncLock = false
 					new Notice(`All files have been scanned.`)
 				}catch(error){
-					console.error(`An error occurred while scanning the vault.:${error}`)
-					this.plugin.syncLock = false
+					console.error(`An error occurred while scanning the vault.:${error}`);
+					this.plugin.syncLock = false;
 				}
+				
 
 			})
-		);
+			
+		);  
 
 		new Setting(containerEl)
 			.setName('Debug Mode')
@@ -467,8 +635,8 @@ A
 
 
 		new Setting(containerEl)
-			.setName('Backup Todoist Data')
-			.setDesc('Click to backup Todoist data, The backed-up files will be stored in the root directory of the Obsidian vault.')
+			.setName('Backup local settings and todoist Data')
+			.setDesc('Backup local settings and create a  todoist backup(all your active projects, tasks, and comments), The backed-up files will be stored in the root directory of the Obsidian vault.')
 			.addButton(button => button
 				.setButtonText('Backup')
 				.onClick(() => {
@@ -477,7 +645,8 @@ A
 						new Notice(`Please set the todoist api first`)
 						return
 					}
-					this.plugin.todoistSync.backupTodoistAllResources()
+					this.plugin.todoistSync?.backupTodoistAllResources()
+					this.plugin.todoistSync?.backupLocalSettings()
 				})
 			);
 

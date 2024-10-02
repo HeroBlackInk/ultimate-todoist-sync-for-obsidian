@@ -63,7 +63,7 @@ export class TodoistRestAPI  {
 
 
     //options:{ projectId?: string, section_id?: string, label?: string , filter?: string,lang?: string, ids?: Array<string>}
-    async GetActiveTasks(options:{ projectId?: string, section_id?: string, label?: string , filter?: string,lang?: string, ids?: Array<string>}) {
+    async GetActiveTasks(options?:{ projectId?: string, section_id?: string, label?: string , filter?: string,lang?: string, ids?: Array<string>}) {
       const api = await this.initializeAPI()
       try {
         const result = await api.getTasks(options);

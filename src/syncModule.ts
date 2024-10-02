@@ -347,7 +347,7 @@ export class TodoistSync  {
             const lineTask_todoist_id = (lineTask.todoist_id).toString()
             //console.log(lineTask_todoist_id )
             //console.log(`lastline task id is ${lastLineTask_todoist_id}`)
-            const savedTask = await this.plugin.cacheOperation.loadTaskFromCacheyID(lineTask_todoist_id)  //dataview中 id为数字，todoist中id为字符串，需要转换
+            const savedTask = await this.plugin.cacheOperation.loadTaskFromCacheByID(lineTask_todoist_id)  //dataview中 id为数字，todoist中id为字符串，需要转换
             if(!savedTask){
                 console.log(`本地缓存中没有task ${lineTask.todoist_id}`)
                 const url = this.plugin.taskParser.getObsidianUrlFromFilepath(filepath)
@@ -751,6 +751,7 @@ export class TodoistSync  {
         const updatedTask = await this.plugin.todoistRestAPI.UpdateTask(e.object_id,updatedContent)
         updatedTask.path = filepath
         this.plugin.cacheOperation.updateTaskToCacheByID(updatedTask);
+        console.log(`The content of Task ${e.parent_item_id} has been modified.`)
         new Notice(`The content of Task ${e.parent_item_id} has been modified.`)
 
     }
@@ -911,7 +912,7 @@ export class TodoistSync  {
     }
 
 	async getTasksFromTodoistWithUpdatedAttrs(){
-		const all_tasks_in_todoist = await this.plugin.todoistSyncAPI?.getAllTasks(false)
+		const all_tasks_in_todoist =  this.plugin.todoistSyncAPI?.getAllTasks()
 		const all_tasks_in_obsidian = await this.plugin.cacheOperation?.loadTasksFromCache()
 
 		if(this.plugin.settings.debugMode) {
@@ -965,13 +966,52 @@ export class TodoistSync  {
         const now: Date = new Date();
         const timeString: string = `${now.getFullYear()}${now.getMonth()+1}${now.getDate()}${now.getHours()}${now.getMinutes()}${now.getSeconds()}`;
 
-        const name = "todoist-backup-"+timeString+".json"
+        // 定义备份文件路径
+        const dir = "/ultimate-todoist-backup";
+        const name = `${dir}/todoist-backup-${timeString}.json`;
 
-        this.app.vault.create(name,JSON.stringify(resources))
+        // 检查目录是否存在，如果不存在则创建
+        const dirExists = await this.app.vault.adapter.exists(dir);
+        if (!dirExists) {
+            await this.app.vault.adapter.mkdir(dir);
+        }
+
+        // 创建备份文件
+        await this.app.vault.create(name, JSON.stringify(resources));
+
         //console.log(`todoist 备份成功`)
         new Notice(`Todoist backup data is saved in the path ${name}`)
         } catch (error) {
         console.error("An error occurred while creating Todoist backup:", error);
+        }
+
+    }
+
+
+    async  backupLocalSettings() {
+        try {
+        const resources = await this.plugin.settings
+
+        const now: Date = new Date();
+        const timeString: string = `${now.getFullYear()}${now.getMonth()+1}${now.getDate()}${now.getHours()}${now.getMinutes()}${now.getSeconds()}`;
+
+        // 定义备份文件路径
+        const dir = "/ultimate-todoist-backup";
+        const name = `${dir}/settings-backup-${timeString}.json`;
+
+        // 检查目录是否存在，如果不存在则创建
+        const dirExists = await this.app.vault.adapter.exists(dir);
+        if (!dirExists) {
+            await this.app.vault.adapter.mkdir(dir);
+        }
+
+        // 创建备份文件
+        await this.app.vault.create(name, JSON.stringify(resources));
+
+        //console.log(`todoist 备份成功`)
+        new Notice(`Ultimate-todoist-sync settings data is saved in the path ${name}`)
+        } catch (error) {
+        console.error("An error occurred while creating Ultimate-todoist-sync settings data backup:", error);
         }
 
     }

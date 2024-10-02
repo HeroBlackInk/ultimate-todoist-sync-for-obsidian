@@ -326,52 +326,51 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 		}
 	}
 
-	async modifyTodoistAPI(api:string){
-		await this.initializePlugin() 
-	}
-
-	// return true of false
-	async initializePlugin(){
-		
-		//initialize todoist restapi 
-		this.todoistRestAPI = new TodoistRestAPI(this.app, this)
-
-		//initialize data read and write object
-		this.cacheOperation = new CacheOperation(this.app, this)
-		const isProjectsSaved = await this.cacheOperation.saveProjectsToCache()
 
 
 
-		if(!isProjectsSaved){
-			this.todoistRestAPI = undefined
-			this.todoistSyncAPI = undefined
-			this.taskParser = undefined
-			this.taskParser = undefined
-			this.cacheOperation = undefined
-			this.fileOperation = undefined
-			this.todoistSync = undefined
-			new Notice(`Ultimate Todoist Sync plugin initialization failed, please check the todoist api`)
-			return;		
+	async checkTodoistAPI(){
+		// 如果 `todoistRestAPI` 不存在，则新建对象
+		if (!this.todoistRestAPI) {
+			this.todoistRestAPI = new TodoistRestAPI(this.app, this);
+		}
+	
+		// 如果 `cacheOperation` 不存在，则新建对象
+		if (!this.cacheOperation) {
+			this.cacheOperation = new CacheOperation(this.app, this);
 		}
 
+		//test api
+		//update projects cache
+		const isProjectsSaved = await this.cacheOperation.saveProjectsToCache()
+
+		if(!isProjectsSaved){
+			new Notice(`Failed to test todoist api.`)
+			console.log('Failed to test todoist api.')	
+			this.settings.apiInitialized = false
+			return false
+		}
+		new Notice(`The Todoist API token test is successful.`)
+		this.settings.apiInitialized = true
+		return true
+	}
+
+	// return true or false
+	async initializePlugin(){
+		
+		//check todoist api
+		await this.checkTodoistAPI()
+
+		//if the first launch after installing the plugin
 		if(!this.settings.initialized){
 
 			//创建备份文件夹备份todoist 数据
 			try{
-				//第一次启动插件，备份todoist 数据
-				this.taskParser = new TaskParser(this.app, this)
-
-				//initialize file operation
-				this.fileOperation = new FileOperation(this.app,this)
+				await this.initializeModuleClass()
 		
-				//initialize todoisy sync api
-				this.todoistSyncAPI = new TodoistSyncAPI(this.app,this)
-		
-				//initialize todoist sync module
-				this.todoistSync = new TodoistSync(this.app,this)
-		
-				//每次启动前备份所有数据
-				this.todoistSync.backupTodoistAllResources()
+				
+				await this.todoistSync.backupTodoistAllResources()
+				await this.todoistSync.backupLocalSettings()
 
 			}catch(error){
 				console.log(`error creating user data folder: ${error}`)
@@ -387,13 +386,12 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 
 		}
 
-
 		this.initializeModuleClass()
 
-		
+		//todo
 		//get user plan resources
-		//const rsp = await this.todoistSyncAPI.getUserResource()
-		this.settings.apiInitialized = true
+
+		
 		this.syncLock = false
 		new Notice(`Ultimate Todoist Sync loaded successfully.`)
 		return true
@@ -404,21 +402,36 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 
 	async initializeModuleClass(){
 
-		//initialize todoist restapi 
-		this.todoistRestAPI = new TodoistRestAPI(this.app,this)
+		// 如果 `todoistRestAPI` 不存在，则新建对象
+		if (!this.todoistRestAPI) {
+			this.todoistRestAPI = new TodoistRestAPI(this.app, this);
+		}
 
-		//initialize data read and write object
-		this.cacheOperation = new CacheOperation(this.app,this)
-		this.taskParser = new TaskParser(this.app,this)
+		// 如果 `cacheOperation` 不存在，则新建对象
+		if (!this.cacheOperation) {
+			this.cacheOperation = new CacheOperation(this.app, this);
+		}
 
-		//initialize file operation
-		this.fileOperation = new FileOperation(this.app,this)
+		// 如果 `taskParser` 不存在，则新建对象
+		if (!this.taskParser) {
+			this.taskParser = new TaskParser(this.app, this);
+		}
 
-		//initialize todoisy sync api
-		this.todoistSyncAPI = new TodoistSyncAPI(this.app,this)
+		// 如果 `fileOperation` 不存在，则新建对象
+		if (!this.fileOperation) {
+			this.fileOperation = new FileOperation(this.app, this);
+		}
 
-		//initialize todoist sync module
-		this.todoistSync = new TodoistSync(this.app,this)
+		// 如果 `todoistSyncAPI` 不存在，则新建对象
+		if (!this.todoistSyncAPI) {
+			this.todoistSyncAPI = new TodoistSyncAPI(this.app, this);
+			this.todoistSyncAPI.init()
+		}
+
+		// 如果 `todoistSync` 不存在，则新建对象
+		if (!this.todoistSync) {
+			this.todoistSync = new TodoistSync(this.app, this);
+		}
 
 
 	}

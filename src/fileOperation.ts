@@ -62,7 +62,7 @@ export class FileOperation   {
     async completeTaskInTheFile(taskId: string) {
         // 获取任务文件路径
         console.log("taskid", taskId)
-        let currentTask = await this.plugin.cacheOperation.loadTaskFromCacheyID(taskId)
+        let currentTask = await this.plugin.cacheOperation.loadTaskFromCacheByID(taskId)
         if (currentTask == undefined) {
             const filepath = await this.searchFilepathsByTaskidInVault(taskId)
             if (filepath == null) {
@@ -109,7 +109,7 @@ export class FileOperation   {
     // uncheck 已完成的任务，
     async uncompleteTaskInTheFile(taskId: string) {
         // 获取任务文件路径
-        let currentTask = await this.plugin.cacheOperation.loadTaskFromCacheyID(taskId)
+        let currentTask = await this.plugin.cacheOperation.loadTaskFromCacheByID(taskId)
         if (currentTask == undefined) {
             const filepath = await this.searchFilepathsByTaskidInVault(taskId)
             if (filepath == null) {
@@ -210,12 +210,17 @@ export class FileOperation   {
             const line = lines[i]
             if (this.plugin.taskParser.hasTodoistId(line) && this.plugin.taskParser.hasTodoistTag(line)) {
                 if(this.plugin.taskParser.hasTodoistLink(line)){
-                    return
+                    continue
                 }
                 console.log(line)
                 //console.log('prepare to add todoist link')
                 const taskID = this.plugin.taskParser.getTodoistIdFromLineText(line)
-                const taskObject = this.plugin.cacheOperation.loadTaskFromCacheyID(taskID)
+                const taskObject = this.plugin.cacheOperation.loadTaskFromCacheByID(taskID)
+                if(!taskObject){
+                    let obsidianUrl = this.plugin.taskParser.getObsidianUrlFromFilepath(filepath)
+                    console.error(`An error occurred while add task ${taskID}'s todoist link to the file ${filepath}. \n ${obsidianUrl}`);
+                    continue
+                }
                 const todoistLink = taskObject.url
                 const link = `[link](${todoistLink})`
                 const newLine = this.plugin.taskParser.addTodoistLink(line,link)
@@ -289,7 +294,7 @@ export class FileOperation   {
     async syncUpdatedTaskContentToTheFile(evt:Object): Promise<string> {
         const taskId = evt.object_id
         // 获取任务文件路径
-        let currentTask = await this.plugin.cacheOperation.loadTaskFromCacheyID(taskId)
+        let currentTask = await this.plugin.cacheOperation.loadTaskFromCacheByID(taskId)
 		if (currentTask == undefined) {
 			const filepath = await this.searchFilepathsByTaskidInVault(taskId)
 			if (filepath == null) {
@@ -366,7 +371,7 @@ export class FileOperation   {
     async syncUpdatedTaskDueDateToTheFile(evt:Object) {
         const taskId = evt.object_id
         // 获取任务文件路径
-        const currentTask = await this.plugin.cacheOperation.loadTaskFromCacheyID(taskId)
+        const currentTask = await this.plugin.cacheOperation.loadTaskFromCacheByID(taskId)
         const filepath = currentTask.path
     
         // 获取文件对象并更新内容
@@ -421,7 +426,7 @@ export class FileOperation   {
             return obj;
         }, {});
 
-        const currentTask = await this.plugin.cacheOperation.loadTaskFromCacheyID(taskId)
+        const currentTask = await this.plugin.cacheOperation.loadTaskFromCacheByID(taskId)
         let filepath = ""
         if (currentTask != undefined) {
             filepath = currentTask.path
@@ -581,7 +586,7 @@ export class FileOperation   {
         const note = evt.extra_data.content
         const datetime = this.plugin.taskParser.ISOStringToLocalDatetimeString(evt.event_date)
         // 获取任务文件路径
-        const currentTask = await this.plugin.cacheOperation.loadTaskFromCacheyID(taskId)
+        const currentTask = await this.plugin.cacheOperation.loadTaskFromCacheByID(taskId)
         const filepath = currentTask.path
     
         // 获取文件对象并更新内容

@@ -125,7 +125,7 @@ export class CacheOperation   {
 
             /*
             value.todoistTasks.forEach(async(taskId) => {
-                const taskObject = await this.plugin.cacheOperation.loadTaskFromCacheyID(taskId)
+                const taskObject = await this.plugin.cacheOperation.loadTaskFromCacheByID(taskId)
 
 
             });
@@ -250,7 +250,7 @@ export class CacheOperation   {
       
       
     //读取指定id的任务
-    loadTaskFromCacheyID(taskId) {
+    loadTaskFromCacheByID(taskId) {
         try {
 
             const savedTasks = this.plugin.settings.todoistTasksData.tasks

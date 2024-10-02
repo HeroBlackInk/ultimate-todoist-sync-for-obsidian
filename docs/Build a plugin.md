@@ -1,4 +1,4 @@
-## Step 1: Download the  plugin
+## Step 1: Download the plugin
 
 In this step, you'll download a ultimate-todoist-sync-for-obsidian plugin to the `plugins` directory in your vault's [`.obsidian` directory](https://help.obsidian.md/Advanced+topics/How+Obsidian+stores+data#Per+vault+data) so that Obsidian can find it.
 

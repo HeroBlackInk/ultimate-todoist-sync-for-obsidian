@@ -126,7 +126,7 @@ export class TaskParser   {
                     parentId = this.getTodoistIdFromLineText(line)
                     hasParent = true
                     //console.log(`parent id is ${parentId}`)
-                    parentTaskObject = this.plugin.cacheOperation.loadTaskFromCacheyID(parentId)
+                    parentTaskObject = this.plugin.cacheOperation.loadTaskFromCacheByID(parentId)
                     break
                 }
                 else{
