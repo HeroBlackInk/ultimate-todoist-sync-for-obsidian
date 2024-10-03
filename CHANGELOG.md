@@ -17,8 +17,6 @@
       - exceptions from this behaviour can be specified
     - labels are synced from todoist to obsidian
       - can be disabled through settings
-    - add command to trigger sync manually
-      - can be used to create complicated workflows with other plugins e.g. QuickAdd
 - fix various bugs
   - default project now works, also if you rename a project in todoist
   - respect dueDate from obsidian to todoist
