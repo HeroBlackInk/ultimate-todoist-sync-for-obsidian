@@ -17,12 +17,12 @@ The Ultimate Todoist Sync plugin automatically creates tasks in Todoist and sync
 ### 
 | Feature                 | Sync from Obsidian to Todoist | Sync from Todoist to Obsidian | Description |
 |-------------------------|-------------------------------|-------------------------------|-------------|
-| Add task                | ✅                            | ✅                                                       |             |
+| Add task                | ✅                            | 🔜                           |             |
 | Delete task             | ✅                            | 🔜                           |             |
 | Modify task content     | ✅                            | ✅                           |             |
 | Modify task due date    | ✅                            | ✅                           |             |
 | Modify task description | 🔜                            | 🔜                           |             |
-| Modify task labels/tags | ✅                            | ✅                                                       |             |
+| Modify task labels/tags | ✅                            | 🔜                           |             |
 | Mark task as completed  | ✅                            | ✅                           |             |
 | Mark task as uncompleted| ✅                            | ✅                           |             |
 | Modify project          | 🔜                            | 🔜                           |             |
