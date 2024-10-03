@@ -347,7 +347,13 @@ export class SyncFromObsidianToTodoist  {
             const lineTask_todoist_id = (lineTask.todoist_id).toString()
             //console.log(lineTask_todoist_id )
             //console.log(`lastline task id is ${lastLineTask_todoist_id}`)
-            const savedTask = await this.plugin.cacheOperation.loadTaskFromCacheByID(lineTask_todoist_id)  //dataview中 id为数字，todoist中id为字符串，需要转换
+            let savedTask   //dataview中 id为数字，todoist中id为字符串，需要转换
+            try{
+                savedTask = await this.plugin.cacheOperation.loadTaskFromCacheByID(lineTask.todoist_id)
+            }catch(error){
+                throw new Error(`Failed to retrieve task cache when verifying if the line task has been modified. ${lineTask.todoist_id}. filepath: ${filepath} linetext: ${lineText}, line number: ${lineNumber}`,error)
+            }
+            
             if(!savedTask){
                 console.log(`本地缓存中没有task ${lineTask.todoist_id}`)
                 const url = this.plugin.taskParser.getObsidianUrlFromFilepath(filepath)

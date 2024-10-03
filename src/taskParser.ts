@@ -130,7 +130,11 @@ export class TaskParser   {
                         console.log(`parent id is ${parentId}`)
                     }
                     
-                    parentTaskObject = this.plugin.cacheOperation.loadTaskFromCacheByID(parentId)
+                    try{
+                        parentTaskObject = await this.plugin.cacheOperation.loadTaskFromCacheByID(parentId)
+                    }catch(error){
+                        console.error(`Failed to get parent task cache while converting line to task ${parentId}`,error)
+                    }
 
                     break
                 }
@@ -156,7 +160,7 @@ export class TaskParser   {
         let projectName = this.plugin.cacheOperation.getProjectNameByIdFromCache(projectId)
 
         if(hasParent){
-            projectId = parentTaskObject.projectId || parentTaskObject.project_id
+            projectId = parentTaskObject.projectId ?? parentTaskObject.project_id
             projectName =this.plugin.cacheOperation.getProjectNameByIdFromCache(projectId)
         }
 

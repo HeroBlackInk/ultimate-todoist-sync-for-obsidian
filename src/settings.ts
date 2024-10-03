@@ -326,9 +326,15 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 
 									if(!taskObject){
 										let obsidianUrl = this.plugin.taskParser.getObsidianUrlFromFilepath(filepath)
-										console.error(`Task ${taskId} in the ${filepath}'s was not existed in current todoist account.\n ${line} \n ${obsidianUrl}`)
-										unmatched_todoist_tasks += 1
-										continue
+										try{
+											taskObject = await this.plugin.todoistRestAPI?.getTaskById(taskId)
+										}catch(error){
+											console.error(`Task ${taskId} in the ${filepath}'s was not existed in current todoist account.\n ${line} \n ${obsidianUrl}`)
+											unmatched_todoist_tasks += 1
+											continue
+										}
+										console.warn(`Task ${taskId} in the ${filepath} can only get from restful API.\n ${line} \n ${obsidianUrl}`)
+										
 									}
 									//console.log(`tashObject ${taskObject}`)
 									

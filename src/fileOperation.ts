@@ -53,7 +53,13 @@ export class FileOperation   {
     async completeTaskInTheFile(taskId: string) {
         // 获取任务文件路径
         console.log("taskid", taskId)
-        let currentTask = await this.plugin.cacheOperation.loadTaskFromCacheByID(taskId)
+        let currentTask
+        try{
+            currentTask = await this.plugin.cacheOperation.loadTaskFromCacheByID(taskId)
+        }catch(error){
+            throw new Error(`Failed to get task cache while completing task ${taskId}`,error)
+        }
+        
         if (currentTask == undefined) {
             throw new Error(`Failed to complete task ${taskId} in file, task is not pesented in the cache`)
             return 
@@ -103,7 +109,12 @@ export class FileOperation   {
     // uncheck 已完成的任务，
     async uncompleteTaskInTheFile(taskId: string) {
         // 获取任务文件路径
-        let currentTask = await this.plugin.cacheOperation.loadTaskFromCacheByID(taskId)
+        let currentTask
+        try{
+            currentTask = await this.plugin.cacheOperation.loadTaskFromCacheByID(taskId)
+        }catch(error){
+            throw new Error(`Failed to get task cache while unchecking task ${taskId}`,error)
+        }
         if (currentTask == undefined) {
             throw new Error(`Failed to unchecked task ${taskId} in file, task is not pesented in the cache`)
             return
@@ -213,7 +224,12 @@ export class FileOperation   {
                 console.log(line)
                 //console.log('prepare to add todoist link')
                 const taskID = this.plugin.taskParser.getTodoistIdFromLineText(line)
-                const taskObject = this.plugin.cacheOperation.loadTaskFromCacheByID(taskID)
+                let taskObject = null
+                try{
+                    taskObject = await this.plugin.cacheOperation.loadTaskFromCacheByID(taskID)
+                }catch(error){
+                    throw new Error(`Failed to get task cache while adding todoist link to file task ${taskID}`,error)
+                }
                 if(!taskObject){
                     let obsidianUrl = this.plugin.taskParser.getObsidianUrlFromFilepath(filepath)
                     console.error(`An error occurred while add task ${taskID}'s todoist link to the file ${filepath}. \n ${obsidianUrl}`);
@@ -294,7 +310,12 @@ export class FileOperation   {
     async updateTaskContentInFile(taskId, filepath, taskContent): Promise<string> {
 
 
-        let currentTask = await this.plugin.cacheOperation.loadTaskFromCacheByID(taskId)
+        let currentTask
+        try{
+            currentTask = await this.plugin.cacheOperation.loadTaskFromCacheByID(taskId)
+        }catch(error){
+            throw new Error(`Failed to get task cache while updating task ${taskId} content in file, filepath: ${filepath}, task content: ${taskContent}`,error)
+        }
 		if (currentTask == undefined) {
             throw new Error(`Failed to update task ${taskId} content in file, task is not pesented in the cache`)
             return
@@ -352,7 +373,12 @@ export class FileOperation   {
     // sync updated task due date  to the file
     async updateTaskDueDateInFile(taskId, filepath, dueDate, timezone) {
         // 获取任务文件路径
-        const currentTask = await this.plugin.cacheOperation.loadTaskFromCacheByID(taskId)
+        let currentTask
+        try{
+            currentTask = await this.plugin.cacheOperation.loadTaskFromCacheByID(taskId)
+        }catch(error){
+            throw new Error(`Failed to get task cache while updating task ${taskId} due date. filepath: ${filepath}`,error)
+        }
         
     
         // 获取文件对象并更新内容
@@ -423,7 +449,12 @@ export class FileOperation   {
 
 
         // 获取任务文件路径
-        const currentTask = await this.plugin.cacheOperation.loadTaskFromCacheByID(taskId)
+        let currentTask
+        try{
+            currentTask = await this.plugin.cacheOperation.loadTaskFromCacheByID(taskId)
+        }catch(error){
+            throw new Error(`Failed to get task cache while sync task ${taskId} note from todoist to obsidian. filepath: ${filepath} ,note: ${note}`,error)
+        }
        
     
         // 获取文件对象并更新内容

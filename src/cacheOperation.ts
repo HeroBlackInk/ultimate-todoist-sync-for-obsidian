@@ -263,10 +263,10 @@ export class CacheOperation   {
             // 查找任务
             const savedTask = savedTasks.find((t) => t.id === taskId);
             if(!savedTask){
-                console.error(`Task ${taskId} not found in cache.`)
+                throw new Error(`Task ${taskId} not found in cache.`)
             }
             // 返回找到的任务，如果没有找到则返回 null
-            return savedTask ?? null;  // savedTask 不存在时返回 null
+            return savedTask;  // savedTask 不存在时返回 null
         } catch (error) {
             // 输出错误信息，并抛出自定义错误
             console.error(`An error occurred while getting the task ${taskId} from the cache.`, error);
@@ -276,12 +276,18 @@ export class CacheOperation   {
 
 
     getTaskFilepathFromCache(taskId){
-        const task = this.loadTaskFromCacheByID(taskId);
+        let task = null
+        try{
+            task = this.loadTaskFromCacheByID(taskId);
+        }catch(error){
+            throw error
+        }
+
         if (task && task.path) {
             return task.path;
         }
-        console.error(`An error occured while get task ${taskId} filepath from the cache`,error)
-        return null;
+        throw new Error(`An error occured while get task ${taskId} filepath from the cache`)
+        
     }
 
       
@@ -446,10 +452,12 @@ export class CacheOperation   {
         const savedProjects = this.plugin.settings.todoistTasksData.projects
         const targetProject = savedProjects.find(obj => obj.id === projectId);
         const projectName = targetProject ? targetProject.name : null;
+        if(!projectName){
+            throw new Error(`Error finding project from Cache file by project id: ${projectId}: ${error}`);
+        }
         return(projectName)
         } catch (error) {
-        console.error(`Error finding project from Cache file: ${error}`);
-        return(false)
+            throw new Error(`Error finding project from Cache file by project id: ${projectId}: ${error}`);
         }
     }
       

@@ -613,7 +613,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 				try {
 					await this.syncFromObsidianToTodoist.fullTextNewTaskCheck(fileKey);
 				} catch(error) {
-					console.error('An error occurred in fullTextNewTaskCheck:', error);
+					console.error(`An error occurred in fullTextNewTaskCheck: filepath ${fileKey}`, error);
 				}
 				this.syncLock = false;
 
@@ -621,7 +621,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 				try {
 					await this.syncFromObsidianToTodoist.deletedTaskCheck(fileKey);
 				} catch(error) {
-					console.error('An error occurred in deletedTaskCheck:', error);
+					console.error(`An error occurred in deletedTaskCheck: filepath ${fileKey}`, error);
 				}
 				this.syncLock = false;
 
@@ -629,7 +629,7 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 				try {
 					await this.syncFromObsidianToTodoist.fullTextModifiedTaskCheck(fileKey);
 				} catch(error) {
-					console.error('An error occurred in fullTextModifiedTaskCheck:', error);
+					console.error(`An error occurred in fullTextModifiedTaskCheck: filepath:${fileKey}`, error);
 				}
 				this.syncLock = false;
 			}

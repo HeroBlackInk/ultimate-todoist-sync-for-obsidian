@@ -159,7 +159,7 @@ export class SyncFromTodoistToObsidian  {
     
                 return taskInfile;
             } else {
-                console.warn(`Task not found: ${taskId} in cache and vault.`);
+                console.warn(`Task not found: ${taskId} in cache and vault while verifying if the task in cache and file.`);
                 return null;
             }
         } catch (error) {
