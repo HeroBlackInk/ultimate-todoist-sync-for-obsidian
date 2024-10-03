@@ -1,14 +1,5 @@
-
-import {pullTargetMode, pullTaskNotesMode} from "./settings";
-import moment from "moment";
-import {
-    appHasDailyNotesPluginLoaded,
-    createDailyNote,
-    getAllDailyNotes,
-    getDailyNote
-} from "obsidian-daily-notes-interface";
+import { App} from 'obsidian';
 import UltimateTodoistSyncForObsidian from "../main";
-import {App, Notice, TAbstractFile, TFile} from "obsidian";
 export class FileOperation   {
 	app:App;
     plugin: UltimateTodoistSyncForObsidian;
@@ -64,6 +55,8 @@ export class FileOperation   {
         console.log("taskid", taskId)
         let currentTask = await this.plugin.cacheOperation.loadTaskFromCacheByID(taskId)
         if (currentTask == undefined) {
+            throw new Error(`Failed to complete task ${taskId} in file, task is not pesented in the cache`)
+            return 
             const filepath = await this.searchFilepathsByTaskidInVault(taskId)
             if (filepath == null) {
                 console.log(`Task ${taskId} not found in vault`)
@@ -112,6 +105,8 @@ export class FileOperation   {
         // 获取任务文件路径
         let currentTask = await this.plugin.cacheOperation.loadTaskFromCacheByID(taskId)
         if (currentTask == undefined) {
+            throw new Error(`Failed to unchecked task ${taskId} in file, task is not pesented in the cache`)
+            return
             const filepath = await this.searchFilepathsByTaskidInVault(taskId)
             if (filepath == null) {
                 console.log(`Task ${taskId} not found in vault`)
@@ -296,12 +291,13 @@ export class FileOperation   {
 
     // sync updated task content  to file
     // Returns the filepath of the updated file
-    async updateTaskContentInFile(taskId, filepath, taskContent,tags): Promise<string> {
+    async updateTaskContentInFile(taskId, filepath, taskContent): Promise<string> {
 
 
         let currentTask = await this.plugin.cacheOperation.loadTaskFromCacheByID(taskId)
 		if (currentTask == undefined) {
-            console.error(`Task ${taskId} was not found in cache`)
+            throw new Error(`Failed to update task ${taskId} content in file, task is not pesented in the cache`)
+            return
 			
 			if (filepath == null) {
 				console.error(`Task ${taskId} was not found in the vault`)
@@ -338,30 +334,6 @@ export class FileOperation   {
 				let newline = line.replace(oldTaskContent, newTaskContent)
                 console.warn(`Update task content in file ${filepath}, at line ${line}`)
                 console.warn(`old content: ${oldTaskContent}, new content ${newTaskContent}`)
-
-				if(this.plugin.settings.syncTagsFromTodoist){
-					const oldTags = this.plugin.taskParser.getAllTagsFromLineText(line)
-					const newTags = tags
-
-					if(oldTags != undefined && newTags != undefined) {
-						// remove tags if label missing
-						const removedTags = oldTags.filter(x => !newTags.includes(x))
-						removedTags.forEach(tag =>
-							newline = newline.replace(` #${tag} `, ' ')
-						)
-
-						// append labels as tags
-						const addTags = newTags.filter(x => !oldTags.includes(x))
-						addTags.forEach(tag => {
-							let position = newline.search(/\s#todoist\s/)
-							if(position > -1) {
-								newline = newline.slice(0, position) + ` #${tag}` + newline.slice(position)
-							}
-						})
-                        console.warn(`Update task tags in file ${filepath}, at line ${line}`)
-                        console.warn(`oldTags: ${oldTags}, newTags ${newTags}`)
-					}
-				}
 				lines[i] = newline
 				modified = true
 				break
@@ -378,7 +350,7 @@ export class FileOperation   {
     }
 
     // sync updated task due date  to the file
-    async updateTaskDueDateInFile(taskId, filepath, dueDate) {
+    async updateTaskDueDateInFile(taskId, filepath, dueDate, timezone) {
         // 获取任务文件路径
         const currentTask = await this.plugin.cacheOperation.loadTaskFromCacheByID(taskId)
         
@@ -393,9 +365,20 @@ export class FileOperation   {
         for (let i = 0; i < lines.length; i++) {
         const line = lines[i]
         if (line.includes(taskId) && this.plugin.taskParser.hasTodoistTag(line)) {
+
+           
+
+
             const oldTaskDueDate = this.plugin.taskParser.getDueDateFromLineText(line) || ""
+            const oldTaskTimeZone = this.plugin.taskParser?.getLocalSystemTimezone()
             const newTaskDueDate = dueDate 
-            
+            const newTaskTimezone = timezone
+
+            const isDueDateChanged = this.plugin.taskParser?.compareTaskDueDate(oldTaskDueDate,oldTaskTimeZone,newTaskDueDate,newTaskTimezone)
+            if(!isDueDateChanged){
+                throw new Error(`An error occured while update task ${taskId}duedate in ${filepath}. duedate was not changed.\n oldtaskduedate: ${oldTaskDueDate}\n newTaskDue: ${newTaskDueDate}\n newTaskTimezone: ${newTaskTimezone}`)
+            }
+
             //console.log(`${taskId} duedate is updated`)
             if(oldTaskDueDate === ""){
                 //console.log(this.plugin.taskParser.insertDueDateBeforeTodoist(line,newTaskDueDate))
@@ -407,7 +390,7 @@ export class FileOperation   {
             }
             else if(newTaskDueDate === ""){
                 //remove 日期from text
-                const regexRemoveDate = /(🗓️|📅|📆|🗓)\s?\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?/; //匹配日期🗓️2023-03-07T:08:00"
+                const regexRemoveDate = /(🗓️|📅|📆|🗓)\s?\d{4}-\d{2}-\d{2}/; //匹配日期🗓️2023-03-07"
                 lines[i] = line.replace(regexRemoveDate,"")
                 console.warn(`Update task due date in file ${filepath}, at line ${line}`)
                 console.warn(`old duedate: ${oldTaskDueDate}, new duedate ${newTaskDueDate}`)
@@ -432,167 +415,6 @@ export class FileOperation   {
         
     }
 
-
-    async syncNewTaskToTheFile(evt:Object) {
-        console.log(`sync new task to the file`, evt)
-        const taskId = evt.object_id
-        const taskObject = await this.plugin.todoistRestAPI.getTaskById(taskId);
-
-        const myProjectsOptions = this.plugin.settings.todoistTasksData?.projects?.reduce((obj, item) => {
-            obj[(item.id).toString()] = item.name;
-            return obj;
-        }, {});
-
-        const currentTask = await this.plugin.cacheOperation.loadTaskFromCacheByID(taskId)
-        let filepath = ""
-        if (currentTask != undefined) {
-            filepath = currentTask.path
-        } else if (this.plugin.settings.pullTargetMode == pullTargetMode.DailyNote) {
-            if(!appHasDailyNotesPluginLoaded()){
-                console.log("Daily notes core plugin is not loaded. So we cannot create daily note. Please install daily notes core plugin. Interrupt now.")
-            }
-            const date = moment();
-            const dailies = getAllDailyNotes()
-            let file = getDailyNote(date, dailies)
-            if (file == null) {
-                file = await createDailyNote(date)
-            }
-            filepath = file.path
-            console.log(`Daily note used: ${filepath}`)
-        } else if (this.plugin.settings.pullTargetMode == pullTargetMode.Template) {
-            let templatePath = this.plugin.settings.pullTemplateUsePath
-            if(templatePath.startsWith("/")){
-                templatePath = templatePath.slice(1,templatePath.length)
-            }
-            if (!templatePath.endsWith(".md")) {
-                templatePath += ".md"
-            }
-            const template = await this.app.vault.read(<TFile>this.app.vault.getAbstractFileByPath(templatePath))
-            let useThisFolder = this.plugin.settings.pullTemplateUseFolder
-            if(useThisFolder.startsWith("/")){
-                useThisFolder = useThisFolder.slice(1,useThisFolder.length)
-            }
-            if(useThisFolder.endsWith("/")){
-                useThisFolder = useThisFolder.slice(0,useThisFolder.length-1)
-            }
-            if(this.plugin.settings.pullTemplateUseForProjects == pullTaskNotesMode.projectNote) {
-                // Create a file for project from template
-                let projectTitle = myProjectsOptions[taskObject.projectId]
-                if(projectTitle == undefined){
-                    projectTitle = "Unknown"
-                }
-                let path =  projectTitle + ".md"
-                if (useThisFolder != "") {
-                    path = useThisFolder + "/" + path
-                }
-                try {
-                    const file = await this.app.vault.create(path, template)
-                    filepath = file.path
-                } catch (e) {
-                    console.log(`Error creating projects note: ${e}`)
-                    filepath = path
-                }
-            } else {
-                // Create a new file from template
-                let taskTitle = taskObject.content.replace(/[\[\]/\\?%*:|"<>.]/g, '-')
-                let tmpFile = this.plugin.settings.pullTemplateTaskNotesFormat
-                    .replace("{{title}}", taskTitle)
-                    .replace("{{TITLE}}",taskTitle.toUpperCase())
-                const dateFormat = this.plugin.settings.pullTemplateTaskNotesFormat.match(/\{\{date\|([\[\]\s\w.:-]*)}}/)
-                if (dateFormat != null && dateFormat.length > 0) {
-                    // remove the date format from the given filename
-                    tmpFile = tmpFile.replace("|" + dateFormat[1], "")
-                    tmpFile = tmpFile.replace("{{date}}", moment().format(dateFormat[1].trim()))
-                }
-                if(!tmpFile.endsWith(".md")) {
-                    tmpFile += ".md"
-                }
-
-                if (useThisFolder != "") {
-                    tmpFile = useThisFolder + "/" + tmpFile
-                }
-
-                try {
-                    const file = await this.app.vault.create(tmpFile, template)
-                    filepath = file.path
-                } catch (e) {
-                    console.log(`Error creating new file from template: ${e}`)
-                    await this.app.vault.read(<TFile>this.app.vault.getAbstractFileByPath(tmpFile))
-                    filepath = tmpFile
-                }
-            }
-        }
-
-        taskObject.path = filepath
-        new Notice(`new task ${taskObject.content} id is ${taskObject.id}`)
-        this.plugin.cacheOperation.appendTaskToCache(taskObject)
-
-        const file = this.app.vault.getAbstractFileByPath(filepath)
-        const content = await this.app.vault.read(file)
-
-        const lines = content.split('\n')
-        let modified = false
-
-        const fromTaskObjectToTask = (taskObject) => {
-            let text_with_out_link = `- [ ] ${taskObject.content}`
-            if (taskObject.due != undefined) {
-                text_with_out_link += ` 📅${taskObject.due.date}`
-            }
-            text_with_out_link += " #todoist"
-			for(let i = 0; i < taskObject.labels.length; i++){
-				text_with_out_link += ` #${taskObject.labels[i]}`
-			}
-
-            const link = `[link](${taskObject.url})`
-            let newLine = this.plugin.taskParser.addTodoistLink(text_with_out_link,link)
-            newLine += ` %%[todoist_id:: ${taskId}]%%`;
-            return newLine
-        }
-
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i]
-
-            // append the tasks after a given place
-            if(!this.plugin.settings.pullDailyNoteAppendMode && line.includes(this.plugin.settings.pullDailyNoteInsertAfterText)){
-                const newLine = fromTaskObjectToTask(taskObject)
-                lines.splice(i + 1, 0, newLine);
-
-                if(taskObject.description != undefined && taskObject.description != "") {
-                    const newLineForDescription = "\t- " + taskObject.description
-                    lines.splice(i + 2, 0, newLineForDescription);
-                }
-
-                modified = true
-                break
-            }
-        }
-
-
-        // append to the end of file
-        // handles also the case, if the given text cannot be found and the task will not be thrown away
-        if(this.plugin.settings.pullDailyNoteAppendMode || !modified){
-            const newLine = fromTaskObjectToTask(taskObject)
-            lines.push(newLine);
-            if(taskObject.description != undefined && taskObject.description != "") {
-                const newLineForDescription = "\t- " + taskObject.description
-                lines.push(newLineForDescription);
-            }
-            modified = true
-        }
-
-        if (modified) {
-            const newContent = lines.join('\n')
-            //console.log(newContent)
-            await this.app.vault.modify(file, newContent)
-        }
-
-        const metadata = await this.plugin.cacheOperation.getFileMetadata(filepath)
-        if(!metadata){
-            await this.plugin.cacheOperation.newEmptyFileMetadata(filepath)
-        }
-
-        return filepath
-    }
 
 
     // sync new task note to file

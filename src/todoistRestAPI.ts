@@ -11,9 +11,7 @@ function  localDateStringToUTCDatetimeString(localDateString:string) {
           if(localDateString === null){
             return null
           }
-          if(localDateString.match(/T\d{2}:\d{2}/) === null) {
-              localDateString = localDateString + "T00:00";
-          }
+          localDateString = localDateString + "T00:00"
           let localDateObj = new Date(localDateString);
           let ISOString = localDateObj.toISOString()
           return(ISOString);
@@ -44,8 +42,9 @@ export class TodoistRestAPI  {
         const api = await this.initializeAPI()
         try {
           if(dueDate){
-            dueDate = localDateStringToUTCDatetimeString(dueDate) || undefined
-          }
+            dueDatetime = localDateStringToUTCDatetimeString(dueDatetime)
+            dueDate = null
+          }  
           const newTask = await api.addTask({
             projectId,
             content,
@@ -85,11 +84,14 @@ export class TodoistRestAPI  {
         throw new Error('At least one update is required');
         }
         try {
-	        if(updates.dueDate){
-	            updates.dueDate = localDateStringToUTCDatetimeString(updates.dueDate) || undefined
-	          }
-	        const updatedTask = await api.updateTask(taskId, updates);
-	        return updatedTask;
+          if(updates.dueDate){
+            console.log(updates.dueDate)
+            updates.dueDatetime = localDateStringToUTCDatetimeString(updates.dueDate)
+            updates.dueDate = null
+            console.log(updates.dueDatetime)
+          }  
+        const updatedTask = await api.updateTask(taskId, updates);
+        return updatedTask;
         } catch (error) {
         throw new Error(`Error updating task: ${error.message}`);
         }

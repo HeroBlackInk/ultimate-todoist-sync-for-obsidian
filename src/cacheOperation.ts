@@ -262,7 +262,9 @@ export class CacheOperation   {
 
             // 查找任务
             const savedTask = savedTasks.find((t) => t.id === taskId);
-
+            if(!savedTask){
+                console.error(`Task ${taskId} not found in cache.`)
+            }
             // 返回找到的任务，如果没有找到则返回 null
             return savedTask ?? null;  // savedTask 不存在时返回 null
         } catch (error) {
@@ -300,10 +302,7 @@ export class CacheOperation   {
         }
     }
 
-    // Clear all tasks in cache
-    clearTasks(){
-        this.plugin.settings.todoistTasksData.tasks = []
-    }
+
 
     //due 的结构  {date: "2025-02-25",isRecurring: false,lang: "en",string: "2025-02-25"}
 

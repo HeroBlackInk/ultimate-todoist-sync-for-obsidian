@@ -53,14 +53,14 @@ const REGEX = {
     TODOIST_ID: /\[todoist_id::\s*\d+\]/,
     TODOIST_ID_NUM:/\[todoist_id::\s*(.*?)\]/,
     TODOIST_LINK:/\[link\]\(.*?\)/,
-    DUE_DATE_WITH_EMOJ: new RegExp(`(${keywords.DUE_DATE})\\s?\\d{4}-\\d{2}-\\d{2}(T\\d{2}:\\d{2})*`),
-    DUE_DATE : new RegExp(`(?:${keywords.DUE_DATE})\\s?(\\d{4}-\\d{2}-\\d{2})(T\\d{2}:\\d{2})*`),
+    DUE_DATE_WITH_EMOJ: new RegExp(`(${keywords.DUE_DATE})\\s?\\d{4}-\\d{2}-\\d{2}`),
+    DUE_DATE : new RegExp(`(?:${keywords.DUE_DATE})\\s?(\\d{4}-\\d{2}-\\d{2})`),
     PROJECT_NAME: /\[project::\s*(.*?)\]/,
     TASK_CONTENT: {
         REMOVE_PRIORITY: /\s!!([1-4])\s/,
         REMOVE_TAGS: /(^|\s)(#[a-zA-Z\d\u4e00-\u9fa5-]+)/g,
         REMOVE_SPACE: /^\s+|\s+$/g,
-        REMOVE_DATE: new RegExp(`(${keywords.DUE_DATE})\\s?\\d{4}-\\d{2}-\\d{2}(T\\d{2}:\\d{2})*`),
+        REMOVE_DATE: new RegExp(`(${keywords.DUE_DATE})\\s?\\d{4}-\\d{2}-\\d{2}`),
         REMOVE_INLINE_METADATA: /%%\[\w+::\s*\w+\]%%/,
         REMOVE_CHECKBOX:  /^(-|\*)\s+\[(x|X| )\]\s/,
         REMOVE_CHECKBOX_WITH_INDENTATION: /^([ \t]*)?(-|\*)\s+\[(x|X| )\]\s/,
@@ -72,7 +72,7 @@ const REGEX = {
     TAB_INDENTATION: /^(\t+)/,
     TASK_PRIORITY: /\s!!([1-4])\s/,
     BLANK_LINE: /^\s*$/,
-    TODOIST_EVENT_DATE: /(\d{4})-(\d{2})-(\d{2})(T(\d{2}):(\d{2}))?/
+    TODOIST_EVENT_DATE: /(\d{4})-(\d{2})-(\d{2})/
 };
 
 export class TaskParser   {
@@ -100,6 +100,7 @@ export class TaskParser   {
         if(this.getTabIndentation(lineText) > 0){
         //console.log(`缩进为 ${this.getTabIndentation(lineText)}`)
         textWithoutIndentation = this.removeTaskIndentation(lineText)
+
         //console.log(textWithoutIndentation)
         //console.log(`这是子任务`)
         //读取filepath
@@ -108,16 +109,16 @@ export class TaskParser   {
         const lines = fileContent.split('\n')
         //console.log(lines)
         for (let i = (lineNumber - 1 ); i >= 0; i--) {
-            //console.log(`正在check${i}行的缩进`)
+            console.log(`正在check${i}行的缩进`)
             const line = lines[i]
-            //console.log(line)
+            console.log(line)
             //如果是空行说明没有parent
             if(this.isLineBlank(line)){
                 break
             }
             //如果tab数量大于等于当前line,跳过
             if (this.getTabIndentation(line) >= this.getTabIndentation(lineText)) {
-                    //console.log(`缩进为 ${this.getTabIndentation(line)}`)
+                    console.log(`缩进为 ${this.getTabIndentation(line)}`)
                     continue       
             }
             if((this.getTabIndentation(line) < this.getTabIndentation(lineText))){
@@ -125,8 +126,12 @@ export class TaskParser   {
                 if(this.hasTodoistId(line)){
                     parentId = this.getTodoistIdFromLineText(line)
                     hasParent = true
-                    //console.log(`parent id is ${parentId}`)
+                    if(this.plugin.settings.debugMode){
+                        console.log(`parent id is ${parentId}`)
+                    }
+                    
                     parentTaskObject = this.plugin.cacheOperation.loadTaskFromCacheByID(parentId)
+
                     break
                 }
                 else{
@@ -151,9 +156,10 @@ export class TaskParser   {
         let projectName = this.plugin.cacheOperation.getProjectNameByIdFromCache(projectId)
 
         if(hasParent){
-            projectId = parentTaskObject.projectId
+            projectId = parentTaskObject.projectId || parentTaskObject.project_id
             projectName =this.plugin.cacheOperation.getProjectNameByIdFromCache(projectId)
         }
+
         if(!hasParent){
                     //匹配 tag 和 peoject
             for (const label of labels){
@@ -170,6 +176,9 @@ export class TaskParser   {
                 projectId = hasProjectId
                 break
             }
+        }
+        if(!projectId){
+            throw new Error(`An error occured while converting a line to a taks: projectId not found. linetext:${lineText} \n filepath:${filepath}, lineNumber:${lineNumber}`)
         }
 
 
@@ -195,8 +204,11 @@ export class TaskParser   {
         hasParent:hasParent,
         priority:priority
         };
-        //console.log(`converted task `)
-        //console.log(todoistTask)
+        if(this.plugin.settings.debugMode){
+          console.log(`converted task `)
+          console.log(todoistTask)
+        }
+
         return todoistTask;
     }
   
@@ -225,14 +237,8 @@ export class TaskParser   {
   
   
     getDueDateFromLineText(text: string) {
-        const date = REGEX.DUE_DATE.exec(text);
-        let result = (date ? date[1] : '');
-
-		// check for time
-		if(date && date[2] !== undefined){
-			result = result + date[2]
-		}
-        return date ? result : null;
+        const result = REGEX.DUE_DATE.exec(text);
+        return result ? result[1] : null;
     }
 
   
@@ -282,20 +288,11 @@ export class TaskParser   {
   
   
     getTaskContentFromLineText(lineText:string) {
-        let TaskContent = lineText.replace(REGEX.TASK_CONTENT.REMOVE_INLINE_METADATA,"")
+        const TaskContent = lineText.replace(REGEX.TASK_CONTENT.REMOVE_INLINE_METADATA,"")
                                     .replace(REGEX.TASK_CONTENT.REMOVE_TODOIST_LINK,"")
                                     .replace(REGEX.TASK_CONTENT.REMOVE_PRIORITY," ") //priority 前后必须都有空格，
-
-		// remove tags with text only if enabled in settings
-		if (this.plugin.settings.removeTagsWithText) {
-			TaskContent = TaskContent.replace(REGEX.TASK_CONTENT.REMOVE_TAGS,"")
-		} else {
-            this.plugin.settings.removeHashTagsExceptions.forEach((exceptTag) => {
-                TaskContent = TaskContent.replaceAll(" #" + exceptTag, " ")
-            })
-            TaskContent = TaskContent.replaceAll(" #", " ")
-        }
-		TaskContent = TaskContent.replace(REGEX.TASK_CONTENT.REMOVE_DATE,"")
+                                    .replace(REGEX.TASK_CONTENT.REMOVE_TAGS,"")
+                                    .replace(REGEX.TASK_CONTENT.REMOVE_DATE,"")
                                     .replace(REGEX.TASK_CONTENT.REMOVE_CHECKBOX,"")
                                     .replace(REGEX.TASK_CONTENT.REMOVE_CHECKBOX_WITH_INDENTATION,"")
                                     .replace(REGEX.TASK_CONTENT.REMOVE_SPACE,"")
@@ -350,29 +347,36 @@ export class TaskParser   {
         return(tagsModified) 
     }
   
-    //task status compare
-    taskStatusCompare(lineTask:Object,todoistTask:Object) {
-        //checked or completed?
-        //
-        const statusModified = (lineTask.isCompleted === todoistTask.checked) || (lineTask.isCompleted === false && todoistTask.checked !== null)
+    // Compare task status
+    taskStatusCompare(lineTask:Object, todoistTask:Object) {
+        // Determine the task status keys
+        const lineTaskStatus = lineTask.isCompleted ?? lineTask.checked; // 优先使用 isCompleted，如果不存在则使用 checked
+        const todoistTaskStatus = todoistTask.checked ?? todoistTask.isCompleted; // 优先使用 checked，如果不存在则使用 isCompleted
 
+        // Compare task statuses
+        const statusModified = (lineTaskStatus === todoistTaskStatus) || (lineTaskStatus === false && todoistTaskStatus !== null);
 
-         
-        //console.log(lineTask)
-        //console.log(todoistTask)
-        return(statusModified)
+        // Return the comparison result
+        return statusModified;
     }
-  
-  
+
+    getLocalSystemTimezone(){
+        return Intl.DateTimeFormat().resolvedOptions().timeZone; // 系统时区
+    }
+
+
+    isUTCFormat(string) {
+        // 定义 UTC 格式的正则表达式
+        const utcPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/;
+        
+        // 使用正则表达式测试字符串
+        return utcPattern.test(string);
+    }
     //task due date compare
     //linetask: pulled from file
     //todoistTask: task get from cache
-    async compareTaskDueDate(lineTask: { dueDate: string | null }, todoistTask: { due: { date: string | null, timeZone: string | null } | null }): Promise<boolean> {
-        const lineTaskDue = lineTask.dueDate; // 获取 lineTask 的 dueDate
-        const lineTaskTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone; // 系统时区
-    
-        const todoistTaskDue = todoistTask.due ? todoistTask.due.date : null;
-        const todoistTaskTimeZone = todoistTask.due ? todoistTask.due.timeZone : null;
+    async compareTaskDueDate(lineTaskDue, lineTaskTimeZone, todoistTaskDue, todoistTaskTimeZone): Promise<boolean> {
+
     
         // 1. 如果两个任务的 dueDate 都是 null，则认为相等
         if (!lineTaskDue && !todoistTaskDue) {
@@ -499,9 +503,9 @@ export class TaskParser   {
             return null
           }
 
-			if(localDateString.match(/T\d{2}:\d{2}/) === null) {
-              localDateString = localDateString + "T00:00";
-          }
+			
+          localDateString = localDateString + "T00:00";
+          
           let localDateObj = new Date(localDateString);
           let ISOString = localDateObj.toISOString()
           return(ISOString);
@@ -522,9 +526,9 @@ export class TaskParser   {
             return null
           }
 
-          if(localDateString.match(/T\d{2}:\d{2}/) === null) {
-              localDateString = localDateString + "T08:00";
-          }
+          
+            localDateString = localDateString + "T00:00";
+          
 
           let localDateObj = new Date(localDateString);
           let ISOString = localDateObj.toISOString()
@@ -593,9 +597,6 @@ export class TaskParser   {
 
 
     addTodoistLink(linetext: string,todoistLink:string): string {
-		if(!this.plugin.settings.enableLinksToTodoistTasks){
-			return linetext
-		}
         const regex = new RegExp(`${keywords.TODOIST_TAG}`, "g");
         return linetext.replace(regex, todoistLink + ' ' + '$&');
     }

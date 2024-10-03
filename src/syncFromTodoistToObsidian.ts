@@ -105,7 +105,7 @@ export class SyncFromTodoistToObsidian  {
 
             }
 
-            if(!(e.extra_data.last_content === undefined) || !(e.extra_data.labels === undefined)){
+            if(!(e.extra_data.last_content === undefined)){
                 //console.log(`prepare update content`)
                 try{
                     await this.syncUpdatedTaskContentToObsidian(e)
@@ -187,38 +187,12 @@ export class SyncFromTodoistToObsidian  {
         const filepath = this.plugin.cacheOperation?.getTaskFilepathFromCache(taskId) || this.plugin.fileOperation.searchFilepathsByTaskidInVault(taskId) || null
 
         const content = e.extra_data.content
-        const tags = e.extra_data.labels
-        await this.plugin.fileOperation.updateTaskContentInFile(taskId,filepath,content,tags)
+        await this.plugin.fileOperation.updateTaskContentInFile(taskId,filepath,content)
         
-        this.plugin.cacheOperation.modifyTaskToCacheByID(e.object_id,{content})
+        this.plugin.cacheOperation.modifyTaskToCacheByID(taskId,{content})
 
-        let description = undefined;
-        if(!(e.extra_data === undefined) && !(e.extra_data.description === undefined)){
-            description = e.extra_data.description
-        }
 
-        const url = this.plugin.taskParser.getObsidianUrlFromFilepath(filepath)
-        if(description != undefined) {
-            if (!description.includes(url)){
-                description = url + "\n" + description
-            }
-        } else {
-            description = url
-        }
 
-		let labels = undefined
-		if(!(e.extra_data === undefined) && !(e.extra_data.labels === undefined)){
-			labels = e.extra_data.labels
-		}
-
-        let updatedContent = {
-            description: description,
-			labels: labels
-        }
-
-        const updatedTask = await this.plugin.todoistRestAPI.UpdateTask(e.object_id,updatedContent)
-        updatedTask.path = filepath
-        this.plugin.cacheOperation.updateTaskToCacheByID(updatedTask);
         console.log(`The content of Task ${e.parent_item_id} has been modified.`)
         new Notice(`The content of Task ${e.parent_item_id} has been modified.`)
 
@@ -238,10 +212,17 @@ export class SyncFromTodoistToObsidian  {
         const dueDate = e.extra_data.due_date
         const filepath = this.plugin.cacheOperation?.getTaskFilepathFromCache(taskId) || this.plugin.fileOperation.searchFilepathsByTaskidInVault(taskId) || null
 
-        this.plugin.fileOperation.updateTaskDueDateInFile(taskId,filepath,dueDate)
+        
+        try{
+            this.plugin.fileOperation.updateTaskDueDateInFile(taskId,filepath,dueDate)
+        }catch(error){
+            console.error(error)
+        }
+        
         //修改cache的日期，要使用todoist的格式
         const due = await this.plugin.todoistRestAPI.getTaskDueById(e.object_id)
         this.plugin.cacheOperation.modifyTaskToCacheByID(e.object_id,{due})
+        
         new Notice(`The due date of Task ${e.parent_item_id} has been modified.`)
 
     }
@@ -281,69 +262,23 @@ export class SyncFromTodoistToObsidian  {
     }
 
 
-    async syncNewTasksToObsidian(unSynchronizedEvents){
-        console.log("starting synchronize tasks from todoist to obsidian")
-        try {
-            const processedEvents = []
-            for (const e of unSynchronizedEvents) {
-                // this is needed, because otherwise the task will not be registered by plugin and cannot figure out, if the project_id has changed
-                if(e.parent_project_id === this.plugin.settings.pullFromProjectId){
-                    console.log(e)
-                    const filepath = await this.plugin.fileOperation?.syncNewTaskToTheFile(e)
-                    new Notice(`Task ${e.object_id} is added.`)
 
-                    let description = undefined;
-                    if(!(e.extra_data === undefined) && !(e.extra_data.description === undefined)){
-                        description = e.extra_data.description
-                    }
-
-                    const url = this.plugin.taskParser.getObsidianUrlFromFilepath(filepath)
-                    if(description != undefined) {
-                        if (!description.includes(url)){
-                            description = url + "\n" + description
-                        }
-                    } else {
-                        description = url
-                    }
-
-                    let updatedContent = {
-                        description: description
-                    }
-
-                    await this.plugin.todoistRestAPI.UpdateTask(e.object_id,updatedContent)
-                }
-                processedEvents.push(e)
-            }
-
-            await this.plugin.cacheOperation.appendEventsToCache(processedEvents)
-            this.plugin.saveSettings()
-        } catch (error) {
-            console.error('同步任务状态时出错：', error)
-        }
-        console.log("synchronize tasks from todoist to obsidian finished")
-    }
 
 
 
     async syncTodoistToObsidian(){
         try{
-
-			const all_activity_events_raw = await this.plugin.todoistSyncAPI.getNonObsidianAllActivityEvents()
-			// reverse the events, because they are returned in ascending order. We want to process the oldest events first
-			let all_activity_events = all_activity_events_raw.reverse()
-
-            //remove tasks not in cache and filevault
-            all_activity_events = all_activity_events.filter((event) => {
-                return this.isTaskPresentInCacheAndFile(event.object_id);
-            });
-
-
+            const all_activity_events = await this.plugin.todoistSyncAPI.getNonObsidianAllActivityEvents()
+            
+            console.log(all_activity_events)
             // remove synchonized events
             const savedEvents = await this.plugin.cacheOperation.loadEventsFromCache()
+            console.log(savedEvents)
             const result1 = all_activity_events.filter(
             (objA) => !savedEvents.some((objB) => objB.id === objA.id)
             )
-
+    
+           
             const savedTasks = await this.plugin.cacheOperation.loadTasksFromCache()
             // 找出 task id 存在于 Obsidian 中的 task activity
             const result2 = result1.filter(
@@ -353,52 +288,34 @@ export class SyncFromTodoistToObsidian  {
             const result3 = result1.filter(
                 (objA) => savedTasks.some((objB) => objB.id === objA.parent_item_id)
                 )
+        
+    
+    
+    
+            const unsynchronized_item_completed_events = this.plugin.todoistSyncAPI.filterActivityEvents(result2, { event_type: 'completed', object_type: 'item' })
+            const unsynchronized_item_uncompleted_events = this.plugin.todoistSyncAPI.filterActivityEvents(result2, { event_type: 'uncompleted', object_type: 'item' })
 
-			// usage for new tasks
-            const result4 = result1.filter(
-            	(objA) => !savedTasks.some((objB) => objB.id === objA.object_id)
-            )
+            //Items updated (only changes to content, description, due_date and responsible_uid)
+            const unsynchronized_item_updated_events = this.plugin.todoistSyncAPI.filterActivityEvents(result2, { event_type: 'updated', object_type: 'item' })
 
-			const unsynchronized_item_completed_events = this.plugin.todoistSyncAPI.filterActivityEvents(result2, { event_type: 'completed', object_type: 'item' })
-			const unsynchronized_item_uncompleted_events = this.plugin.todoistSyncAPI.filterActivityEvents(result2, { event_type: 'uncompleted', object_type: 'item' })
-
-			//Items updated (only changes to content, description, due_date and responsible_uid)
-			const unsynchronized_item_updated_events = this.plugin.todoistSyncAPI.filterActivityEvents(result2, { event_type: 'updated', object_type: 'item' })
-			//const unsynchronized_item_added_events = this.plugin.todoistSyncAPI.filterActivityEvents(result4, { event_type: 'added', object_type: 'item' })
-
-			const unsynchronized_notes_added_events = this.plugin.todoistSyncAPI.filterActivityEvents(result3, { event_type: 'added', object_type: 'note' })
-			const unsynchronized_project_events = this.plugin.todoistSyncAPI.filterActivityEvents(result1, { object_type: 'project' })
-
-			// needs to be placed before any changes, because otherwise the labels are updated in cache
-			//const tasks_with_changed_attrs = await this.getTasksFromTodoistWithUpdatedAttrs()
-
-			if(this.plugin.settings.debugMode) {
-				console.log("all activity events", all_activity_events)
-				console.log("completed tasks", unsynchronized_item_completed_events)
-				console.log("uncompleted tasks", unsynchronized_item_uncompleted_events)
-				console.log("updated tasks", unsynchronized_item_updated_events)
-				console.log("project events", unsynchronized_project_events)
-				console.log("new notes", unsynchronized_notes_added_events)
-				//console.log("new tasks", unsynchronized_item_added_events)
-				//console.log("generated events with updated labels", tasks_with_changed_attrs)
-			}
-
-			await this.syncCompletedTaskStatusToObsidian(unsynchronized_item_completed_events)
-
-			await this.syncUncompletedTaskStatusToObsidian(unsynchronized_item_uncompleted_events)
-			await this.syncUpdatedTaskToObsidian(unsynchronized_item_updated_events)
-			// sync updated labels to obsidian
-            //await this.syncUpdatedTaskToObsidian(tasks_with_changed_attrs)
-
-			//await this.syncNewTasksToObsidian(unsynchronized_item_added_events)
-			await this.syncTaskNoteToObsidian(unsynchronized_notes_added_events)
-
+            const unsynchronized_notes_added_events = this.plugin.todoistSyncAPI.filterActivityEvents(result3, { event_type: 'added', object_type: 'note' })
+            const unsynchronized_project_events = this.plugin.todoistSyncAPI.filterActivityEvents(result1, { object_type: 'project' })
+            console.log(unsynchronized_item_completed_events)
+            console.log(unsynchronized_item_uncompleted_events)
+            console.log(unsynchronized_item_updated_events)
+            console.log(unsynchronized_project_events) 
+            console.log(unsynchronized_notes_added_events)
+    
+            await this.syncCompletedTaskStatusToObsidian(unsynchronized_item_completed_events)
+            await this.syncUncompletedTaskStatusToObsidian(unsynchronized_item_uncompleted_events)
+            await this.syncUpdatedTaskToObsidian(unsynchronized_item_updated_events)
+            await this.syncTaskNoteToObsidian(unsynchronized_notes_added_events)
             if(unsynchronized_project_events.length){
                 console.log('New project event')
                 await this.plugin.cacheOperation.saveProjectsToCache()
                 await this.plugin.cacheOperation.appendEventsToCache(unsynchronized_project_events)
             }
-
+    
 
         }catch (err){
             console.error('An error occurred while synchronizing:', err);
@@ -408,50 +325,5 @@ export class SyncFromTodoistToObsidian  {
 
 
 
-    async getTasksFromTodoistWithUpdatedAttrs(){
-		const all_tasks_in_todoist =  this.plugin.todoistSyncAPI?.getAllTasks()
-		const all_tasks_in_obsidian = await this.plugin.cacheOperation?.loadTasksFromCache()
-
-		if(this.plugin.settings.debugMode) {
-			console.log("all tasks in todoist",all_tasks_in_todoist)
-			console.log("all tasks in obsidian",all_tasks_in_obsidian)
-		}
-
-		let tasks_with_updated_attrs = []
-
-		all_tasks_in_todoist.forEach((todoist_task) => {
-			const obs_task = all_tasks_in_obsidian.find((t) => t.id === todoist_task.object_id || t.id === todoist_task.id)
-			if (!(obs_task === undefined)) {
-				const labelsModified = !this.plugin.taskParser?.taskTagCompare(obs_task, todoist_task)
-                const projectModifed = !(obs_task.projectId === todoist_task.project_id)
-				if(labelsModified || projectModifed) {
-					if(this.plugin.settings.debugMode) {
-						console.log(`task ${todoist_task.object_id} has updated labels or project`, todoist_task, obs_task)
-					}
-
-					const event = {
-						object_id: todoist_task.id,
-                        id: todoist_task.id,
-						parent_project_id: todoist_task.id,
-						parent_item_id: null,
-						object_type: 'item',
-						event_type: 'updated',
-						extra_data: {
-							labels: todoist_task.labels,
-							last_labels: obs_task.labels,
-							content: todoist_task.content,
-							last_content: obs_task.content
-						}
-					}
-					tasks_with_updated_attrs.push(event)
-				}
-			} else {
-                todoist_task.object_id = todoist_task.id
-                this.plugin.cacheOperation?.updateTaskToCacheByID(todoist_task)
-            }
-		})
-
-		return tasks_with_updated_attrs
-	}
 
 }

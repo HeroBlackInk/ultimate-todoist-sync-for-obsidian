@@ -87,6 +87,9 @@ export class TodoistSyncAPI   {
     this.sync_token = "*";
     this.resources = undefined;
     this.user_timezone_info = undefined;
+
+    //sync lock, only one sync request at a time
+    this.isSyncing = false
 	}
 
   async init(){
@@ -103,6 +106,10 @@ export class TodoistSyncAPI   {
     // Get all resources from todoist
     //completed or archived resources are not returned 
     async syncAllResources() {
+      if(this.isSyncing){
+        throw new Error(`Sync All todoist Resources locked.`)
+      }
+      this.isSyncing = true
       const accessToken = this.plugin.settings.todoistAPIToken
       const url = 'https://api.todoist.com/sync/v9/sync';
       const options = {
@@ -126,7 +133,7 @@ export class TodoistSyncAPI   {
         }
     
         // 如果 this.resources 为空或未定义，直接赋值为 data
-        if (!this.resources) {
+        if (!this.resources || this.sync_token === "*") {
           this.resources = data;
         } else {
           // 遍历每个资源类型（如 tasks, projects 等）
@@ -146,10 +153,11 @@ export class TodoistSyncAPI   {
             }
           });
         }
-
-
+        this.sync_token = data.sync_token;
+        this.isSyncing = false
         return this.resources;
       } catch (error) {
+        this.isSyncing = false
         console.error(error);
         throw new Error('Failed to fetch all resources due to network error');
       }

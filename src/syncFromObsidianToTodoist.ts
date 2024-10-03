@@ -369,7 +369,12 @@ export class SyncFromObsidianToTodoist  {
             //status 是否修改
             const statusModified = !this.plugin.taskParser.taskStatusCompare(lineTask,savedTask)
             //due date 是否修改
-            const dueDateModified = !(await this.plugin.taskParser.compareTaskDueDate(lineTask,savedTask))
+            const lineTaskDueDate = lineTask.dueDate
+            const lineTaskTimeZone = this.plugin.taskParser?.getLocalSystemTimezone()
+
+            const cacheTaskDuedate = savedTask.due?.date || null
+            const cacheTaskTimezone = savedTask.due?.timezone || null
+            const dueDateModified = !(await this.plugin.taskParser.compareTaskDueDate(lineTaskDueDate,lineTaskTimeZone,cacheTaskDuedate,cacheTaskTimezone))
             //parent id 是否修改
             const parentIdModified = !(lineTask.parentId === savedTask.parentId)
             //check priority
@@ -620,7 +625,8 @@ export class SyncFromObsidianToTodoist  {
 
     async  backupTodoistAllResources() {
         try {
-        const resources = await this.plugin.todoistSyncAPI.getAllResources()
+        await this.plugin.todoistSyncAPI?.syncAllResources()
+        const resources = this.plugin.todoistSyncAPI.getAllResources()
 
         const now: Date = new Date();
         const timeString: string = `${now.getFullYear()}${now.getMonth()+1}${now.getDate()}${now.getHours()}${now.getMinutes()}${now.getSeconds()}`;
@@ -641,7 +647,7 @@ export class SyncFromObsidianToTodoist  {
         //console.log(`todoist 备份成功`)
         new Notice(`Todoist backup data is saved in the path ${name}`)
         } catch (error) {
-        console.error("An error occurred while creating Todoist backup:", error);
+         throw new Error("An error occurred while creating Todoist backup:", error);
         }
 
     }

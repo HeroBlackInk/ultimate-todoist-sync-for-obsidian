@@ -1,21 +1,13 @@
 import { App, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
 import UltimateTodoistSyncForObsidian from "../main";
-import {appHasDailyNotesPluginLoaded} from "obsidian-daily-notes-interface";
 
 interface MyProject {
 	id: string;
 	name: string;
   }
 
-export enum pullTargetMode {
-	DailyNote = "daily", Template = "template"
-}
 
-export enum pullTaskNotesMode {
-    projectNote, taskNote
-}
-
-export interface UltimateTodoistSyncSettings {
+  export interface UltimateTodoistSyncSettings {
     initialized:boolean;
 	//mySetting: string;
 	//todoistTasksFilePath: string;
@@ -24,57 +16,27 @@ export interface UltimateTodoistSyncSettings {
 	defaultProjectName: string;
 	defaultProjectId:string;
 	automaticSynchronizationInterval:Number;
-	enableLinksToTodoistTasks: boolean;
 	todoistTasksData:any;
 	fileMetadata:any;
 	enableFullVaultSync: boolean;
 	statistics: any;
-	debugMode: boolean;
-	removeTagsWithText: boolean;
-	removeHashTagsExceptions: string[];
-	pullFromProject: string;
-	pullFromProjectId: string;
-	pullTargetMode: pullTargetMode;
-	pullTemplateUseFolder: string;
-	pullTemplateUsePath: string;
-	pullDailyNoteAppendMode: boolean;
-	pullDailyNoteInsertAfterText: string;
-    pullTemplateUseForProjects: pullTaskNotesMode;
-    pullTemplateTaskNotesFormat: string;
-    pullDailyNoteAppendMode: boolean;
-    pullDailyNoteInsertAfterText: string;
-	syncTagsFromTodoist: boolean;
-	
+	debugMode:boolean;
 }
 
 
 export const DEFAULT_SETTINGS: UltimateTodoistSyncSettings = {
-    defaultProjectId: "",
-    todoistAPIToken: "",
-    initialized: false,
-    apiInitialized: false,
-    defaultProjectName: "Inbox",
-    automaticSynchronizationInterval: 300, //default aync interval 300s
-    todoistTasksData: {"projects": [], "tasks": [], "events": []},
-    fileMetadata: {},
-	enableLinksToTodoistTasks: true,
-    enableFullVaultSync: false,
-    statistics: {},
-    debugMode: false,
-    //mySetting: 'default',
-    //todoistTasksFilePath: 'todoistTasks.json'
-	removeTagsWithText: true,
-	removeHashTagsExceptions: ["todoist"],
-    pullFromProject: "Inbox",
-    pullFromProjectId: "",
-    pullTargetMode: pullTargetMode.Template,
-    pullTemplateUseFolder: "",
-    pullTemplateUsePath: "",
-    pullTemplateUseForProjects: pullTaskNotesMode.taskNote,
-    pullTemplateTaskNotesFormat: "{{date|YYYY-MM-DD}}_{{title}}",
-    pullDailyNoteAppendMode: true,
-    pullDailyNoteInsertAfterText: "",
-	syncTagsFromTodoist: false
+	initialized: false,
+	apiInitialized:false,
+	defaultProjectName:"Inbox",
+	automaticSynchronizationInterval: 300, //default aync interval 300s
+	todoistTasksData:{"projects":[],"tasks":[],"events":[]},
+	fileMetadata:{},
+	enableFullVaultSync:false,
+	statistics:{},
+	debugMode:false,
+	//mySetting: 'default',
+	//todoistTasksFilePath: 'todoistTasks.json'
+
 }
 
 
@@ -188,34 +150,25 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 		);
 		*/
 
-        new Setting(containerEl)
-            .setName('Default Project')
-            .setDesc('New tasks are automatically synced to the default project. You can modify the project here.')
-            .addDropdown(component =>
-                component
-                    .addOptions(myProjectsOptions)
-                    .setValue(this.plugin.settings.defaultProjectId)
-                    .onChange((value) => {
-                        this.plugin.settings.defaultProjectId = value
-                        this.plugin.settings.defaultProjectName = this.plugin.cacheOperation.getProjectNameByIdFromCache(value)
-                        this.plugin.saveSettings()
-
-
-                    })
-            )
-
-
 		new Setting(containerEl)
-			.setName('Insert links to Todoist tasks')
-			.setDesc('If enabled, this option will insert links to Todoist tasks in the Obsidian note after creating them. Otherwise, it will not insert links. This will only apply to newly created tasks.')
-			.addToggle(component =>
+			.setName('Default Project')
+			.setDesc('New tasks are automatically synced to the default project. You can modify the project here.')
+			.addDropdown(component => 
 				component
-					.setValue(this.plugin.settings.enableLinksToTodoistTasks)
-					.onChange((value) => {
-						this.plugin.settings.enableLinksToTodoistTasks = value
-						this.plugin.saveSettings()
-					})
-			)
+						.addOption(this.plugin.settings.defaultProjectId,this.plugin.settings.defaultProjectName)
+						.addOptions(myProjectsOptions)
+						.onChange((value)=>{
+							this.plugin.settings.defaultProjectId = value
+							this.plugin.settings.defaultProjectName = this.plugin.cacheOperation.getProjectNameByIdFromCache(value)
+							this.plugin.saveSettings()
+							
+							
+						})
+						
+				)
+
+
+
 
 		new Setting(containerEl)
 			.setName('Full Vault Sync')
@@ -231,32 +184,9 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 						
 				)
 
-		new Setting(containerEl)
-			.setName('Remove tags within text')
-			.setDesc('If enabled, this option will remove tags from text in todoist`s task description. Otherwise it only removes the hashtag sign and leaves the tags text in place. Very helpful, if you use tags in your textflow.')
-			.addToggle(component =>
-				component
-					.setValue(this.plugin.settings.removeTagsWithText)
-					.onChange((value) => {
-						this.plugin.settings.removeTagsWithText = value
-						this.plugin.saveSettings()
-						this.display()
-					})
-			)
 
-		if(!this.plugin.settings.removeTagsWithText) {
-			new Setting(containerEl)
-				.setName('Tag exceptions')
-				.setDesc('Enter tags, which should always removed in text while sync. Separated by comma. Leave the hashtag # sign out. On default, it removes `todoist` from the labels list. If you remove this, it will not be removed anymore in todoist.')
-				.addText((text) =>
-					text
-						.setValue(this.plugin.settings.removeHashTagsExceptions.join(','))
-						.onChange(async (value) => {
-							this.plugin.settings.removeHashTagsExceptions = value.split(',').map(v => v.trim());
-							this.plugin.saveSettings()
-						})
-				)
-		}
+
+
 
 		new Setting(containerEl)
 		.setName('Manual Sync')
@@ -315,6 +245,8 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 					throw new Error('Failed to fetch all resources due to network error');
 				}
 
+				if (!await this.plugin.checkAndHandleSyncLock()) return;
+
 				//remove old settings
 				this.plugin.settings.todoistTasksData.tasks = []
 				this.plugin.settings.fileMetadata = {}
@@ -335,13 +267,19 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 				const uniqueUncompletedItems = new Set(allUncompletedTasks.map(item => item.id));
 				console.log("Number of unique uncompleted items:", uniqueUncompletedItems.size);
 
-
+				//get all active tasks with restful api
+				const allActiveTasks = await this.plugin.todoistRestAPI?.GetActiveTasks()
+				console.log(allActiveTasks)
+				console.log("Number of active tasks:", allActiveTasks.size);
 
 
 				const allCompletedTasks2 = await this.plugin.todoistSyncAPI?.getAllCompletedTasks()
 				console.log(allCompletedTasks2)
 				let total_count_of_todoist_tasks = 0
 				let unmatched_todoist_tasks = 0
+
+
+
 				const files = this.app.vault.getFiles()
 				for (const v of files) {
 					if(v.extension == "md"){
@@ -380,6 +318,7 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 									//get task from todoist resources
 									let taskObject = allUncompletedTasks.find(task => task["id"] === taskId) 
 													|| allCompletedTasks2.find(task => task["id"] === taskId) 
+													|| allActiveTasks.find(task => task["id"] === taskId) 
 													|| null;
 
 
@@ -392,18 +331,6 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 										continue
 									}
 									//console.log(`tashObject ${taskObject}`)
-									
-
-
-									//save task to cache
-									let currentTaskFromCache = await this.plugin.cacheOperation?.loadTaskFromCacheByID(taskId)
-									if(currentTaskFromCache){
-										console.log(currentTaskFromCache)
-									}
-									
-
-
-										
 									
 
 									
@@ -478,7 +405,7 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 				}
 				*/
 
-				if (!await this.plugin.checkAndHandleSyncLock()) return;
+				
 				
 
 				/*
@@ -597,17 +524,7 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 
 					*/
 
-					// check for tasks with empty id or sth in cache
-					/*
-					console.log('checking invalid tasks in cache')
-					const tasks = this.plugin.cacheOperation?.loadTasksFromCache()
-					this.plugin.cacheOperation?.clearTasks()
-					tasks?.forEach((task) => {
-						if(task.id !== undefined){
-							this.plugin.cacheOperation?.appendTaskToCache(task)
-						}
-					})
-					*/
+
 
 					this.plugin.syncLock = false
 					new Notice(`All files have been scanned.`)
@@ -651,153 +568,6 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 				})
 			);
 
-        containerEl.createEl('h2', {text: 'Synchronisation tasks from Todoist to Obsidian'});
-        new Setting(containerEl)
-            .setName("Pull from project")
-            .setDesc("Pull tasks only from the given project.")
-            .addDropdown(component => {
-                component
-					.addOption("-1","All projects")
-                    .addOptions(myProjectsOptions)
-                    .setValue(this.plugin.settings.pullFromProjectId)
-                    .onChange((value) => {
-                        this.plugin.settings.pullFromProjectId = value
-                        this.plugin.settings.pullFromProject = this.plugin.cacheOperation.getProjectNameByIdFromCache(value)
-                        this.plugin.saveSettings()
-                        this.display()
-                    })
-            })
-
-		new Setting(containerEl)
-			.setName("Sync tags from todoist")
-			.setDesc("If enabled, this option will sync tags from todoist to obsidian. Otherwise, it will not sync tags.")
-			.addToggle(component => {
-				component
-					.setValue(this.plugin.settings.syncTagsFromTodoist)
-					.onChange((value) => {
-						this.plugin.settings.syncTagsFromTodoist = value
-						this.plugin.saveSettings()
-					})
-			})
-
-        const desc = document.createDocumentFragment();
-		desc.append('If daily Note core plugin is enabled and is selected, all new tasks will be created in a daily note. This needs the ',
-			desc.createEl("a", {
-				href: "https://help.obsidian.md/Plugins/Daily+notes",
-				text: "daily notes core plugin",
-			}),
-			desc.createEl("br"),
-			'In template note, it uses a template to store the tasks.'
-		)
-
-
-		new Setting(containerEl)
-            .setName('Select Mode')
-            .setDesc(desc)
-            .addDropdown(component => {
-				if(appHasDailyNotesPluginLoaded()){
-					component
-						.addOption(pullTargetMode.DailyNote.valueOf(), "Daily note")
-				}
-                component
-                    .addOption(pullTargetMode.Template.valueOf(), 'Template Note')
-                    .setValue(this.plugin.settings.pullTargetMode.valueOf())
-                    .onChange((value) => {
-                        this.plugin.settings.pullTargetMode = value == 'daily' ? pullTargetMode.DailyNote : pullTargetMode.Template
-                        this.plugin.saveSettings()
-                        this.display()
-                    })
-
-            })
-
-        if (this.plugin.settings.pullTargetMode == pullTargetMode.Template) {
-            new Setting(containerEl)
-                .setName('Path to folder')
-                .setDesc('Create new note in the given folder.')
-                .addText((text) =>
-                    text
-                        .setPlaceholder('Enter folder path')
-                        .setValue(this.plugin.settings.pullTemplateUseFolder)
-                        .onChange(async (value) => {
-                            this.plugin.settings.pullTemplateUseFolder = value;
-                            this.plugin.saveSettings()
-                        })
-                )
-
-            new Setting(containerEl)
-                .setName('Path to template')
-                .setDesc('Use the given path as template to create new note.')
-                .addText((text) => {
-                    text
-                        .setPlaceholder('Enter path')
-                        .setValue(this.plugin.settings.pullTemplateUsePath)
-                        .onChange(async (value) => {
-                            this.plugin.settings.pullTemplateUsePath = value;
-                            this.plugin.saveSettings()
-                        })
-                })
-
-            new Setting(containerEl)
-                .setName("Create one note for each project")
-                .setDesc("So all tasks from the same project will be in the same note, when created in Todoist. The note will be named the same as the projectname. \nOtherwise each task gets its own note.\n(Disabled, because note per task is not yet implemented.)")
-                .addToggle(component => {
-                    component
-                        .setValue(this.plugin.settings.pullTemplateUseForProjects == pullTaskNotesMode.projectNote)
-                        .onChange((value) => {
-                            this.plugin.settings.pullTemplateUseForProjects = value ? pullTaskNotesMode.projectNote : pullTaskNotesMode.taskNote
-                            this.plugin.saveSettings()
-                            this.display()
-                        })
-                })
-            if (this.plugin.settings.pullTemplateUseForProjects != pullTaskNotesMode.projectNote) {
-				const desc = document.createDocumentFragment();
-				desc.append('Use the given format to create new notes for tasks. ',
-					desc.createEl("a", {
-						href: "https://momentjs.com/docs/#/displaying/format/",
-						text: "moment.js",
-					}),
-					' is used to format the date. Available variables are: {{date}},{{date|format}},{{title}},{{TITLE}}'
-				)
-                new Setting(containerEl)
-                    .setName('Task notes format')
-					.setDesc(desc)
-                    .addText((text) => {
-                        text
-                            .setPlaceholder(this.plugin.settings.pullTemplateTaskNotesFormat)
-                            .setValue(this.plugin.settings.pullTemplateTaskNotesFormat)
-                            .onChange(async (value) => {
-                                this.plugin.settings.pullTemplateTaskNotesFormat = value;
-                                this.plugin.saveSettings()
-                            })
-                    })
-            }
-        }
-		new Setting(containerEl)
-			.setName('Append Mode')
-			.setDesc('Append tasks at the bottom of the note.')
-			.addToggle(component => {
-				component
-					.setValue(this.plugin.settings.pullDailyNoteAppendMode)
-					.onChange((value) => {
-						this.plugin.settings.pullDailyNoteAppendMode = value
-						this.plugin.saveSettings()
-						this.display()
-					})
-			})
-		if (!this.plugin.settings.pullDailyNoteAppendMode) {
-			new Setting(containerEl)
-				.setName('Insert After')
-				.setDesc('Insert tasks after given text in note. If not text can be found, it falls back to append mode.')
-				.addText((text) => {
-					text
-						.setPlaceholder('Enter text')
-						.setValue(this.plugin.settings.pullDailyNoteInsertAfterText)
-						.onChange(async (value) => {
-							this.plugin.settings.pullDailyNoteInsertAfterText = value;
-							this.plugin.saveSettings()
-						})
-				})
-		}
     }
 }
 
