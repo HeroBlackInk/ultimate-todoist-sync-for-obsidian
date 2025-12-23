@@ -1,5 +1,6 @@
 import { App} from 'obsidian';
 import UltimateTodoistSyncForObsidian from "../main";
+import { getTodoistTaskUrl } from './utils';
 export class FileOperation   {
 	app:App;
     plugin: UltimateTodoistSyncForObsidian;
@@ -172,7 +173,8 @@ export class FileOperation   {
                 //console.log('prepare to add todoist link')
                 const taskID = this.plugin.taskParser.getTodoistIdFromLineText(line)
                 const taskObject = this.plugin.cacheOperation.loadTaskFromCacheyID(taskID)
-                const todoistLink = taskObject.url
+                // Use new URL format instead of deprecated taskObject.url
+                const todoistLink = getTodoistTaskUrl(taskID)
                 const link = `[link](${todoistLink})`
                 const newLine = this.plugin.taskParser.addTodoistLink(line,link)
                 console.log(newLine)
