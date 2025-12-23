@@ -1,6 +1,6 @@
 import UltimateTodoistSyncForObsidian from "../main";
 import { App, Editor, MarkdownView, Notice} from 'obsidian';
-import { getTodoistTaskUrl, getTodoistAppUri } from './utils';
+import { getTodoistAppUri } from './utils';
 
 
 type FrontMatter = {
@@ -155,7 +155,7 @@ export class TodoistSync  {
 
                 //todoist id 保存到 任务后面
                 const text_with_out_link = `${linetxt} %%[todoist_id:: ${todoist_id}]%%`;
-                const link = this.plugin.settings.useAppURI ? `[link](${getTodoistAppUri(newTask.id)})` : `[link](${getTodoistTaskUrl(newTask.id)})`
+                const link = this.plugin.settings.useAppURI ? `[link](${getTodoistAppUri(newTask.id)})` : `[link](${newTask.url})`
                 const text = this.plugin.taskParser.addTodoistLink(text_with_out_link,link)
                 const from = { line: cursor.line, ch: 0 };
                 const to = { line: cursor.line, ch: linetxt.length };
@@ -280,7 +280,7 @@ export class TodoistSync  {
     
                 //todoist id 保存到 任务后面
                 const text_with_out_link = `${line} %%[todoist_id:: ${todoist_id}]%%`;
-                const link = `[link](${getTodoistTaskUrl(newTask.id)})`
+                const link = `[link](${newTask.url})`
                 const text = this.plugin.taskParser.addTodoistLink(text_with_out_link,link)
                 lines[i] = text;
     
