@@ -1,5 +1,6 @@
-import { App, TFile } from 'obsidian';
+import { App, Editor, MarkdownView, TFile } from 'obsidian';
 import UltimateTodoistSyncForObsidian from "../../main";
+import { computeLineRangeEdit } from './editorContentDiff';
 
 export interface VaultTask {
     taskId: string;
@@ -42,6 +43,84 @@ export class FileOperation   {
         this.plugin = plugin;
 
 	}
+
+    private requireFile(filepath: string): TFile {
+        const file = this.app.vault.getAbstractFileByPath(filepath);
+        if (!(file instanceof TFile)) {
+            throw new Error(`File not found: ${filepath}`);
+        }
+
+        return file;
+    }
+
+    /**
+     * The markdown view currently showing this file, if any.
+     */
+    getOpenMarkdownView(filepath: string): MarkdownView | null {
+        for (const leaf of this.app.workspace.getLeavesOfType('markdown')) {
+            const view = leaf.view;
+            if (view instanceof MarkdownView && view.file?.path === filepath) {
+                return view;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Read the *current* content of a file, preferring an open editor's buffer
+     * over the on-disk copy.
+     *
+     * Obsidian flushes the editor to disk only after a couple of seconds of idle,
+     * so vault.read() returns stale text while the user is typing. Acting on that
+     * stale text is destructive: a todoist_id written back into the editor moments
+     * ago looks missing, which makes deletedTaskCheck delete the brand-new Todoist
+     * task and makes fullTextNewTaskCheck create a duplicate for the same line.
+     */
+    async readLiveFileContent(filepath: string): Promise<string> {
+        const view = this.getOpenMarkdownView(filepath);
+        if (view) {
+            return view.editor?.getValue() ?? view.data;
+        }
+
+        return await this.app.vault.read(this.requireFile(filepath));
+    }
+
+    /**
+     * Write new content for a file, going through an open editor when there is one.
+     *
+     * vault.modify() writes to disk behind the editor's back. When the file is open
+     * with unsaved changes, Obsidian's next autosave writes the editor buffer over
+     * that write — silently dropping a todoist_id we just wrote, which orphans the
+     * Todoist task and makes the line look unsynced again on the next scan.
+     */
+    async writeLiveFileContent(filepath: string, newContent: string): Promise<void> {
+        const editor = this.getOpenMarkdownView(filepath)?.editor;
+        if (editor) {
+            this.applyContentToEditor(editor, newContent);
+            return;
+        }
+
+        await this.app.vault.modify(this.requireFile(filepath), newContent);
+    }
+
+    /**
+     * Apply new content to an open editor as a minimal line-range replacement, so
+     * the user's cursor, selection and undo history survive a sync write. Sync
+     * writes touch one line at a time, so the replaced range is normally one line.
+     *
+     * The diff itself lives in editorContentDiff.ts and is unit-tested there.
+     */
+    private applyContentToEditor(editor: Editor, newContent: string): void {
+        const edit = computeLineRangeEdit(editor.getValue(), newContent);
+        if (!edit) return;
+
+        if (edit.to) {
+            editor.replaceRange(edit.text, edit.from, edit.to);
+        } else {
+            editor.replaceRange(edit.text, edit.from);
+        }
+    }
 
 	/**
 	 * Check if a file path should be excluded from Full Vault Sync.
@@ -119,7 +198,7 @@ export class FileOperation   {
      // 完成一个任务，将其标记为已完成
     async completeTaskInTheFile(taskId: string) {
         // 获取任务文件路径
-        const taskMapping = this.plugin.cacheOperation.getTaskFileMapping(taskId)
+        const taskMapping = this.plugin.cacheOperation!.getTaskFileMapping(taskId)
         if (!taskMapping) {
             console.error(`Task ${taskId} not found in taskFileMapping`);
             return;
@@ -127,15 +206,14 @@ export class FileOperation   {
         const filepath = taskMapping.filePath
     
         // 获取文件对象并更新内容
-        const file = this.app.vault.getAbstractFileByPath(filepath)
-        const content = await this.app.vault.read(file)
+        const content = await this.readLiveFileContent(filepath)
     
         const lines = content.split('\n')
         let modified = false
     
         for (let i = 0; i < lines.length; i++) {
         const line = lines[i]
-        if (line.includes(taskId) && this.plugin.taskParser.hasTodoistTag(line)) {
+        if (line.includes(taskId) && this.plugin.taskParser!.hasTodoistTag(line)) {
             lines[i] = line.replace('[ ]', '[x]')
             modified = true
             break
@@ -145,7 +223,7 @@ export class FileOperation   {
         if (modified) {
         const newContent = lines.join('\n')
         await this.plugin.backupOperation?.backupFile(filepath);
-        await this.app.vault.modify(file, newContent)
+        await this.writeLiveFileContent(filepath, newContent)
         this.plugin.logOperation?.log('FILE_TASK_COMPLETED', `Completed task in file: ${taskId}`, filepath, taskId, this.plugin.isSyncingFromTodoist ? 'todoist→obsidian' : 'obsidian→todoist');
         }
     }
@@ -153,7 +231,7 @@ export class FileOperation   {
     // uncheck 已完成的任务，
     async uncompleteTaskInTheFile(taskId: string) {
         // 获取任务文件路径
-        const taskMapping = this.plugin.cacheOperation.getTaskFileMapping(taskId)
+        const taskMapping = this.plugin.cacheOperation!.getTaskFileMapping(taskId)
         if (!taskMapping) {
             console.error(`Task ${taskId} not found in taskFileMapping`);
             return;
@@ -161,15 +239,14 @@ export class FileOperation   {
         const filepath = taskMapping.filePath
     
         // 获取文件对象并更新内容
-        const file = this.app.vault.getAbstractFileByPath(filepath)
-        const content = await this.app.vault.read(file)
+        const content = await this.readLiveFileContent(filepath)
     
         const lines = content.split('\n')
         let modified = false
     
         for (let i = 0; i < lines.length; i++) {
         const line = lines[i]
-        if (line.includes(taskId) && this.plugin.taskParser.hasTodoistTag(line)) {
+        if (line.includes(taskId) && this.plugin.taskParser!.hasTodoistTag(line)) {
             lines[i] = line.replace(/- \[(x|X)\]/g, '- [ ]');
             modified = true
             break
@@ -179,7 +256,7 @@ export class FileOperation   {
         if (modified) {
         const newContent = lines.join('\n')
         await this.plugin.backupOperation?.backupFile(filepath);
-        await this.app.vault.modify(file, newContent)
+        await this.writeLiveFileContent(filepath, newContent)
         this.plugin.logOperation?.log('FILE_TASK_UNCOMPLETED', `Reopened task in file: ${taskId}`, filepath, taskId, this.plugin.isSyncingFromTodoist ? 'todoist→obsidian' : 'obsidian→todoist');
         }
     }
@@ -189,18 +266,13 @@ export class FileOperation   {
      * The task line remains in the file but is no longer associated with Todoist.
      */
     async unbindTaskInFile(taskId: string): Promise<void> {
-        const taskMapping = this.plugin.cacheOperation.getTaskFileMapping(taskId);
+        const taskMapping = this.plugin.cacheOperation!.getTaskFileMapping(taskId);
         if (!taskMapping) {
             console.error(`[FileOperation] unbindTaskInFile: Task ${taskId} not found in taskFileMapping`);
             return;
         }
         const filepath = taskMapping.filePath;
-        const file = this.app.vault.getAbstractFileByPath(filepath);
-        if (!file) {
-            console.error(`[FileOperation] unbindTaskInFile: File not found: ${filepath}`);
-            return;
-        }
-        const content = await this.app.vault.read(file);
+        const content = await this.readLiveFileContent(filepath);
         const lines = content.split('\n');
         let modified = false;
         for (let i = 0; i < lines.length; i++) {
@@ -226,39 +298,34 @@ export class FileOperation   {
         }
         if (modified) {
             const newContent = lines.join('\n');
-            await this.app.vault.modify(file, newContent);
-            this.plugin.logOperation?.log('FILE_TASK_UNBOUND', `Unbound task from file: ${taskId}`, filepath, taskId, 'manual');
+            await this.writeLiveFileContent(filepath, newContent);
+            this.plugin.logOperation?.log('FILE_TASK_UNBOUND', `Unbound task from file: ${taskId}`, filepath, taskId, 'obsidian→todoist');
         }
     }
     //add #todoist at the end of task line, if full vault sync enabled
     async addTodoistTagToFile(filepath: string) {    
         if (this.isFileExcludedFromSync(filepath)) return;
-        const file = this.app.vault.getAbstractFileByPath(filepath)
-        if (!file) {
-            this.plugin.debugLog(`[addTodoistTagToFile] File not found: ${filepath}`);
-            return;
-        }
-        const content = await this.app.vault.read(file as TFile)
+        const content = await this.readLiveFileContent(filepath)
     
         const lines = content.split('\n')
         let modified = false
     
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i]
-            if(!this.plugin.taskParser.isMarkdownTask(line)){
+            if(!this.plugin.taskParser!.isMarkdownTask(line)){
                 //this.plugin.debugLog(line)
                 //this.plugin.debugLog("It is not a markdown task.")
                 continue;
             }
             //if content is empty
-            if(this.plugin.taskParser.getTaskContentFromLineText(line) == ""){
+            if(this.plugin.taskParser!.getTaskContentFromLineText(line) == ""){
                 //this.plugin.debugLog("Line content is empty")
                 continue;
             }
-            if (!this.plugin.taskParser.hasTodoistId(line) && !this.plugin.taskParser.hasTodoistTag(line)) {
+            if (!this.plugin.taskParser!.hasTodoistId(line) && !this.plugin.taskParser!.hasTodoistTag(line)) {
                 //this.plugin.debugLog(line)
                 //this.plugin.debugLog('prepare to add todoist tag')
-                const newLine = this.plugin.taskParser.addTodoistTag(line);
+                const newLine = this.plugin.taskParser!.addTodoistTag(line);
                 //this.plugin.debugLog(newLine)
                 lines[i] = newLine
                 modified = true
@@ -270,7 +337,7 @@ export class FileOperation   {
             const newContent = lines.join('\n')
             //this.plugin.debugLog(newContent)
             await this.plugin.backupOperation?.backupFile(filepath);
-            await this.app.vault.modify(file, newContent)
+            await this.writeLiveFileContent(filepath, newContent)
             this.plugin.logOperation?.log('FILE_TODOIST_TAG_ADDED', `Added todoist tag to file: ${filepath}`, filepath);
 
         }
@@ -281,32 +348,31 @@ export class FileOperation   {
     //add todoist at the line
     async addTodoistLinkToFile(filepath: string) {    
         // 获取文件对象并更新内容
-        const file = this.app.vault.getAbstractFileByPath(filepath)
-        const content = await this.app.vault.read(file)
+        const content = await this.readLiveFileContent(filepath)
     
         const lines = content.split('\n')
         let modified = false
     
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i]
-            if (this.plugin.taskParser.hasTodoistId(line) && this.plugin.taskParser.hasTodoistTag(line)) {
-                if(this.plugin.taskParser.hasTodoistLink(line)){
+            if (this.plugin.taskParser!.hasTodoistId(line) && this.plugin.taskParser!.hasTodoistTag(line)) {
+                if(this.plugin.taskParser!.hasTodoistLink(line)){
                     return
                 }
                 this.plugin.debugLog(line)
                 //this.plugin.debugLog('prepare to add todoist link')
-                const taskID = this.plugin.taskParser.getTodoistIdFromLineText(line)
-                const taskMapping = this.plugin.cacheOperation.getTaskFileMapping(taskID)
+                const taskID = this.plugin.taskParser!.getTodoistIdFromLineText(line)
+                const taskMapping = this.plugin.cacheOperation!.getTaskFileMapping(taskID ?? '')
                 if (!taskMapping) {
                     console.error(`Task ${taskID} not found in taskFileMapping`);
                     continue;
                 }
-                await this.plugin.todoistSyncAPI.GetTaskById(taskID)
+                await this.plugin.todoistSyncAPI!.GetTaskById(taskID ?? '')
                 const todoistLink = this.plugin.settings.useAppURI
                     ? `todoist://task?id=${taskID}`
                     : `https://app.todoist.com/app/task/${taskID}`
                 const link = `[link](${todoistLink})`
-                const newLine = this.plugin.taskParser.addTodoistLink(line,link)
+                const newLine = this.plugin.taskParser!.addTodoistLink(line,link)
                 this.plugin.debugLog(newLine)
                 lines[i] = newLine
                 modified = true
@@ -319,7 +385,7 @@ export class FileOperation   {
             const newContent = lines.join('\n')
             //this.plugin.debugLog(newContent)
             await this.plugin.backupOperation?.backupFile(filepath);
-            await this.app.vault.modify(file, newContent)
+            await this.writeLiveFileContent(filepath, newContent)
 
 
 
@@ -328,10 +394,10 @@ export class FileOperation   {
 
 
     // sync updated task content  to file
-    async syncUpdatedTaskContentToTheFile(evt:Object) {
+    async syncUpdatedTaskContentToTheFile(evt:any) {
         const taskId = evt.object_id
         // 获取任务文件路径
-        const taskMapping = this.plugin.cacheOperation.getTaskFileMapping(taskId)
+        const taskMapping = this.plugin.cacheOperation!.getTaskFileMapping(taskId)
         if (!taskMapping) {
             console.error(`Task ${taskId} not found in taskFileMapping`);
             return;
@@ -339,16 +405,15 @@ export class FileOperation   {
         const filepath = taskMapping.filePath
     
         // 获取文件对象并更新内容
-        const file = this.app.vault.getAbstractFileByPath(filepath)
-        const content = await this.app.vault.read(file)
+        const content = await this.readLiveFileContent(filepath)
     
         const lines = content.split('\n')
         let modified = false
     
         for (let i = 0; i < lines.length; i++) {
         const line = lines[i]
-        if (line.includes(taskId) && this.plugin.taskParser.hasTodoistTag(line)) {
-            const oldTaskContent = this.plugin.taskParser.getTaskContentFromLineText(line)
+        if (line.includes(taskId) && this.plugin.taskParser!.hasTodoistTag(line)) {
+            const oldTaskContent = this.plugin.taskParser!.getTaskContentFromLineText(line)
             const newTaskContent = evt.extra_data.content
 
             lines[i] = line.replace(oldTaskContent, newTaskContent)
@@ -361,17 +426,17 @@ export class FileOperation   {
         const newContent = lines.join('\n')
         //this.plugin.debugLog(newContent)
         await this.plugin.backupOperation?.backupFile(filepath);
-        await this.app.vault.modify(file, newContent)
+        await this.writeLiveFileContent(filepath, newContent)
         this.plugin.logOperation?.log('FILE_TASK_CONTENT_SYNCED', `Synced task content from Todoist: ${taskId}`, filepath, taskId, this.plugin.isSyncingFromTodoist ? 'todoist→obsidian' : 'obsidian→todoist');
         }
         
     }
 
     // sync updated task due date  to the file
-    async syncUpdatedTaskDueDateToTheFile(evt:Object) {
+    async syncUpdatedTaskDueDateToTheFile(evt:any) {
         const taskId = evt.object_id
         // 获取任务文件路径
-        const taskMapping = this.plugin.cacheOperation.getTaskFileMapping(taskId)
+        const taskMapping = this.plugin.cacheOperation!.getTaskFileMapping(taskId)
         if (!taskMapping) {
             console.error(`Task ${taskId} not found in taskFileMapping`);
             return;
@@ -379,24 +444,23 @@ export class FileOperation   {
         const filepath = taskMapping.filePath
     
         // 获取文件对象并更新内容
-        const file = this.app.vault.getAbstractFileByPath(filepath)
-        const content = await this.app.vault.read(file)
+        const content = await this.readLiveFileContent(filepath)
     
         const lines = content.split('\n')
         let modified = false
     
         for (let i = 0; i < lines.length; i++) {
         const line = lines[i]
-        if (line.includes(taskId) && this.plugin.taskParser.hasTodoistTag(line)) {
-            const oldTaskDueDate = this.plugin.taskParser.getDueDateFromLineText(line) || ""
-            const newTaskDueDate = this.plugin.taskParser.ISOStringToLocalDateString(evt.extra_data.due_date) || ""
+        if (line.includes(taskId) && this.plugin.taskParser!.hasTodoistTag(line)) {
+            const oldTaskDueDate = this.plugin.taskParser!.getDueDateFromLineText(line) || ""
+            const newTaskDueDate = this.plugin.taskParser!.ISOStringToLocalDateString(evt.extra_data.due_date) || ""
             
             //this.plugin.debugLog(`${taskId} duedate is updated`)
             this.plugin.debugLog(oldTaskDueDate)
             this.plugin.debugLog(newTaskDueDate)
             if(oldTaskDueDate === ""){
-                //this.plugin.debugLog(this.plugin.taskParser.insertDueDateBeforeTodoist(line,newTaskDueDate))
-                lines[i] = this.plugin.taskParser.insertDueDateBeforeTodoist(line,newTaskDueDate)
+                //this.plugin.debugLog(this.plugin.taskParser!.insertDueDateBeforeTodoist(line,newTaskDueDate))
+                lines[i] = this.plugin.taskParser!.insertDueDateBeforeTodoist(line,newTaskDueDate)
                 modified = true
 
             }
@@ -419,7 +483,7 @@ export class FileOperation   {
         const newContent = lines.join('\n')
         //this.plugin.debugLog(newContent)
         await this.plugin.backupOperation?.backupFile(filepath);
-        await this.app.vault.modify(file, newContent)
+        await this.writeLiveFileContent(filepath, newContent)
         this.plugin.logOperation?.log('FILE_TASK_DUEDATE_SYNCED', `Synced task due date from Todoist: ${taskId}`, filepath, taskId, this.plugin.isSyncingFromTodoist ? 'todoist→obsidian' : 'obsidian→todoist');
         }
         
@@ -427,14 +491,14 @@ export class FileOperation   {
 
 
     // sync new task note to file
-    async syncAddedTaskNoteToTheFile(evt:Object) {
+    async syncAddedTaskNoteToTheFile(evt:any) {
 
 
         const taskId = evt.parent_item_id
         const note = evt.extra_data.content
-        const datetime = this.plugin.taskParser.ISOStringToLocalDatetimeString(evt.event_date)
+        const datetime = this.plugin.taskParser!.ISOStringToLocalDatetimeString(evt.event_date)
         // 获取任务文件路径
-        const taskMapping = this.plugin.cacheOperation.getTaskFileMapping(taskId)
+        const taskMapping = this.plugin.cacheOperation!.getTaskFileMapping(taskId)
         if (!taskMapping) {
             console.error(`Task ${taskId} not found in taskFileMapping`);
             return;
@@ -442,15 +506,14 @@ export class FileOperation   {
         const filepath = taskMapping.filePath
     
         // 获取文件对象并更新内容
-        const file = this.app.vault.getAbstractFileByPath(filepath)
-        const content = await this.app.vault.read(file)
+        const content = await this.readLiveFileContent(filepath)
     
         const lines = content.split('\n')
         let modified = false
     
         for (let i = 0; i < lines.length; i++) {
         const line = lines[i]
-        if (line.includes(taskId) && this.plugin.taskParser.hasTodoistTag(line)) {
+        if (line.includes(taskId) && this.plugin.taskParser!.hasTodoistTag(line)) {
             const indent = '\t'.repeat(line.length - line.trimStart().length + 1);
             const noteLine = `${indent}- ${datetime} ${note}`;
             lines.splice(i + 1, 0, noteLine);
@@ -463,7 +526,7 @@ export class FileOperation   {
         const newContent = lines.join('\n')
         //this.plugin.debugLog(newContent)
         await this.plugin.backupOperation?.backupFile(filepath);
-        await this.app.vault.modify(file, newContent)
+        await this.writeLiveFileContent(filepath, newContent)
         this.plugin.logOperation?.log('FILE_TASK_NOTE_ADDED', `Synced task note from Todoist: ${taskId}`, filepath, taskId, this.plugin.isSyncingFromTodoist ? 'todoist→obsidian' : 'obsidian→todoist');
         }
         
@@ -471,19 +534,18 @@ export class FileOperation   {
 
 
     async syncTaskContentToFile(taskId: string, newContent: string): Promise<boolean> {
-        const taskMapping = this.plugin.cacheOperation.getTaskFileMapping(taskId);
+        const taskMapping = this.plugin.cacheOperation!.getTaskFileMapping(taskId);
         if (!taskMapping) return false;
         const filepath = taskMapping.filePath;
 
-        const file = this.app.vault.getAbstractFileByPath(filepath);
-        const fileContent = await this.app.vault.read(file);
+        const fileContent = await this.readLiveFileContent(filepath);
         const lines = fileContent.split('\n');
         let modified = false;
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
-            if (line.includes(taskId) && this.plugin.taskParser.hasTodoistTag(line)) {
-                const oldContent = this.plugin.taskParser.getTaskContentFromLineText(line);
+            if (line.includes(taskId) && this.plugin.taskParser!.hasTodoistTag(line)) {
+                const oldContent = this.plugin.taskParser!.getTaskContentFromLineText(line);
                 if (oldContent && oldContent !== newContent) {
                     lines[i] = line.replace(oldContent, newContent);
                     modified = true;
@@ -495,32 +557,31 @@ export class FileOperation   {
         if (modified) {
             const newFileContent = lines.join('\n');
             await this.plugin.backupOperation?.backupFile(filepath);
-            await this.app.vault.modify(file, newFileContent);
+            await this.writeLiveFileContent(filepath, newFileContent);
             this.plugin.logOperation?.log('FILE_TASK_CONTENT_SYNCED', `Synced content from Todoist: ${taskId}`, filepath, taskId, this.plugin.isSyncingFromTodoist ? 'todoist→obsidian' : 'obsidian→todoist');
         }
         return modified;
     }
 
     async syncTaskDueDateToFile(taskId: string, newDueDate: string): Promise<boolean> {
-        const taskMapping = this.plugin.cacheOperation.getTaskFileMapping(taskId);
+        const taskMapping = this.plugin.cacheOperation!.getTaskFileMapping(taskId);
         if (!taskMapping) return false;
         const filepath = taskMapping.filePath;
 
-        const file = this.app.vault.getAbstractFileByPath(filepath);
-        const fileContent = await this.app.vault.read(file);
+        const fileContent = await this.readLiveFileContent(filepath);
         const lines = fileContent.split('\n');
         let modified = false;
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
-            if (line.includes(taskId) && this.plugin.taskParser.hasTodoistTag(line)) {
-                const oldDueDate = this.plugin.taskParser.getDueDateFromLineText(line) || "";
-                const localDueDate = this.plugin.taskParser.ISOStringToLocalDateString(newDueDate) || "";
+            if (line.includes(taskId) && this.plugin.taskParser!.hasTodoistTag(line)) {
+                const oldDueDate = this.plugin.taskParser!.getDueDateFromLineText(line) || "";
+                const localDueDate = this.plugin.taskParser!.ISOStringToLocalDateString(newDueDate) || "";
 
                 if (oldDueDate === localDueDate) break;
 
                 if (oldDueDate === "" && localDueDate !== "") {
-                    lines[i] = this.plugin.taskParser.insertDueDateBeforeTodoist(line, localDueDate);
+                    lines[i] = this.plugin.taskParser!.insertDueDateBeforeTodoist(line, localDueDate);
                     modified = true;
                 } else if (localDueDate === "") {
                     const regexRemoveDate = /(🗓️|📅|📆|🗓)\s?\d{4}-\d{2}-\d{2}/;
@@ -537,7 +598,7 @@ export class FileOperation   {
         if (modified) {
             const newFileContent = lines.join('\n');
             await this.plugin.backupOperation?.backupFile(filepath);
-            await this.app.vault.modify(file, newFileContent);
+            await this.writeLiveFileContent(filepath, newFileContent);
             this.plugin.logOperation?.log('FILE_TASK_DUEDATE_SYNCED', `Synced due date from Todoist: ${taskId}`, filepath, taskId, this.plugin.isSyncingFromTodoist ? 'todoist→obsidian' : 'obsidian→todoist');
         }
         return modified;
@@ -552,12 +613,11 @@ export class FileOperation   {
     }
 
     async syncTaskPriorityToFile(taskId: string, newPriority: number): Promise<boolean> {
-        const taskMapping = this.plugin.cacheOperation.getTaskFileMapping(taskId);
+        const taskMapping = this.plugin.cacheOperation!.getTaskFileMapping(taskId);
         if (!taskMapping) return false;
         const filepath = taskMapping.filePath;
 
-        const file = this.app.vault.getAbstractFileByPath(filepath);
-        const fileContent = await this.app.vault.read(file);
+        const fileContent = await this.readLiveFileContent(filepath);
         const lines = fileContent.split('\n');
         let modified = false;
 
@@ -568,9 +628,9 @@ export class FileOperation   {
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
-            if (!line.includes(taskId) || !this.plugin.taskParser.hasTodoistTag(line)) continue;
+            if (!line.includes(taskId) || !this.plugin.taskParser!.hasTodoistTag(line)) continue;
 
-            const currentPriority = this.plugin.taskParser.getTaskPriority(line);
+            const currentPriority = this.plugin.taskParser!.getTaskPriority(line);
             if (currentPriority === targetPriority) break;
 
             const metadataIndex = line.indexOf('%%[todoist_id::');
@@ -589,7 +649,7 @@ export class FileOperation   {
         if (modified) {
             const newFileContent = lines.join('\n');
             await this.plugin.backupOperation?.backupFile(filepath);
-            await this.app.vault.modify(file, newFileContent);
+            await this.writeLiveFileContent(filepath, newFileContent);
             this.plugin.logOperation?.log('FILE_TASK_PRIORITY_SYNCED', `Synced priority from Todoist: ${taskId}`, filepath, taskId, this.plugin.isSyncingFromTodoist ? 'todoist→obsidian' : 'obsidian→todoist');
         }
 
@@ -597,24 +657,23 @@ export class FileOperation   {
     }
 
     async syncTaskLabelsToFile(taskId: string, newLabels: string[]): Promise<boolean> {
-        const taskMapping = this.plugin.cacheOperation.getTaskFileMapping(taskId);
+        const taskMapping = this.plugin.cacheOperation!.getTaskFileMapping(taskId);
         if (!taskMapping) return false;
         const filepath = taskMapping.filePath;
 
-        const file = this.app.vault.getAbstractFileByPath(filepath);
-        const fileContent = await this.app.vault.read(file);
+        const fileContent = await this.readLiveFileContent(filepath);
         const lines = fileContent.split('\n');
         let modified = false;
 
         const todoistLabels = this.normalizeLabelsForSync(newLabels);
-        const desiredLabels = this.plugin.taskParser.normalizeLabelsForCompare([...todoistLabels, 'todoist']);
+        const desiredLabels = this.plugin.taskParser!.normalizeLabelsForCompare([...todoistLabels, 'todoist']);
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
-            if (!line.includes(taskId) || !this.plugin.taskParser.hasTodoistTag(line)) continue;
+            if (!line.includes(taskId) || !this.plugin.taskParser!.hasTodoistTag(line)) continue;
 
-            const currentLabels = this.plugin.taskParser.normalizeLabelsForCompare(
-                this.plugin.taskParser.getAllTagsFromLineText(line)
+            const currentLabels = this.plugin.taskParser!.normalizeLabelsForCompare(
+                this.plugin.taskParser!.getAllTagsFromLineText(line)
             );
             const isSame = currentLabels.length === desiredLabels.length
                 && currentLabels.every((label, idx) => label === desiredLabels[idx]);
@@ -639,7 +698,7 @@ export class FileOperation   {
         if (modified) {
             const newFileContent = lines.join('\n');
             await this.plugin.backupOperation?.backupFile(filepath);
-            await this.app.vault.modify(file, newFileContent);
+            await this.writeLiveFileContent(filepath, newFileContent);
             this.plugin.logOperation?.log('FILE_TASK_LABELS_SYNCED', `Synced labels from Todoist: ${taskId}`, filepath, taskId, this.plugin.isSyncingFromTodoist ? 'todoist→obsidian' : 'obsidian→todoist');
         }
 
@@ -647,18 +706,17 @@ export class FileOperation   {
     }
 
     async syncTaskNoteToFile(taskId: string, noteContent: string, noteDate: string): Promise<boolean> {
-        const taskMapping = this.plugin.cacheOperation.getTaskFileMapping(taskId);
+        const taskMapping = this.plugin.cacheOperation!.getTaskFileMapping(taskId);
         if (!taskMapping) return false;
         const filepath = taskMapping.filePath;
 
-        const file = this.app.vault.getAbstractFileByPath(filepath);
-        const fileContent = await this.app.vault.read(file);
+        const fileContent = await this.readLiveFileContent(filepath);
         const lines = fileContent.split('\n');
         let modified = false;
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
-            if (line.includes(taskId) && this.plugin.taskParser.hasTodoistTag(line)) {
+            if (line.includes(taskId) && this.plugin.taskParser!.hasTodoistTag(line)) {
                 const indent = '\t'.repeat(line.length - line.trimStart().length + 1);
                 const noteLine = `${indent}- ${noteDate} ${noteContent}`;
                 // skip if note already exists in next lines
@@ -672,7 +730,7 @@ export class FileOperation   {
         if (modified) {
             const newFileContent = lines.join('\n');
             await this.plugin.backupOperation?.backupFile(filepath);
-            await this.app.vault.modify(file, newFileContent);
+            await this.writeLiveFileContent(filepath, newFileContent);
             this.plugin.logOperation?.log('FILE_TASK_NOTE_ADDED', `Synced note from Todoist: ${taskId}`, filepath, taskId, this.plugin.isSyncingFromTodoist ? 'todoist→obsidian' : 'obsidian→todoist');
         }
         return modified;
@@ -681,7 +739,7 @@ export class FileOperation   {
     //避免使用该方式，通过view可以获得实时更新的value
     async readContentFromFilePath(filepath:string){
         try {
-            const file = this.app.vault.getAbstractFileByPath(filepath);
+            const file = this.requireFile(filepath);
             const content = await this.app.vault.read(file);
             return content
         } catch (error) {
@@ -693,8 +751,7 @@ export class FileOperation   {
 
     //search todoist_id by content
     async searchTodoistIdFromFilePath(filepath: string, searchTerm: string): Promise<string | null> {
-        const file = this.app.vault.getAbstractFileByPath(filepath)
-        const fileContent = await this.app.vault.read(file)
+        const fileContent = await this.readLiveFileContent(filepath)
         const fileLines = fileContent.split('\n');
         let todoistId: string | null = null;
     
@@ -744,18 +801,8 @@ export class FileOperation   {
 
 
     isMarkdownFile(filename:string) {
-        // 获取文件名的扩展名
-        let extension = filename.split('.').pop();
-      
-        // 将扩展名转换为小写（Markdown文件的扩展名通常是.md）
-        extension = extension.toLowerCase();
-      
-        // 判断扩展名是否为.md
-        if (extension === 'md') {
-          return true;
-        } else {
-          return false;
-        }
+        const extension = filename.split('.').pop();
+        return extension?.toLowerCase() === 'md';
       }
 
     /**
@@ -768,15 +815,8 @@ export class FileOperation   {
     ): Promise<boolean> {
         try {
             console.log(`[updateTaskIdInVault] start file=${filePath} oldId=${oldId} newId=${newId}`);
-            const file = this.app.vault.getAbstractFileByPath(filePath);
-            if (!file) {
-                console.error(`[updateTaskIdInVault] File not found: ${filePath}`);
-                this.plugin.debugLog(filePath)
-                console.log(`[updateTaskIdInVault] fail file-not-found file=${filePath}`);
-                return false;
-            }
-            
-            const content = await this.app.vault.read(file);
+
+            const content = await this.readLiveFileContent(filePath);
             const lines = content.split('\n');
             console.log(`[updateTaskIdInVault] file-loaded lines=${lines.length} file=${filePath}`);
             
@@ -829,6 +869,16 @@ export class FileOperation   {
                 hasChanges = true;
                 console.log('[updateTaskIdInVault] replaced new web url');
             }
+
+            // Todoist's pre-migration URL, camel-cased as showTask. The shape itself
+            // is retired — following one now gets "this link will stop working" —
+            // so swap the whole URL rather than just the id inside it.
+            const legacyShowTaskPattern = new RegExp(`https?://todoist\\.com/showTask\\?id=${oldId}\\b`, 'gi');
+            if (legacyShowTaskPattern.test(line)) {
+                line = line.replace(legacyShowTaskPattern, `https://app.todoist.com/app/task/${newId}`);
+                hasChanges = true;
+                console.log('[updateTaskIdInVault] replaced legacy showTask url');
+            }
             
             if (!hasChanges) {
                 console.warn(`[updateTaskIdInVault] No ID patterns found for ${oldId} in ${filePath}`);
@@ -853,7 +903,7 @@ export class FileOperation   {
             }
             console.log(`[updateTaskIdInVault] backup-success path=${backupPath}`);
 
-            await this.app.vault.modify(file, lines.join('\n'));
+            await this.writeLiveFileContent(filePath, lines.join('\n'));
             console.log(`[updateTaskIdInVault] vault-modify-success oldId=${oldId} newId=${newId} file=${filePath}`);
             
             this.plugin.logOperation?.log(
@@ -899,7 +949,7 @@ export class FileOperation   {
 
         for (const file of files) {
             try {
-                const content = await this.app.vault.read(file);
+                const content = await this.readLiveFileContent(file.path);
                 const lines = content.split('\n');
 
                 for (let i = 0; i < lines.length; i++) {
@@ -910,11 +960,11 @@ export class FileOperation   {
                     }
                     
                     const match = line.match(/%%\[todoist_id::\s*([\w-]+)\]%%/);
-                        const taskContent = this.plugin.taskParser.getTaskContentFromLineText(line);
+                        const taskContent = this.plugin.taskParser!.getTaskContentFromLineText(line);
                         const isCompleted = /\[x\]/i.test(line);
                         const labels = this.extractLabelsFromLine(line);
-                        const dueDate = this.plugin.taskParser.getDueDateFromLineText(line) || undefined;
-                        const priority = this.plugin.taskParser.getTaskPriority(line);
+                        const dueDate = this.plugin.taskParser!.getDueDateFromLineText(line) || undefined;
+                        const priority = this.plugin.taskParser!.getTaskPriority(line);
                     
                     if (match && match[1]) {
                         const taskId = match[1];
@@ -991,7 +1041,7 @@ export class FileOperation   {
      * @returns 标签数组（不带 # 前缀）
      */
     private extractLabelsFromLine(line: string): string[] {
-        return this.plugin.taskParser.getAllTagsFromLineText(line);
+        return this.plugin.taskParser!.getAllTagsFromLineText(line);
     }
 
 

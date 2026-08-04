@@ -237,7 +237,7 @@ export class StoragePathManager {
         try {
             const file = this.app.vault.getAbstractFileByPath(path);
             if (file && 'stat' in file) {
-                return file.stat.mtime;
+                return (file as { stat: { mtime: number } }).stat.mtime;
             }
             return 0;
         } catch {

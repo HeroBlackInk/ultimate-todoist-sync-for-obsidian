@@ -44,6 +44,9 @@ export class TodoistSyncAPI   {
 	// Store complete raw API response
 	// Store complete raw API response
 	private syncData: Record<string, any> | null = null;
+	// taskId → what a direct lookup said about a task missing from syncData.
+	private completionStateCache = new Map<string, 'completed' | 'missing'>();
+
 	// API-level sync lock — prevents concurrent incrementalSync/initializeSync
 	private _syncRunning = false;
 	private _syncDirty = false;
@@ -315,6 +318,31 @@ export class TodoistSyncAPI   {
 		return await this.deviceManager.getClientHeader();
 	}
 
+  private async resolveLegacyId(objName: 'projects' | 'tasks' | 'sections', id?: string | null): Promise<string | undefined> {
+    if (!id) {
+      return undefined;
+    }
+
+    return await this.plugin.todoistRestAPI?.resolveId(objName, id);
+  }
+
+	// Waiters must be drained *after* the run completes, not captured before it:
+	// callers that join while a sync is in flight push themselves onto the queue
+	// during the run, and would otherwise stay pending until some later sync
+	// happened to drain them — hanging every `await incrementalSync()` and, with
+	// it, the sync lock its caller is holding.
+	private resolveSyncWaiters(): void {
+		for (const waiter of this._syncWaiters.splice(0)) {
+			waiter.resolve();
+		}
+	}
+
+	private rejectSyncWaiters(error: unknown): void {
+		for (const waiter of this._syncWaiters.splice(0)) {
+			waiter.reject(error);
+		}
+	}
+
 	async initializeSync(): Promise<void> {
 		// Route through incrementalSync lock so concurrent callers wait
 		if (this._syncRunning) {
@@ -325,15 +353,15 @@ export class TodoistSyncAPI   {
 		}
 		this._syncRunning = true;
 		this._syncDirty = false;
-		const waiters = this._syncWaiters.splice(0);
 		try {
 			const data = await this.getAllResources(true);
 			this.syncData = data;
 			await this.plugin.safeSettings?.update({ syncDataCache: data }, true);
 			this.plugin.debugLog('[TodoistSyncAPI] Sync initialized with full data and cached');
-			waiters.forEach(w => w.resolve());
+			// A full sync answers every waiter, including those that joined mid-run.
+			this.resolveSyncWaiters();
 		} catch (error) {
-			waiters.forEach(w => w.reject(error));
+			this.rejectSyncWaiters(error);
 			throw error;
 		} finally {
 			this._syncRunning = false;
@@ -355,7 +383,6 @@ export class TodoistSyncAPI   {
 
 		this._syncRunning = true;
 		this._syncDirty = false;
-		const waiters = this._syncWaiters.splice(0);
 		try {
 			do {
 				this._syncDirty = false;
@@ -373,10 +400,12 @@ export class TodoistSyncAPI   {
 				await this.plugin.safeSettings?.update({ syncDataCache: this.syncData }, true);
 				this.plugin.debugLog('[TodoistSyncAPI] Incremental sync completed and cached');
 			} while (this._syncDirty);
-			waiters.forEach(w => w.resolve());
+			// Loop condition guarantees anyone who joined mid-run got a fetch that
+			// started after their change landed.
+			this.resolveSyncWaiters();
 		} catch (error) {
 			console.error('[TodoistSyncAPI] Incremental sync failed:', error);
-			waiters.forEach(w => w.reject(error));
+			this.rejectSyncWaiters(error);
 			throw error;
 		} finally {
 			this._syncRunning = false;
@@ -448,13 +477,13 @@ export class TodoistSyncAPI   {
     		method: 'POST',
     		headers: {
     			'Authorization': `Bearer ${accessToken}`,
- 				'Content-Type': 'application/x-www-form-urlencoded',
+ 				'Content-Type': 'application/json',
  				'X-Todoist-Client': clientId
     		},
-    		body: new URLSearchParams({
+    		body: JSON.stringify({
     			sync_token: syncToken,
-    			resource_types: '["all"]'
-    		}).toString()
+    			resource_types: ['all'],
+    		}),
     	};
   
 	    	try {
@@ -514,12 +543,12 @@ export class TodoistSyncAPI   {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/x-www-form-urlencoded'
+          'Content-Type': 'application/json',
         },
-        body: new URLSearchParams({
-          sync_token: "*",
-          resource_types: '["user_plan_limits"]'
-        }).toString()
+        body: JSON.stringify({
+          sync_token: '*',
+          resource_types: ['user_plan_limits'],
+        }),
       };
     
       try {
@@ -557,15 +586,15 @@ export class TodoistSyncAPI   {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/x-www-form-urlencoded'
+            'Content-Type': 'application/json',
           },
-          body: new URLSearchParams({ commands: JSON.stringify(commands) }).toString()
+          body: JSON.stringify({ commands }),
         };
-      
+
         try {
           const response = await requestUrl(options);
 		  this.assertSuccessfulResponse('updateUserTimezone', response);
-      
+
           const data = response.json;
           this.plugin.debugLog(data)
           return data;
@@ -791,12 +820,10 @@ export class TodoistSyncAPI   {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
- 		'Content-Type': 'application/x-www-form-urlencoded',
+ 		'Content-Type': 'application/json',
  		'X-Todoist-Client': clientId
       },
-      body: new URLSearchParams({
-        commands: JSON.stringify(commands)
-      }).toString()
+      body: JSON.stringify({ commands }),
     };
 
     try {
@@ -840,25 +867,25 @@ export class TodoistSyncAPI   {
     due?: { string?: string; date?: string; datetime?: string };
     priority?: number;
     description?: string;
-  }): Promise<{ id: string }> {
-    const tempId = this.generateTempId();
-    const command = {
-      type: 'item_add',
-      uuid: this.generateUUID(),
-      temp_id: tempId,
-      args: args
-    };
+    labels?: string[];
+  }): Promise<any> {
+    const todoistRestAPI = this.plugin.todoistRestAPI;
+    if (!todoistRestAPI) {
+      throw new Error('Todoist REST API is not initialized');
+    }
 
-    const result = await this.executeCommands([command]);
-    if (result && result.temp_id_mapping && result.temp_id_mapping[tempId]) {
-      return { id: result.temp_id_mapping[tempId] };
-    }
-    const cmdStatus = result?.sync_status?.[command.uuid];
-    if (cmdStatus && cmdStatus !== 'ok') {
-      const err = cmdStatus as { error?: string; error_code?: number };
-      throw new Error(`Failed to add task: ${err.error || JSON.stringify(cmdStatus)}`);
-    }
-    throw new Error(`Failed to add task: no temp_id_mapping in response. Response: ${JSON.stringify(result)}`);
+    const projectId = await this.resolveLegacyId('projects', args.project_id);
+    const parentId = await this.resolveLegacyId('tasks', args.parent_id);
+    return await todoistRestAPI.AddTask({
+      projectId: projectId || undefined,
+      content: args.content,
+      parentId,
+      dueDate: args.due?.date,
+      dueDatetime: args.due?.datetime,
+      labels: args.labels,
+      description: args.description,
+      priority: args.priority,
+    });
   }
 
   // Update task using Sync API
@@ -866,60 +893,61 @@ export class TodoistSyncAPI   {
     content?: string;
     description?: string;
     priority?: number;
-    due?: { string?: string; date?: string };
-  }): Promise<boolean> {
-    const command = {
-      type: 'item_update',
-      uuid: this.generateUUID(),
-      args: {
-        id: taskId,
-        ...args
-      }
-    };
+    labels?: string[];
+    parent_id?: string;
+    due?: { string?: string; date?: string; datetime?: string };
+  }): Promise<any> {
+    const todoistRestAPI = this.plugin.todoistRestAPI;
+    if (!todoistRestAPI) {
+      throw new Error('Todoist REST API is not initialized');
+    }
 
-    await this.executeCommands([command]);
-    return true;
+    const resolvedTaskId = await this.resolveLegacyId('tasks', taskId);
+    return await todoistRestAPI.UpdateTask(resolvedTaskId || taskId, {
+      content: args.content,
+      description: args.description,
+      labels: args.labels,
+      dueDate: args.due?.date,
+      dueDatetime: args.due?.datetime,
+      dueString: args.due?.string,
+      parentId: await this.resolveLegacyId('tasks', args.parent_id),
+      priority: args.priority,
+    });
   }
 
   // Close task using Sync API
   async closeTask(taskId: string): Promise<boolean> {
-    const command = {
-      type: 'item_close',
-      uuid: this.generateUUID(),
-      args: {
-        id: taskId
-      }
-    };
+    const todoistRestAPI = this.plugin.todoistRestAPI;
+    if (!todoistRestAPI) {
+      throw new Error('Todoist REST API is not initialized');
+    }
 
-    await this.executeCommands([command]);
-    return true;
+    const resolvedTaskId = await this.resolveLegacyId('tasks', taskId);
+    return await todoistRestAPI.CloseTask(resolvedTaskId || taskId);
   }
 
   // Reopen task using Sync API (item_uncomplete per official docs)
   async reopenTask(taskId: string): Promise<boolean> {
-    const command = {
-      type: 'item_uncomplete',
-      uuid: this.generateUUID(),
-      args: {
-        id: taskId
-      }
-    };
+    const todoistRestAPI = this.plugin.todoistRestAPI;
+    if (!todoistRestAPI) {
+      throw new Error('Todoist REST API is not initialized');
+    }
 
-    await this.executeCommands([command]);
-    return true;
+    const resolvedTaskId = await this.resolveLegacyId('tasks', taskId);
+    return await todoistRestAPI.OpenTask(resolvedTaskId || taskId);
   }
 
   // Compatible wrapper: AddTask
   async AddTask(task: {
     projectId: string;
     content: string;
-    parentId?: string;
+    parentId?: string | null;
     dueDate?: string;
     dueDatetime?: string;
     labels?: string[];
     description?: string;
     priority?: number;
-  }): Promise<{ id: string }> {
+  }): Promise<any> {
     const args: any = {
       content: task.content,
     };
@@ -963,7 +991,7 @@ export class TodoistSyncAPI   {
     dueString?: string;
     parentId?: string;
     priority?: number;
-  }): Promise<boolean> {
+  }): Promise<any> {
     const args: any = {};
 
     if (updates.content) args.content = updates.content;
@@ -1009,6 +1037,7 @@ export class TodoistSyncAPI   {
   // Compatible wrapper: GetTaskById
   async GetTaskById(taskId: string, options?: { allowNetworkRefresh?: boolean }): Promise<any> {
     try {
+      taskId = (await this.resolveLegacyId('tasks', taskId)) || taskId;
       const allowNetworkRefresh = options?.allowNetworkRefresh !== false;
 
       if (!this.syncData) {
@@ -1022,6 +1051,15 @@ export class TodoistSyncAPI   {
       if (found) return found;
 
       if (!allowNetworkRefresh) {
+        return undefined;
+      }
+
+      // A task we already know is completed or deleted will never come back in a
+      // sync, so refreshing for it is a guaranteed-useless round trip. Without
+      // this, every settled task costs one full sync per pass that touches it.
+      const knownTerminal = this.completionStateCache.get(taskId);
+      if (knownTerminal) {
+        this.plugin.debugLog(`[TodoistSyncAPI] Skipping refresh for ${taskId}: known ${knownTerminal}`);
         return undefined;
       }
 
@@ -1040,6 +1078,42 @@ export class TodoistSyncAPI   {
       console.error('Error getting task by id:', error);
       throw error;
     }
+  }
+
+  /**
+   * What became of a task that is not in the sync data: 'completed', 'active',
+   * 'missing', or 'unknown' when Todoist could not be reached.
+   *
+   * Results are cached for the session so a task that stays gone — which is the
+   * normal state for a completed one — costs one request rather than one per
+   * sync pass. 'unknown' is never cached, so a failed lookup is retried.
+   */
+  async GetTaskCompletionState(taskId: string): Promise<'completed' | 'active' | 'missing' | 'unknown'> {
+    const cached = this.completionStateCache.get(taskId);
+    if (cached) return cached;
+
+    const restApi = this.plugin.todoistRestAPI;
+    if (!restApi) return 'unknown';
+
+    const resolvedId = (await this.resolveLegacyId('tasks', taskId)) || taskId;
+
+    // A pre-migration numeric ID that Todoist could not map to a current one is
+    // unaddressable, so a lookup by it would 404 and read as "deleted" for a task
+    // that may be perfectly alive under its new ID. Refuse to guess.
+    if (/^\d+$/.test(taskId) && resolvedId === taskId) {
+      this.plugin.debugLog(`[TodoistSyncAPI] ${taskId} is an unresolved legacy ID; completion state unknown`);
+      return 'unknown';
+    }
+
+    const state = await restApi.getTaskCompletionState(resolvedId);
+    // Only terminal verdicts are cached. 'active' means the absence was transient,
+    // so caching it would hide a completion that happens later in the session, and
+    // 'unknown' means the question was never answered.
+    if (state === 'completed' || state === 'missing') {
+      this.completionStateCache.set(taskId, state);
+    }
+    this.plugin.debugLog(`[TodoistSyncAPI] Completion state for ${taskId}: ${state}`);
+    return state;
   }
 
   // Local-only lookup: no network requests, returns undefined if not found
@@ -1061,10 +1135,13 @@ export class TodoistSyncAPI   {
         this.syncData = await this.getAllResources(true);
       }
       let tasks = this.syncData?.items || [];
+      const resolvedProjectId = options?.projectId
+        ? await this.resolveLegacyId('projects', options.projectId)
+        : undefined;
 
       if (options) {
-        if (options.projectId) {
-          tasks = tasks.filter((t: any) => t.project_id === options.projectId);
+        if (resolvedProjectId) {
+          tasks = tasks.filter((t: any) => t.project_id === resolvedProjectId);
         }
         if (options.section_id) {
           tasks = tasks.filter((t: any) => t.section_id === options.section_id);
@@ -1087,6 +1164,7 @@ export class TodoistSyncAPI   {
   // Get project by ID from syncData
   async getProjectById(projectId: string): Promise<any> {
     try {
+      projectId = (await this.resolveLegacyId('projects', projectId)) || projectId;
       if (!this.syncData) {
         this.syncData = await this.getAllResources(true);
       }
@@ -1119,16 +1197,13 @@ export class TodoistSyncAPI   {
 
   // Delete task using Sync API
   async deleteTask(taskId: string): Promise<boolean> {
-    const command = {
-      type: 'item_delete',
-      uuid: this.generateUUID(),
-      args: {
-        id: taskId
-      }
-    };
+    const todoistRestAPI = this.plugin.todoistRestAPI;
+    if (!todoistRestAPI) {
+      throw new Error('Todoist REST API is not initialized');
+    }
 
-    await this.executeCommands([command]);
-    return true;
+    const resolvedTaskId = await this.resolveLegacyId('tasks', taskId);
+    return await todoistRestAPI.DeleteTask(resolvedTaskId || taskId);
   }
 
   /**

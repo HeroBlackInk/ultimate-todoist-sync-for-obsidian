@@ -21,6 +21,10 @@ export interface TaskFileMappingEntry {
     syncEnabled?: boolean;
     updated_at?: string;
     note_count?: number;
+    /** Local epoch ms when this mapping was first created. Used as a grace window
+     *  before a task may be deleted, since a freshly written todoist_id can be
+     *  absent from the file text we read for a moment. */
+    createdAt?: number;
     issues?: Record<string, TaskIssueEntry>;
 }
 
@@ -40,7 +44,15 @@ export interface UltimateTodoistSyncSettings {
     useAppURI: boolean;
     syncEnabled: boolean;
     obsidianToTodoistEnabled: boolean;
+    /**
+     * How much of a vault edit is pushed to Todoist after the task exists.
+     * 'create-and-complete' suits the common workflow where tasks are captured in
+     * Obsidian and then worked on in Todoist, which makes Todoist authoritative.
+     */
+    obsidianToTodoistScope: 'create-and-complete' | 'full';
     todoistToObsidianEnabled: boolean;
+    /** What a Todoist→Obsidian pull is allowed to change in the vault. */
+    todoistToObsidianScope: 'status' | 'full';
     lastDatabaseCheckTime: number | null;
     syncDataCache: Record<string, any> | null;
     enableLog: boolean;
@@ -72,7 +84,9 @@ export const DEFAULT_SETTINGS: UltimateTodoistSyncSettings = {
     useAppURI: true,
     syncEnabled: true,
     obsidianToTodoistEnabled: true,
+    obsidianToTodoistScope: 'full',
     todoistToObsidianEnabled: false,
+    todoistToObsidianScope: 'status',
     lastDatabaseCheckTime: null,
     syncDataCache: null,
     enableLog: true,
@@ -353,21 +367,70 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
             );
 
         new Setting(containerEl)
+            .setName('Forward sync scope')
+            .setDesc('Everything: keep Todoist matching the vault line — edits to the text, due date, priority and labels are pushed, and removing the line deletes the task. Create and complete: send new tasks and completion only, leaving everything else to Todoist. Choose the latter if you capture tasks in Obsidian and then work on them in Todoist, since a vault line that has drifted will otherwise overwrite what you did there.')
+            .addDropdown(dropdown =>
+                dropdown
+                    .addOption('full', 'Everything (text, due date, priority, labels, deletions)')
+                    .addOption('create-and-complete', 'Create and complete only (Todoist owns the rest)')
+                    .setValue(this.plugin.settings.obsidianToTodoistScope)
+                    .onChange(async (value) => {
+                        await this.plugin.safeSettings?.update({ obsidianToTodoistScope: value as 'create-and-complete' | 'full' }, true);
+                        new Notice(value === 'full'
+                            ? 'Forward sync: pushing every field'
+                            : 'Forward sync: new tasks and completion only');
+                    })
+            );
+
+        // Created after the two settings below so it renders underneath them.
+        let reverseSyncWarningEl: HTMLElement;
+        const updateReverseSyncWarning = () => {
+            if (!reverseSyncWarningEl) return;
+            const enabled = this.plugin.settings.todoistToObsidianEnabled;
+            const full = this.plugin.settings.todoistToObsidianScope === 'full';
+            if (enabled && full) {
+                reverseSyncWarningEl.style.cssText = 'color: var(--text-error); font-weight: 600; margin: 6px 0 12px 0;';
+                reverseSyncWarningEl.textContent = '⚠️ Warning: in "Everything" scope, pulls rewrite the task line — tag order and spacing are normalised, and text you edited in Obsidian can be overwritten by the Todoist version. Back up your vault before relying on it.';
+            } else if (enabled) {
+                reverseSyncWarningEl.style.cssText = 'margin: 6px 0 12px 0;';
+                reverseSyncWarningEl.textContent = 'Pulling completion and due date: a task ticked or re-dated in Todoist is updated in your vault, and nothing else on the line is touched. Content, priority and labels stay owned by Obsidian — changing those in Todoist will be overwritten.';
+            } else {
+                reverseSyncWarningEl.style.cssText = 'margin: 6px 0 12px 0;';
+                reverseSyncWarningEl.textContent = 'Changes made in Todoist are not applied to your vault. Note that with this off, a task edited in Todoist keeps its Obsidian version — the next edit here pushes over it.';
+            }
+        };
+
+        new Setting(containerEl)
             .setName('Todoist → Obsidian')
-            .setDesc('⚠️ Reverse sync (Todoist → Obsidian) currently has known bugs and is disabled by default. Enabling is NOT recommended.')
+            .setDesc('Apply changes made in Todoist to your vault. Use the scope below to choose what a pull is allowed to change.')
             .addToggle(component =>
                 component
                     .setValue(this.plugin.settings.todoistToObsidianEnabled)
                     .onChange(async (value) => {
                         await this.plugin.safeSettings?.update({ todoistToObsidianEnabled: value }, true);
                         updateSyncStatus();
+                        updateReverseSyncWarning();
                         new Notice(`Todoist → Obsidian ${value ? 'enabled' : 'disabled'}`);
                     })
             );
 
-        const reverseSyncWarningEl = containerEl.createEl('div', { cls: 'setting-item-description' });
-        reverseSyncWarningEl.style.cssText = 'color: var(--text-error); font-weight: 600; margin: 6px 0 12px 0;';
-        reverseSyncWarningEl.textContent = '⚠️ Warning: Reverse sync may incorrectly overwrite vault data. Keep this switch OFF unless you are actively testing.';
+        new Setting(containerEl)
+            .setName('Reverse sync scope')
+            .setDesc('Completion and due date: tick/untick the checkbox and update the date, leaving the rest of the line alone. Everything: also apply content, priority and labels, and append Todoist comments as sub-items — note that fields left out here are owned by Obsidian, so changing them in Todoist gets overwritten on the next push.')
+            .addDropdown(dropdown =>
+                dropdown
+                    .addOption('status', 'Completion and due date (recommended)')
+                    .addOption('full', 'Everything (also content, priority, labels, notes)')
+                    .setValue(this.plugin.settings.todoistToObsidianScope)
+                    .onChange(async (value) => {
+                        await this.plugin.safeSettings?.update({ todoistToObsidianScope: value as 'status' | 'full' }, true);
+                        updateReverseSyncWarning();
+                        new Notice(`Reverse sync scope: ${value === 'full' ? 'everything' : 'completion and due date'}`);
+                    })
+            );
+
+        reverseSyncWarningEl = containerEl.createEl('div', { cls: 'setting-item-description' });
+        updateReverseSyncWarning();
 
         // ============================================
         // Device Management Section
@@ -461,7 +524,11 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
                         verifyNotice.hide();
                         const todoistCount = this.plugin.todoistSyncAPI?.getSyncData()?.items?.length ?? 0;
                         const vaultCount = Object.keys(this.plugin.settings.taskFileMapping).length;
-                        const status = result.success ? '✅ Healthy' : `⚠️ ${result.totalIssues} issues`;
+                        const settledCount = result.summary.taskNonActive;
+                        const settledSuffix = settledCount > 0 ? ` + ${settledCount} settled` : '';
+                        const status = result.success
+                            ? `✅ Healthy${settledSuffix}`
+                            : `⚠️ ${result.actionableIssues} issues${settledSuffix}`;
                         new Notice(
                             `Verify complete — ${status}\nTodoist: ${todoistCount} tasks | Vault: ${vaultCount} mapped tasks`,
                             8000
@@ -478,7 +545,7 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName('Fix Database')
-            .setDesc('Run safe auto-repair for eligible issues only: (A) repair missing/stale mapping when Vault and Todoist already match, (B) mark completed-in-Vault and confirmed-missing-in-Todoist tasks as nonActive. Then re-check and report what still needs manual handling.')
+            .setDesc('Run safe auto-repair for eligible issues only: (A) repair missing/stale mapping when Vault and Todoist already match, (B) mark completed-in-Vault and confirmed-missing-in-Todoist tasks as nonActive, (C) re-check every task reported missing in Todoist by asking Todoist directly — tasks merely completed there are settled, and ones Todoist still has are put back into sync. Then re-check and report what still needs manual handling.')
             .addButton(button => button
                 .setButtonText('Run Safe Repair')
                 .onClick(async () => {
@@ -526,7 +593,7 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
                             return;
                         }
 
-                        progressNotice.setMessage(`Step 2/3: Found ${before.totalIssues} issues. Applying safe auto-repair...`);
+                        progressNotice.setMessage(`Step 2/4: Found ${before.totalIssues} issues. Applying safe auto-repair...`);
                         const autoRepairResult = await cacheOperation.applyMatchFirstAutoRepairs(before.issues as DatabaseCheckIssue[], true);
                         const autoRepairParts: string[] = [];
                         autoRepairParts.push(`🔧 Mapping repaired: ${autoRepairResult.mappingRepaired}`);
@@ -536,14 +603,30 @@ export class UltimateTodoistSyncSettingTab extends PluginSettingTab {
                         }
                         new Notice(autoRepairParts.join(' · '), 7000);
 
-                        progressNotice.setMessage('Step 3/3: Re-checking database...');
+                        // Ask Todoist directly about every task flagged as missing:
+                        // most of them were merely completed there.
+                        progressNotice.setMessage('Step 3/4: Re-checking tasks reported missing in Todoist...');
+                        const missingResult = await cacheOperation.reclassifyMissingTaskIssues((doneCount, total) => {
+                            progressNotice.setMessage(`Step 3/4: Checking task ${doneCount}/${total} against Todoist...`);
+                        });
+                        if (missingResult.migrated + missingResult.completed + missingResult.restored + missingResult.stillMissing + missingResult.unresolved > 0) {
+                            const missingParts: string[] = [];
+                            if (missingResult.migrated > 0) missingParts.push(`🆔 Legacy IDs migrated: ${missingResult.migrated}`);
+                            if (missingResult.completed > 0) missingParts.push(`✅ Completed in Todoist: ${missingResult.completed}`);
+                            if (missingResult.restored > 0) missingParts.push(`🔄 Restored to sync: ${missingResult.restored}`);
+                            if (missingResult.stillMissing > 0) missingParts.push(`🗑️ Confirmed deleted: ${missingResult.stillMissing}`);
+                            if (missingResult.unresolved > 0) missingParts.push(`❓ Could not check: ${missingResult.unresolved}`);
+                            new Notice(missingParts.join(' · '), 8000);
+                        }
+
+                        progressNotice.setMessage('Step 4/4: Re-checking database...');
                         const after = await databaseChecker.checkDatabase((msg) => {
-                            progressNotice.setMessage(`Step 3/3: ${msg}`);
+                            progressNotice.setMessage(`Step 4/4: ${msg}`);
                         });
                         await this.applyDatabaseIssuesToMapping(after);
                         progressNotice.hide();
-                        const fixedCount = Math.max(0, before.totalIssues - after.totalIssues);
-                        const remainingCount = after.totalIssues;
+                        const fixedCount = Math.max(0, before.actionableIssues - after.actionableIssues);
+                        const remainingCount = after.actionableIssues;
                         await this.plugin.safeSettings?.update({
                             lastDatabaseCheckTime: Date.now()
                         }, true);

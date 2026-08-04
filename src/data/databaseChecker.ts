@@ -122,6 +122,13 @@ export interface TodoistTask {
 export interface DatabaseCheckResult {
     success: boolean;               // 检查是否通过（无问题）
     totalIssues: number;            // 问题总数
+    /**
+     * Issues that actually need a decision. Excludes settled ones — a task
+     * completed in the vault and gone from Todoist's active set is a normal end
+     * state, not something to fix, and counting it made every launch report
+     * "database issues" for a healthy vault.
+     */
+    actionableIssues: number;
     issues: DatabaseCheckIssue[];   // 问题列表
     summary: {                      // 统计摘要
         // taskFileMapping 相关
@@ -198,19 +205,6 @@ export class DatabaseChecker {
             return path.replace(/\\/g, '/');
         }
     }
-
-	private async confirmTodoistTaskMissing(taskId: string): Promise<boolean> {
-		const todoistSyncAPI = this.plugin.todoistSyncAPI;
-		if (!todoistSyncAPI) return false;
-
-		try {
-			const task = await todoistSyncAPI.GetTaskById(taskId, { allowNetworkRefresh: false });
-			return !task;
-		} catch (error) {
-			console.error(`[DatabaseChecker] confirmTodoistTaskMissing failed for ${taskId}:`, error);
-			return false;
-		}
-	}
 
     /**
      * 主检查方法 - 执行完整的数据库一致性检查
@@ -348,13 +342,15 @@ export class DatabaseChecker {
 
             // 计算问题总数
             const totalIssues = Object.values(summary).reduce((a, b) => a + b, 0);
+            const actionableIssues = totalIssues - summary.taskNonActive;
             // 记录日志
-            this.plugin.logOperation?.log('DATABASE_CHECKED', `Database check completed: ${totalIssues} issues found`);
+            this.plugin.logOperation?.log('DATABASE_CHECKED', `Database check completed: ${actionableIssues} issues needing action, ${summary.taskNonActive} settled`);
 
             // ====== 生成报告 ======
             const reportPath = await this.generateReport({
-                success: totalIssues === 0,
+                success: actionableIssues === 0,
                 totalIssues,
+                actionableIssues,
                 issues,
                 summary,
                 step1Stats,
@@ -363,8 +359,9 @@ export class DatabaseChecker {
 
             // 返回检查结果
             return {
-                success: totalIssues === 0,
+                success: actionableIssues === 0,
                 totalIssues,
+                actionableIssues,
                 issues,
                 summary,
                 reportPath,
@@ -378,6 +375,7 @@ export class DatabaseChecker {
             return {
                 success: false,
                 totalIssues: 0,
+                actionableIssues: 0,
                 issues: [{
                     type: 'issue_unclassified',
                     details: `Database check failed: ${(error as Error).message}`
@@ -452,6 +450,21 @@ export class DatabaseChecker {
             legacyIdIssue: 0,
             projectMismatch: 0,
             duplicateTask: 0
+        };
+
+        // Only fields that some direction actually syncs are worth comparing. With
+        // Obsidian creating tasks and Todoist owning them afterwards, a differing
+        // title or label is the expected steady state, not a fault — reporting it
+        // buries the real problems under one entry per task worked on in Todoist.
+        const pushesFieldEdits = this.plugin.settings.obsidianToTodoistScope === 'full';
+        const pullsFieldEdits = this.plugin.settings.todoistToObsidianEnabled
+            && this.plugin.settings.todoistToObsidianScope === 'full';
+        const pullsDueDate = this.plugin.settings.todoistToObsidianEnabled;
+        const watches = {
+            content: pushesFieldEdits || pullsFieldEdits,
+            dueDate: pushesFieldEdits || pullsDueDate,
+            priority: pushesFieldEdits || pullsFieldEdits,
+            labels: pushesFieldEdits || pullsFieldEdits,
         };
 
         const vaultFiles = new Set(this.app.vault.getFiles().map(file => file.path));
@@ -626,7 +639,7 @@ export class DatabaseChecker {
 
                 let hasSemanticMismatch = false;
 
-                if (!taskParser.taskContentCompare(vaultTask, todoistTask)) {
+                if (watches.content && !taskParser.taskContentCompare(vaultTask, todoistTask)) {
                     emitIssue({
                         type: 'sync_content_mismatch',
                         filePath: vaultTask.filePath,
@@ -655,7 +668,7 @@ export class DatabaseChecker {
 
                 const vaultDueDate = vaultTask.dueDate || '';
                 const todoistDueDate = todoistTask.dueDate || '';
-                if (!taskParser.compareTaskDueDate(vaultTask, todoistTask)) {
+                if (watches.dueDate && !taskParser.compareTaskDueDate(vaultTask, todoistTask)) {
                     emitIssue({
                         type: 'sync_due_mismatch',
                         filePath: vaultTask.filePath,
@@ -670,7 +683,7 @@ export class DatabaseChecker {
 
                 const vaultPriority = vaultTask.priority || 1;
                 const todoistPriority = todoistTask.priority || 1;
-                if (!taskParser.taskPriorityCompare(vaultTask, todoistTask)) {
+                if (watches.priority && !taskParser.taskPriorityCompare(vaultTask, todoistTask)) {
                     emitIssue({
                         type: 'sync_priority_mismatch',
                         filePath: vaultTask.filePath,
@@ -685,7 +698,7 @@ export class DatabaseChecker {
 
                 const obsidianLabels = taskParser.normalizeLabelsForCompare(vaultTask.labels);
                 const todoistLabels = taskParser.normalizeLabelsForCompare(todoistTask.labels);
-                if (!taskParser.taskTagCompare(vaultTask, todoistTask)) {
+                if (watches.labels && !taskParser.taskTagCompare(vaultTask, todoistTask)) {
                     emitIssue({
                         type: 'sync_labels_mismatch',
                         filePath: vaultTask.filePath,
@@ -777,28 +790,22 @@ export class DatabaseChecker {
                 }
 
                 if (vaultTask.isCompleted) {
-                    const missingConfirmed = await this.confirmTodoistTaskMissing(taskId);
-                    if (missingConfirmed) {
-                        emitIssue({
-                            type: 'task_marked_nonactive',
-                            filePath: vaultTask.filePath,
-                            taskId,
-                            lineNumber: vaultTask.lineNumber,
-                            details: 'Task is completed in Vault and confirmed missing in Todoist',
-                            obsidianContent: vaultTask.content,
-                            obsidianStatus: vaultTask.isCompleted,
-                        });
-                    } else {
-                        emitIssue({
-                            type: 'issue_source_unconfirmed',
-                            filePath: vaultTask.filePath,
-                            taskId,
-                            lineNumber: vaultTask.lineNumber,
-                            details: 'Task appears missing in Todoist cache but could not be confirmed via direct lookup',
-                            obsidianContent: vaultTask.content,
-                            obsidianStatus: vaultTask.isCompleted,
-                        });
-                    }
+                    // Completed here and absent from the sync data is the normal end
+                    // state, not a discrepancy: /api/v1/sync only returns active
+                    // items, so every task ever completed leaves it. This used to be
+                    // put to a direct lookup, and anything that lookup could not
+                    // confirm — including every failure of it — was escalated to
+                    // "source unconfirmed", turning ordinary finished tasks into
+                    // problems demanding attention.
+                    emitIssue({
+                        type: 'task_marked_nonactive',
+                        filePath: vaultTask.filePath,
+                        taskId,
+                        lineNumber: vaultTask.lineNumber,
+                        details: 'Task is completed in Vault and no longer in the Todoist active set',
+                        obsidianContent: vaultTask.content,
+                        obsidianStatus: vaultTask.isCompleted,
+                    });
                 } else {
                     emitIssue({
                         type: 'todoist_task_missing',

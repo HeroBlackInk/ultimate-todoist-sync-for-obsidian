@@ -245,7 +245,12 @@ export default class UltimateTodoistSyncForObsidian extends Plugin {
 				this.debugLog('Startup database check passed');
 				return true;
 			} else {
-				new Notice(`Found ${result.totalIssues} database issue(s). Please use "Fix Database" in settings to resolve them.`);
+				// Settled tasks are excluded: a completed task that has left Todoist's
+				// active set is a normal end state, and reporting it on every launch
+				// trained the warning to be ignored.
+				const settled = result.summary.taskNonActive;
+				const settledNote = settled > 0 ? ` (${settled} settled task(s) need no action.)` : '';
+				new Notice(`Found ${result.actionableIssues} database issue(s). Please use "Fix Database" in settings to resolve them.${settledNote}`);
 				return true;
 			}
 		} catch (error) {

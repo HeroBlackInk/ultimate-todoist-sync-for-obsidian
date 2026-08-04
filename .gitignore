@@ -7,6 +7,7 @@
 
 # npm
 node_modules
+.pixi
 
 # Don't include the compiled main.js file in the repo.
 # They should be uploaded to GitHub releases instead.
@@ -32,7 +33,12 @@ opencode-session-history
 
 data.json
 /.sisyphus/
-/tests/
+/tests/*
+!/tests/unit/
+tests/.build/
 AGENTS.md
 device-id
 /.stfolder/
+# pixi environments
+.pixi/*
+!.pixi/config.toml

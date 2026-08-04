@@ -313,7 +313,7 @@ export class CacheOperation   {
      * @param taskId - Todoist 任务 ID
      * @returns 文件路径、状态和同步开关，如果不存在则返回 null
      */
-    getTaskFileMapping(taskId: string): { filePath: string; status?: string; syncEnabled?: boolean; updated_at?: string; note_count?: number; issues?: Record<string, unknown> } | null {
+    getTaskFileMapping(taskId: string): { filePath: string; status?: string; syncEnabled?: boolean; updated_at?: string; note_count?: number; createdAt?: number; issues?: Record<string, unknown> } | null {
         return this.plugin.settings.taskFileMapping[taskId] ?? null;
     }
 
@@ -336,7 +336,13 @@ export class CacheOperation   {
         const existing = mapping[taskId];
         const nextStatus = deriveTaskStatusFromIssueEntries(existing?.issues as TaskIssueRecord | undefined, status);
         const nextSyncEnabled = nextStatus === 'active' ? syncEnabled : false;
-        mapping[taskId] = { ...existing, filePath, status: nextStatus, syncEnabled: nextSyncEnabled };
+        mapping[taskId] = {
+            ...existing,
+            filePath,
+            status: nextStatus,
+            syncEnabled: nextSyncEnabled,
+            createdAt: existing?.createdAt ?? Date.now(),
+        };
         await this.plugin.safeSettings?.update({ taskFileMapping: mapping });
     }
 
@@ -509,6 +515,198 @@ export class CacheOperation   {
         }
 
         return changed;
+    }
+
+    /**
+     * Re-judge every task currently flagged "missing in Todoist" by asking Todoist
+     * about it directly.
+     *
+     * These issues were raised on the assumption that absence from the sync data
+     * means deletion. It does not: a completed task drops out of /api/v1/sync
+     * entirely, so a routine tick-off in Todoist produced an issue demanding
+     * manual attention. Vaults carry hundreds of these.
+     *
+     * Deleting them is the wrong answer, and with Full Vault Sync on it is worse
+     * than a no-op: the delete unbinds the line, the next pass re-tags it, and the
+     * task comes back as a brand new open task in Todoist.
+     */
+    async reclassifyMissingTaskIssues(
+        onProgress?: (done: number, total: number) => void
+    ): Promise<{ migrated: number; completed: number; restored: number; stillMissing: number; unresolved: number }> {
+        const todoistSyncAPI = this.plugin.todoistSyncAPI;
+        const result = { migrated: 0, completed: 0, restored: 0, stillMissing: 0, unresolved: 0 };
+        if (!todoistSyncAPI) return result;
+
+        const allCandidates = Object.entries(this.plugin.settings.taskFileMapping)
+            .filter(([, entry]) => {
+                const issue = (entry.issues as Record<string, { state?: string }> | undefined)?.todoist_task_missing;
+                return issue?.state === 'open';
+            })
+            .map(([taskId, entry]) => ({ taskId, filePath: entry.filePath }));
+
+        if (allCandidates.length === 0) return result;
+
+        // A task carrying a pre-migration numeric Todoist ID is absent from the
+        // sync data simply because that data is keyed by the new IDs — the task is
+        // alive and well under a new one. Migrate those before concluding anything:
+        // looking one up by its old ID answers "missing", which would invite the
+        // user to delete a task that still exists.
+        const handled = new Set<string>();
+        const legacyCandidates = allCandidates.filter(({ taskId }) => /^\d+$/.test(taskId));
+        const restApi = this.plugin.todoistRestAPI;
+        const fileOperation = this.plugin.fileOperation;
+
+        if (legacyCandidates.length > 0 && restApi && fileOperation) {
+            let resolvedIds: Record<string, string> = {};
+            try {
+                resolvedIds = await restApi.resolveIds('tasks', legacyCandidates.map(({ taskId }) => taskId));
+            } catch (error) {
+                console.error('[reclassifyMissingTaskIssues] Legacy ID resolution failed:', error);
+            }
+
+            for (const { taskId, filePath } of legacyCandidates) {
+                const newId = resolvedIds[taskId];
+                if (!newId || newId === taskId) {
+                    // Todoist has no new ID for it. It may be genuinely gone, but an
+                    // unaddressable ID is not evidence of that, so say exactly that.
+                    await this.upsertTaskIssue(taskId, 'todoist_task_missing', {
+                        state: 'open',
+                        severity: 'medium',
+                        source: 'runtime',
+                        details: `Task uses a pre-migration Todoist ID (${taskId}) that Todoist could not map to a current one.`,
+                        manualAction: 'Open the task link: if Todoist still shows the task, run Safe Repair again once online.',
+                    }, false);
+                    handled.add(taskId);
+                    result.unresolved++;
+                    continue;
+                }
+
+                const vaultUpdated = await fileOperation.updateTaskIdInVault(filePath, taskId, newId);
+                if (!vaultUpdated) {
+                    this.plugin.debugLog(`[reclassifyMissingTaskIssues] Could not rewrite ${taskId} -> ${newId} in ${filePath}`);
+                    continue;
+                }
+
+                // Move the mapping onto the new ID, keeping the entry's history and
+                // dropping the issue that was only ever about the old ID.
+                const mapping = { ...this.plugin.settings.taskFileMapping };
+                const previous = mapping[taskId];
+                delete mapping[taskId];
+                mapping[newId] = {
+                    ...previous,
+                    filePath,
+                    status: 'active',
+                    syncEnabled: true,
+                    issues: undefined,
+                    createdAt: previous?.createdAt ?? Date.now(),
+                    // Deliberately not carried over: the recorded revision belongs
+                    // to the old id, so keeping it would read as "Todoist changed
+                    // behind our back" on this task's very next edit. Undefined
+                    // means "no basis for comparison", and the next sync records
+                    // the real one.
+                    updated_at: undefined,
+                    note_count: undefined,
+                };
+                await this.plugin.safeSettings?.update({ taskFileMapping: mapping }, false);
+
+                this.plugin.logOperation?.log('FILE_TASK_ID_UPDATED', `Migrated legacy task ID ${taskId} -> ${newId}`, filePath, newId);
+                handled.add(taskId);
+                result.migrated++;
+            }
+        }
+
+        const candidates = allCandidates.filter(({ taskId }) => !handled.has(taskId));
+        if (candidates.length === 0) {
+            await this.plugin.safeSettings?.update({ taskFileMapping: this.plugin.settings.taskFileMapping }, true);
+            return result;
+        }
+
+        // Look the states up concurrently — they are read-only — but apply the
+        // mapping changes one at a time, since each is a read-modify-write of the
+        // whole settings object.
+        const CONCURRENCY = 4;
+        const states = new Map<string, string>();
+        let done = 0;
+        for (let i = 0; i < candidates.length; i += CONCURRENCY) {
+            const batch = candidates.slice(i, i + CONCURRENCY);
+            await Promise.all(batch.map(async ({ taskId }) => {
+                try {
+                    states.set(taskId, await todoistSyncAPI.GetTaskCompletionState(taskId));
+                } catch (error) {
+                    console.error(`[reclassifyMissingTaskIssues] Lookup failed for ${taskId}:`, error);
+                    states.set(taskId, 'unknown');
+                }
+                done++;
+                onProgress?.(done, candidates.length);
+            }));
+        }
+
+        for (const { taskId, filePath } of candidates) {
+            const state = states.get(taskId);
+            this.plugin.debugLog(`[reclassifyMissingTaskIssues] ${taskId} (${filePath}): ${state}`);
+
+            if (state === 'completed') {
+                // Done in Todoist. Reflect that in the vault, then record it as a
+                // settled non-active task rather than a problem. The issue must be
+                // resolved first: status is derived from the open issues.
+                try {
+                    await this.plugin.fileOperation?.completeTaskInTheFile(taskId);
+                } catch (error) {
+                    console.warn(`[reclassifyMissingTaskIssues] Could not tick ${taskId} in the vault:`, error);
+                }
+                await this.resolveTaskIssues(taskId, (issueType) => issueType === 'todoist_task_missing', false);
+                await this.upsertTaskIssue(taskId, 'task_marked_nonactive', {
+                    state: 'open',
+                    severity: 'low',
+                    source: 'runtime',
+                    details: 'Task was completed in Todoist.',
+                }, false);
+                result.completed++;
+                continue;
+            }
+
+            if (state === 'active') {
+                // Todoist has it, open. The task was never missing — the sync data
+                // was simply stale when it was flagged. Put it back into sync.
+                await this.resolveTaskIssues(taskId, (issueType) => issueType === 'todoist_task_missing', false);
+                await this.setTaskFileMapping(taskId, filePath, 'active', true);
+                result.restored++;
+                continue;
+            }
+
+            if (state === 'missing') {
+                // Todoist confirms it is gone. Keep the issue, but record that it
+                // was actually checked — otherwise this looks identical in the task
+                // manager to an entry the repair never got to.
+                await this.upsertTaskIssue(taskId, 'todoist_task_missing', {
+                    state: 'open',
+                    severity: 'high',
+                    source: 'runtime',
+                    details: `Confirmed deleted in Todoist (checked ${new Date().toLocaleString()}). The vault still has this task.`,
+                    manualAction: 'Delete to unbind it here; with Full Vault Sync on it is then re-created in Todoist as a new task.',
+                }, false);
+                result.stillMissing++;
+                continue;
+            }
+
+            // Could not ask Todoist — network, auth, or rate limit. Say so, rather
+            // than leaving the original "no longer exists" claim standing unchecked.
+            await this.upsertTaskIssue(taskId, 'todoist_task_missing', {
+                state: 'open',
+                severity: 'medium',
+                source: 'runtime',
+                details: `Could not reach Todoist to check this task (last tried ${new Date().toLocaleString()}).`,
+                manualAction: 'Run Safe Repair again — no decision has been made about this task yet.',
+            }, false);
+            result.unresolved++;
+        }
+
+        await this.plugin.safeSettings?.update({ taskFileMapping: this.plugin.settings.taskFileMapping }, true);
+        this.plugin.logOperation?.log(
+            'DATABASE_CHECKED',
+            `Re-checked ${allCandidates.length} missing-task issues: ${result.migrated} legacy IDs migrated, ${result.completed} completed, ${result.restored} restored, ${result.stillMissing} confirmed deleted, ${result.unresolved} unresolved`
+        );
+        return result;
     }
 
     async applyMatchFirstAutoRepairs(resultIssues: DatabaseCheckIssueLike[], shouldSave = true): Promise<MatchFirstAutoRepairResult> {
@@ -990,7 +1188,7 @@ export class CacheOperation   {
     // ==========================================================================================
 
     // DEPRECATED: Using syncData from Todoist API instead - no longer needed
-    loadTasksFromCache() {
+    loadTasksFromCache(): any[] {
         return [];
     }
 

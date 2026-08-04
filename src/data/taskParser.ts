@@ -1,4 +1,5 @@
 import { App} from 'obsidian';
+import { stripTaskContent } from './taskContent';
 import UltimateTodoistSyncForObsidian from "../../main";
 
 
@@ -330,18 +331,9 @@ export class TaskParser   {
   
   
     getTaskContentFromLineText(lineText:string) {
-        const TaskContent = lineText.replace(REGEX.TASK_CONTENT.REMOVE_INLINE_METADATA,"")
-                                    .replace(REGEX.TASK_CONTENT.REMOVE_TODOIST_LINK_OLD,"")  // 旧格式: todoist.com/showtask?id=xxx
-                                    .replace(REGEX.TASK_CONTENT.REMOVE_TODOIST_LINK_NEW,"")  // 新格式: app.todoist.com/app/task/xxx
-                                    .replace(REGEX.TASK_CONTENT.REMOVE_TODOIST_LINK_OLD_DOMAIN_NEW_PATH,"")
-                                    .replace(REGEX.TASK_CONTENT.REMOVE_TODOIST_LINK_APP_URI,"")
-                                    .replace(REGEX.TASK_CONTENT.REMOVE_PRIORITY," ") //priority 前后必须都有空格，
-                                    .replace(REGEX.TASK_CONTENT.REMOVE_TAGS,"")
-                                    .replace(REGEX.TASK_CONTENT.REMOVE_DATE,"")
-                                    .replace(REGEX.TASK_CONTENT.REMOVE_CHECKBOX,"")
-                                    .replace(REGEX.TASK_CONTENT.REMOVE_CHECKBOX_WITH_INDENTATION,"")
-                                    .replace(REGEX.TASK_CONTENT.REMOVE_SPACE,"")
-        return(TaskContent)
+        // Implemented in taskContent.ts, where it is unit-tested: this is the
+        // comparator behind every "did the task change?" decision.
+        return stripTaskContent(lineText)
     }
   
   
